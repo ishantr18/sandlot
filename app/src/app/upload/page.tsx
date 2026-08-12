@@ -4,6 +4,7 @@
 // Phase 2 will insert the on-device face-blur step between "pick" and "upload".
 import { upload } from "@vercel/blob/client";
 import { useRef, useState } from "react";
+import VideoRecorder from "@/components/VideoRecorder";
 
 type Stage = "pick" | "ready" | "uploading" | "done" | "error";
 
@@ -16,16 +17,28 @@ export default function UploadPage() {
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = e.target.files?.[0];
-    if (!picked) return;
-    // Object URL = local, in-memory address for the picked file.
-    // This is how we preview WITHOUT uploading anything.
+  // One entry point whether the video was recorded in-browser or picked from disk.
+  // Object URL = local, in-memory address for the file — preview WITHOUT uploading.
+  function acceptFile(picked: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(picked);
     setPreviewUrl(URL.createObjectURL(picked));
     setPlaybackUrl(null);
     setStage("ready");
+  }
+
+  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0];
+    if (picked) acceptFile(picked);
+    e.target.value = ""; // allow re-picking the same file after removing it
+  }
+
+  function removeVideo() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl(null);
+    setPlaybackUrl(null);
+    setStage("pick");
   }
 
   async function handleUploadClick() {
@@ -72,20 +85,31 @@ export default function UploadPage() {
       />
 
       {!playbackUrl && (
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="mb-4 flex h-48 w-full items-center justify-center rounded-lg border-2 border-dashed"
-        >
-          {file ? (
-            <span className="px-4 text-sm">{file.name}</span>
-          ) : (
-            <span className="text-zinc-400">Tap to record or choose a video</span>
-          )}
-        </button>
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {/* In-browser recorder: works on laptop webcams AND phone cameras */}
+          <VideoRecorder onRecorded={acceptFile} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed"
+          >
+            <span className="text-2xl">📁</span>
+            <span className="mt-1 text-sm text-zinc-500">
+              {file ? file.name : "Choose from library"}
+            </span>
+          </button>
+        </div>
       )}
 
       {previewUrl && !playbackUrl && (
-        <video src={previewUrl} controls playsInline className="mb-4 w-full rounded-lg" />
+        <div className="mb-4">
+          <video src={previewUrl} controls playsInline className="w-full rounded-lg" />
+          <button
+            onClick={removeVideo}
+            className="mt-2 w-full rounded-lg border py-2 text-sm text-red-600"
+          >
+            🗑 Remove video
+          </button>
+        </div>
       )}
 
       {playbackUrl && (
