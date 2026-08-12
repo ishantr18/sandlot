@@ -5,7 +5,8 @@
 - **CV (all on-device, in-browser):** MediaPipe Tasks Vision
   - Face Detector → blur pipeline (Phase 2)
   - Pose Landmarker → 33 body landmarks per frame (Phase 3)
-- **Backend:** Firebase — Auth (player/mentor/guardian roles), Firestore (sessions, metrics, comments, drill assignments), Storage (blurred videos only)
+- **Backend:** Firebase — Auth (player/mentor/guardian roles), Firestore (sessions, metrics, comments, drill assignments)
+- **Video storage:** Vercel Blob, private store (`sandlot-videos`) — blurred videos only; playback via short-lived signed URLs (Firebase Storage needs a paid plan; see DECISIONS.md)
 - **Charts:** Recharts
 - **Deploy:** Vercel
 

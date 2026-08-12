@@ -1,8 +1,9 @@
 // Firebase initialization — config comes from .env.local (see .env.local.example)
+// Note: video files live in Vercel Blob (private store), NOT Firebase Storage —
+// Firebase Storage requires a paid plan on new projects. See docs/DECISIONS.md.
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,4 +18,3 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);

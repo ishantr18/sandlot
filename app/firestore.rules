@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DEV RULES — signed-in users only.
+    // TODO (Phase 4, Aug 26–27): tighten per-role rules —
+    //   players write only their own sessions; mentors comment/assign only;
+    //   guardians read everything linked to their player. No DMs by design.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

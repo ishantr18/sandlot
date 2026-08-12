@@ -3,9 +3,9 @@
 Order: **framework → face blurring → swing analysis** (each phase builds the skills for the next).
 
 ## Phase 1 — Framework (Aug 10–15)
-- [ ] **Aug 10:** Repo + Next.js scaffold; deploy empty shell to Vercel; start `AI_USAGE_LOG.md`
-- [ ] **Aug 11:** Wireframe 4 screens (Upload → Analysis → Drills → Progress); Firebase auth + data model
-- [ ] **Aug 12:** Screen skeletons; video upload → Storage → playback working end-to-end
+- [x] **Aug 10:** Repo + Next.js scaffold; deployed to Vercel (project: `sandlot`); start `AI_USAGE_LOG.md`
+- [x] **Aug 11:** Wireframe 4 screens (Upload → Analysis → Drills → Progress); Firebase config + data model (⚠️ Firebase project creation + auth wiring still needed — my task)
+- [x] **Aug 12:** Screen skeletons; video upload → private Blob → signed-URL playback working end-to-end (tested + deployed)
 - [ ] **Aug 13:** ⚡ 2-hour pose spike: raw skeleton rendered on one test clip (GO/NO-GO). Then: player profile + session history
 - [ ] **Aug 14:** Session list, video library UX, navigation complete
 - [ ] **Aug 15:** Film test clips ON THE TRIP — dry/shadow swings anywhere (parking lot/park, side view, full body; no ball or bat needed — Dad films). Build filming-setup guide screen. Fallback: YouTube/Pexels slow-mo swings for dev only (never in the submission)
