@@ -17,7 +17,7 @@ export interface UserProfile {
 export interface Session {
   id: string;
   playerId: string;
-  videoUrl: string; // ALWAYS the blurred version — raw video never uploads
+  videoPathname: string; // path in the PRIVATE store (never a public URL); always the blurred version
   createdAt: number;
   status: "uploaded" | "analyzed" | "rejected"; // rejected = failed quality gate
   metrics?: SwingMetrics;

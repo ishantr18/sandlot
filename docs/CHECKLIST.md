@@ -6,7 +6,7 @@ Order: **framework → face blurring → swing analysis** (each phase builds the
 - [x] **Aug 10:** Repo + Next.js scaffold; deployed to Vercel (project: `sandlot`); start `AI_USAGE_LOG.md`
 - [x] **Aug 11:** Wireframe 4 screens (Upload → Analysis → Drills → Progress); Firebase config + data model (⚠️ Firebase project creation + auth wiring still needed — my task)
 - [x] **Aug 12:** Screen skeletons; video upload → private Blob → signed-URL playback working end-to-end (tested + deployed)
-- [ ] **Aug 13:** ⚡ 2-hour pose spike: raw skeleton rendered on one test clip (GO/NO-GO). Then: player profile + session history
+- [x] **Aug 13:** ⚡ Pose spike: **GO** — skeleton tracking at 35 fps on laptop, on-device (/spike). Bonus: in-browser recorder w/ countdown + review/retake. (Player profile + session history → moved to Aug 14)
 - [ ] **Aug 14:** Session list, video library UX, navigation complete
 - [ ] **Aug 15:** Film test clips ON THE TRIP — dry/shadow swings anywhere (parking lot/park, side view, full body; no ball or bat needed — Dad films). Build filming-setup guide screen. Fallback: YouTube/Pexels slow-mo swings for dev only (never in the submission)
 

@@ -3,12 +3,17 @@
 // Upload screen — the round trip: pick → preview → upload (private) → signed playback.
 // Phase 2 will insert the on-device face-blur step between "pick" and "upload".
 import { upload } from "@vercel/blob/client";
+import { addDoc, collection } from "firebase/firestore";
+import Link from "next/link";
 import { useRef, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import VideoRecorder from "@/components/VideoRecorder";
+import { db } from "@/lib/firebase";
 
 type Stage = "pick" | "ready" | "uploading" | "done" | "error";
 
 export default function UploadPage() {
+  const { user, loading } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -54,6 +59,16 @@ export default function UploadPage() {
         onUploadProgress: ({ percentage }) => setProgress(percentage),
       });
 
+      // Session record → Firestore, so this swing shows up under Progress
+      if (user) {
+        await addDoc(collection(db, "sessions"), {
+          playerId: user.uid,
+          videoPathname: blob.pathname, // path in the private store, NOT a public URL
+          createdAt: Date.now(),
+          status: "uploaded",
+        });
+      }
+
       // Prove the round trip: fetch an expiring signed URL and play from the store.
       const res = await fetch(
         `/api/video?pathname=${encodeURIComponent(blob.pathname)}`,
@@ -71,6 +86,16 @@ export default function UploadPage() {
   return (
     <main className="mx-auto max-w-md p-6 pb-24">
       <h1 className="mb-4 text-2xl font-bold">Upload a Swing</h1>
+
+      {!loading && !user && (
+        <Link
+          href="/auth"
+          className="mb-4 block rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          👤 <span className="underline">Sign in</span> so your swings are saved to your
+          Progress page.
+        </Link>
+      )}
 
       <section className="mb-4 rounded-lg border p-4 text-sm text-zinc-600">
         📱 Filming guide: side view · full body in frame · phone propped, not handheld
