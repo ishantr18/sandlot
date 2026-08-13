@@ -43,22 +43,22 @@ export default function FilmingGuide() {
   }, []);
 
   return (
-    <section className="mb-4 rounded-lg border">
+    <section className="mb-4 rounded-2xl bg-card">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between p-3 text-sm font-semibold"
       >
         <span>🎬 How to film your swing</span>
-        <span className="text-zinc-400">{open ? "▲" : "▼"}</span>
+        <span className="text-muted-foreground">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
-        <ul className="space-y-3 border-t p-3">
+        <ul className="space-y-3 border-t border-border p-3">
           {RULES.map((r) => (
             <li key={r.title} className="flex gap-3">
               <span className="text-xl">{r.icon}</span>
               <div>
                 <div className="text-sm font-medium">{r.title}</div>
-                <div className="text-xs text-zinc-500">{r.detail}</div>
+                <div className="text-xs text-muted-foreground">{r.detail}</div>
               </div>
             </li>
           ))}

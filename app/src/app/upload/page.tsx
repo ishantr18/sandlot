@@ -1,9 +1,10 @@
 "use client";
 
-// Upload screen — the round trip: pick → preview → upload (private) → signed playback.
-// Phase 2 will insert the on-device face-blur step between "pick" and "upload".
+// Upload screen — pick → preview → upload (private) → signed playback.
+// Phase 2 inserts the on-device face-blur step between "pick" and "upload".
 import { upload } from "@vercel/blob/client";
 import { addDoc, collection } from "firebase/firestore";
+import { FolderOpen, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -24,7 +25,6 @@ export default function UploadPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // One entry point whether the video was recorded in-browser or picked from disk.
-  // Object URL = local, in-memory address for the file — preview WITHOUT uploading.
   function acceptFile(picked: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(picked);
@@ -36,7 +36,7 @@ export default function UploadPage() {
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0];
     if (picked) acceptFile(picked);
-    e.target.value = ""; // allow re-picking the same file after removing it
+    e.target.value = "";
   }
 
   function removeVideo() {
@@ -52,25 +52,21 @@ export default function UploadPage() {
     setStage("uploading");
     setProgress(0);
     try {
-      // Client upload: browser asks /api/upload for a short-lived permission
-      // token, then sends the file straight to the store (no server bottleneck).
       const blob = await upload(`videos/${file.name}`, file, {
         access: "private",
         handleUploadUrl: "/api/upload",
         onUploadProgress: ({ percentage }) => setProgress(percentage),
       });
 
-      // Session record → Firestore, so this swing shows up under Progress
       if (user) {
         await addDoc(collection(db, "sessions"), {
           playerId: user.uid,
-          videoPathname: blob.pathname, // path in the private store, NOT a public URL
+          videoPathname: blob.pathname,
           createdAt: Date.now(),
           status: "uploaded",
         });
       }
 
-      // Prove the round trip: fetch an expiring signed URL and play from the store.
       const res = await fetch(
         `/api/video?pathname=${encodeURIComponent(blob.pathname)}`,
       );
@@ -85,16 +81,16 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-24">
-      <h1 className="mb-4 text-2xl font-bold">Upload a Swing</h1>
+    <main className="mx-auto max-w-md p-6 pb-28">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight">Upload</h1>
 
       {!loading && !user && (
         <Link
           href="/auth"
-          className="mb-4 block rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-800"
+          className="mb-4 block rounded-2xl bg-card p-4 text-sm text-muted-foreground"
         >
-          👤 <span className="underline">Sign in</span> so your swings are saved to your
-          Progress page.
+          👤 <span className="text-primary underline">Sign in</span> so your swings are
+          saved to your Progress page.
         </Link>
       )}
 
@@ -110,14 +106,13 @@ export default function UploadPage() {
 
       {!playbackUrl && (
         <div className="mb-4 grid grid-cols-2 gap-2">
-          {/* In-browser recorder: works on laptop webcams AND phone cameras */}
           <VideoRecorder onRecorded={acceptFile} />
           <button
             onClick={() => inputRef.current?.click()}
-            className="flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed"
+            className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl bg-card text-xs font-medium"
           >
-            <span className="text-2xl">📁</span>
-            <span className="mt-1 text-sm text-zinc-500">
+            <FolderOpen className="h-5 w-5 text-primary" />
+            <span className="px-2 text-muted-foreground">
               {file ? file.name : "Choose from library"}
             </span>
           </button>
@@ -125,50 +120,52 @@ export default function UploadPage() {
       )}
 
       {previewUrl && !playbackUrl && (
-        <div className="mb-4">
-          <video src={previewUrl} controls playsInline className="w-full rounded-lg" />
+        <div className="mb-4 overflow-hidden rounded-2xl bg-card">
+          <video src={previewUrl} controls playsInline className="w-full" />
           <button
             onClick={removeVideo}
-            className="mt-2 w-full rounded-lg border py-2 text-sm text-red-600"
+            className="flex w-full items-center justify-center gap-2 p-3 text-sm text-destructive"
           >
-            🗑 Remove video
+            <Trash2 className="h-4 w-4" /> Remove video
           </button>
         </div>
       )}
 
       {playbackUrl && (
-        <div className="mb-4">
-          <p className="mb-2 text-sm font-semibold text-green-700">
-            ✅ Uploaded — now playing from private storage via an expiring link:
+        <div className="mb-4 overflow-hidden rounded-2xl bg-card">
+          <p className="p-3 text-sm font-semibold text-primary">
+            ✅ Uploaded — playing from private storage via an expiring link:
           </p>
-          <video src={playbackUrl} controls playsInline className="w-full rounded-lg" />
+          <video src={playbackUrl} controls playsInline className="w-full" />
         </div>
       )}
 
-      <section className="mb-4 rounded-lg border p-4 text-sm text-zinc-600">
+      <section className="mb-4 rounded-2xl bg-card p-4 text-sm text-muted-foreground">
         🔒 Coming in Phase 2: faces blurred on your device before anything uploads.
       </section>
 
       {stage === "uploading" && (
         <div className="mb-4">
-          <div className="h-2 w-full overflow-hidden rounded bg-zinc-200">
+          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
             <div
-              className="h-full bg-green-700 transition-all"
+              className="h-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-1 text-center text-xs text-zinc-500">{Math.round(progress)}%</p>
+          <p className="mt-1 text-center text-xs text-muted-foreground">
+            {Math.round(progress)}%
+          </p>
         </div>
       )}
 
       {stage === "error" && (
-        <p className="mb-4 text-sm text-red-600">Upload failed: {errorMsg}</p>
+        <p className="mb-4 text-sm text-destructive">Upload failed: {errorMsg}</p>
       )}
 
       <button
         onClick={handleUploadClick}
         disabled={stage !== "ready"}
-        className="w-full rounded-lg bg-green-700 py-3 font-semibold text-white disabled:opacity-40"
+        className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
       >
         {stage === "uploading"
           ? "Uploading…"

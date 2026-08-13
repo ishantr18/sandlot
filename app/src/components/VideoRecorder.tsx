@@ -168,19 +168,19 @@ export default function VideoRecorder({
       <div>
         <button
           onClick={openCamera}
-          className="flex h-40 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed"
+          className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-card text-xs font-medium"
         >
           <span className="text-2xl">🎥</span>
-          <span className="mt-1 text-sm text-zinc-500">Record now</span>
+          <span className="text-muted-foreground">Record now</span>
         </button>
-        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
       </div>
     );
   }
 
   if (mode === "review" && recorded) {
     return (
-      <div className="rounded-lg border p-2">
+      <div className="overflow-hidden rounded-2xl bg-card p-2">
         <video
           src={recorded.url}
           controls
@@ -194,14 +194,14 @@ export default function VideoRecorder({
         <div className="mt-2 flex gap-2">
           <button
             onClick={useRecording}
-            className="flex-1 rounded-lg bg-green-700 py-2 text-sm font-semibold text-white"
+            className="flex-1 rounded-full bg-primary py-2 text-sm font-semibold text-primary-foreground"
           >
             ✓ Use this video
           </button>
-          <button onClick={retake} className="rounded-lg border px-3 py-2 text-sm">
+          <button onClick={retake} className="rounded-full border border-border px-3 py-2 text-sm">
             ↻ Retake
           </button>
-          <button onClick={discardRecording} className="rounded-lg border px-3 py-2 text-sm">
+          <button onClick={discardRecording} className="rounded-full border border-border px-3 py-2 text-sm">
             🗑
           </button>
         </div>
@@ -210,7 +210,7 @@ export default function VideoRecorder({
   }
 
   return (
-    <div className="rounded-lg border p-2">
+    <div className="overflow-hidden rounded-2xl bg-card p-2">
       <div className="relative">
         <video ref={liveRef} autoPlay muted playsInline className="w-full rounded" />
         {mode === "countdown" && (
@@ -230,25 +230,25 @@ export default function VideoRecorder({
         {mode === "live" && (
           <button
             onClick={startCountdown}
-            className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white"
+            className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
           >
             ● Record (3s countdown)
           </button>
         )}
         {mode === "countdown" && (
-          <div className="flex-1 rounded-lg bg-zinc-200 py-2 text-center text-sm font-semibold text-zinc-500">
+          <div className="flex-1 rounded-full bg-secondary py-2 text-center text-sm font-semibold text-muted-foreground">
             Get in position…
           </div>
         )}
         {mode === "recording" && (
           <button
             onClick={stopRecording}
-            className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white"
+            className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
           >
             ■ Stop
           </button>
         )}
-        <button onClick={cancel} className="rounded-lg border px-4 py-2 text-sm">
+        <button onClick={cancel} className="rounded-full border border-border px-4 py-2 text-sm">
           Cancel
         </button>
       </div>

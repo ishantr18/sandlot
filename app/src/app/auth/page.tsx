@@ -58,10 +58,10 @@ export default function AuthPage() {
 
   return (
     <main className="mx-auto max-w-md p-6 pb-24">
-      <h1 className="mb-1 text-2xl font-bold">
+      <h1 className="mb-1 text-4xl font-bold tracking-tight">
         {mode === "signin" ? "Sign in" : "Create your account"}
       </h1>
-      <p className="mb-6 text-sm text-zinc-500">
+      <p className="mb-6 text-sm text-muted-foreground">
         {mode === "signin" ? "Welcome back to Diamond Drive." : "Free, forever. That's the point."}
       </p>
 
@@ -72,7 +72,7 @@ export default function AuthPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
             required
-            className="w-full rounded-lg border p-3"
+            className="w-full rounded-2xl border-0 bg-card p-3"
           />
         )}
         <input
@@ -81,7 +81,7 @@ export default function AuthPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           required
-          className="w-full rounded-lg border p-3"
+          className="w-full rounded-2xl border-0 bg-card p-3"
         />
         <input
           type="password"
@@ -90,13 +90,13 @@ export default function AuthPage() {
           placeholder="Password (6+ characters)"
           required
           minLength={6}
-          className="w-full rounded-lg border p-3"
+          className="w-full rounded-2xl border-0 bg-card p-3"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg bg-green-700 py-3 font-semibold text-white disabled:opacity-40"
+          className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
         >
           {busy ? "One sec…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
@@ -107,7 +107,7 @@ export default function AuthPage() {
           setMode(mode === "signin" ? "signup" : "signin");
           setError("");
         }}
-        className="mt-4 w-full text-center text-sm text-green-700"
+        className="mt-4 w-full text-center text-sm text-primary"
       >
         {mode === "signin" ? "New here? Create an account" : "Have an account? Sign in"}
       </button>
