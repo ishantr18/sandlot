@@ -7,6 +7,7 @@ import { addDoc, collection } from "firebase/firestore";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
 import { db } from "@/lib/firebase";
 
@@ -97,9 +98,7 @@ export default function UploadPage() {
         </Link>
       )}
 
-      <section className="mb-4 rounded-lg border p-4 text-sm text-zinc-600">
-        📱 Filming guide: side view · full body in frame · phone propped, not handheld
-      </section>
+      <FilmingGuide />
 
       <input
         ref={inputRef}
