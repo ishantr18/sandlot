@@ -7,7 +7,7 @@ Order: **framework → face blurring → swing analysis** (each phase builds the
 - [x] **Aug 11:** Wireframe 4 screens (Upload → Analysis → Drills → Progress); Firebase config + data model (⚠️ Firebase project creation + auth wiring still needed — my task)
 - [x] **Aug 12:** Screen skeletons; video upload → private Blob → signed-URL playback working end-to-end (tested + deployed)
 - [x] **Aug 13:** ⚡ Pose spike: **GO** — skeleton tracking at 35 fps on laptop, on-device (/spike). Bonus: in-browser recorder w/ countdown + review/retake. (Player profile + session history → moved to Aug 14)
-- [ ] **Aug 14:** Session list, video library UX, navigation complete
+- [x] **Aug 14 (done early, Aug 13):** Accounts (sign up/in), sessions saved per upload, Progress history with playback + sign out
 - [ ] **Aug 15:** Film test clips ON THE TRIP — dry/shadow swings anywhere (parking lot/park, side view, full body; no ball or bat needed — Dad films). Build filming-setup guide screen. Fallback: YouTube/Pexels slow-mo swings for dev only (never in the submission)
 
 ## Phase 2 — Face blurring (Aug 16–18)

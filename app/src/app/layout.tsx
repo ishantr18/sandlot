@@ -15,9 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sandlot — AI Baseball Coach",
+  title: "Diamond Drive — AI Baseball Coach",
   description:
     "Pro-level baseball coaching on any phone — for every kid, not just the ones who can afford it.",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png", // iOS home-screen icon
+  },
+  appleWebApp: {
+    capable: true, // full-screen when launched from the iOS home screen
+    title: "Diamond Drive",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

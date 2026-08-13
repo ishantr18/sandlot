@@ -12,3 +12,5 @@
 | Aug 10 | Park "underutilized skills" reframe + Skill Card | See PARKED.md — revisit after core build |
 | Aug 11 | Videos stored in **Vercel Blob (private store)**, not Firebase Storage | Firebase Storage now requires the paid Blaze plan on new projects — no credit card on a school project. Private store + short-lived signed URLs for playback is also a stronger privacy story. Firebase keeps auth + Firestore |
 | Aug 11 | AI working agreement | AI does scaffolding/boilerplate + tutoring; student writes core logic (CV engine especially). All AI use logged in AI_USAGE_LOG.md |
+| Aug 12 | Name: **Diamond Drive** (was working title Sandlot) | Original name, not borrowed from the movie. Infra keeps old labels (Vercel `sandlot`, Firebase `sandlot-cac-2026`, repo) — invisible to users |
+| Aug 12 | One platform: installable PWA, no native app | Judges see a phone in a video either way; native costs weeks + $99 Apple fee + review risk; "works from a link on any device, no app store" is an equity feature for the target audience. Native = 2.0 essay answer |

@@ -4,7 +4,7 @@
 Baseball has become a rich kid's sport. Travel ball and private lessons run $3,000–$10,000/year, and quality coaching is increasingly paywalled. Kids without money don't get worse at baseball — they get less feedback.
 
 ## One-sentence purpose (use verbatim in the demo video)
-Sandlot gives underprivileged kids pro-level baseball coaching on any phone — an AI swing coach with privacy built in, backed by supervised volunteer mentors.
+Diamond Drive gives underprivileged kids pro-level baseball coaching on any phone — an AI swing coach with privacy built in, backed by supervised volunteer mentors.
 
 ## Target audience (required in demo video)
 - Youth players (~ages 8–15) whose families can't afford private coaching

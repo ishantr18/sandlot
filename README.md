@@ -1,4 +1,4 @@
-# CAC 2026 — Baseball App (working title: Sandlot)
+# CAC 2026 — Diamond Drive
 
 Entry for the 2026 Congressional App Challenge, Washington's 1st District (Rep. Suzan DelBene).
 **Submission deadline: Monday, Oct 26, 2026, 12:00 pm EDT. App done by Aug 31 → pilot in Sept → demo video in Oct.**

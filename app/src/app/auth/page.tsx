@@ -62,7 +62,7 @@ export default function AuthPage() {
         {mode === "signin" ? "Sign in" : "Create your account"}
       </h1>
       <p className="mb-6 text-sm text-zinc-500">
-        {mode === "signin" ? "Welcome back to Sandlot." : "Free, forever. That's the point."}
+        {mode === "signin" ? "Welcome back to Diamond Drive." : "Free, forever. That's the point."}
       </p>
 
       <form onSubmit={submit} className="space-y-3">
