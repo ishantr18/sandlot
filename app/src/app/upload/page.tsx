@@ -10,9 +10,10 @@ import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
+import { blurVideo } from "@/lib/faceblur";
 import { db } from "@/lib/firebase";
 
-type Stage = "pick" | "ready" | "uploading" | "done" | "error";
+type Stage = "pick" | "blurring" | "ready" | "uploading" | "done" | "error";
 
 export default function UploadPage() {
   const { user, loading } = useAuth();
@@ -25,12 +26,25 @@ export default function UploadPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // One entry point whether the video was recorded in-browser or picked from disk.
-  function acceptFile(picked: File) {
+  // Faces are blurred ON-DEVICE here, before anything else can happen — the
+  // preview below is already the blurred file, and it's the ONLY file that
+  // can ever be uploaded.
+  async function acceptFile(picked: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setFile(picked);
-    setPreviewUrl(URL.createObjectURL(picked));
     setPlaybackUrl(null);
-    setStage("ready");
+    setStage("blurring");
+    setProgress(0);
+    try {
+      const blurred = await blurVideo(picked, (f) => setProgress(f * 100));
+      setFile(blurred);
+      setPreviewUrl(URL.createObjectURL(blurred));
+      setStage("ready");
+    } catch (err) {
+      setErrorMsg(`Couldn't blur this video (${(err as Error).message}) — nothing was uploaded.`);
+      setFile(null);
+      setPreviewUrl(null);
+      setStage("error");
+    }
   }
 
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -119,8 +133,26 @@ export default function UploadPage() {
         </div>
       )}
 
+      {stage === "blurring" && (
+        <div className="mb-4 rounded-2xl bg-card p-4">
+          <p className="mb-2 text-sm font-semibold">🔒 Blurring faces on your device…</p>
+          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The original video never leaves this device.
+          </p>
+        </div>
+      )}
+
       {previewUrl && !playbackUrl && (
         <div className="mb-4 overflow-hidden rounded-2xl bg-card">
+          <p className="p-3 text-sm font-semibold text-primary">
+            🔒 Faces blurred on your device ✓ — this is the only version that can upload:
+          </p>
           <video src={previewUrl} controls playsInline className="w-full" />
           <button
             onClick={removeVideo}
@@ -139,10 +171,6 @@ export default function UploadPage() {
           <video src={playbackUrl} controls playsInline className="w-full" />
         </div>
       )}
-
-      <section className="mb-4 rounded-2xl bg-card p-4 text-sm text-muted-foreground">
-        🔒 Coming in Phase 2: faces blurred on your device before anything uploads.
-      </section>
 
       {stage === "uploading" && (
         <div className="mb-4">
