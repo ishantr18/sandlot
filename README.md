@@ -17,4 +17,5 @@ An AI baseball coach that gives underprivileged kids pro-level swing analysis on
 | `docs/DECISIONS.md` | Choices made and why |
 | `docs/PARKED.md` | Saved-for-later ideas (underutilized-skills framing, Skill Card) |
 | `docs/RESEARCH.md` | Official rules, judging criteria, WA-01 winner analysis |
+| `docs/LINKS.md` | Every link: live app, GitHub, Vercel, Firebase, CAC, design refs |
 | `docs/AI_USAGE_LOG.md` | Daily log of AI tool usage — required disclosure at submission |

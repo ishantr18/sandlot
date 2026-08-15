@@ -1,5 +1,19 @@
 # Daily Checklist — Aug 10 → Aug 31
 
+## 🎥 FILMING TASKS (open — do before Aug 19)
+Batch 1 — blur tests (run each through /upload, scrub the preview for face leaks):
+- [ ] 1 `face-front` — 5s, face visible, 1–2m away, move a little
+- [ ] 2 `face-turns` — head turns side to side, up/down
+- [ ] 3 `two-people` — you + Dad in frame together
+- [ ] 4 `walk-across` — walk across frame at normal pace
+
+Batch 2 — swing clips → save into `test-clips/` (shadow swings OK, follow in-app guide):
+- [ ] 5–7 `side-good-1/2/3` — side view, full body, propped phone, good light
+- [ ] 8 `front-1` — same swing from the front
+- [ ] 9 `side-bad-feet` — feet cut off (quality-gate test)
+- [ ] 10 `side-bad-backlit` — bright light behind you (quality-gate test)
+- [ ] Bonus: run one side-good clip through /upload — does blur catch a face at full distance? (decides Aug 17–18 scope)
+
 Order: **framework → face blurring → swing analysis** (each phase builds the skills for the next).
 
 ## Phase 1 — Framework (Aug 10–15)
