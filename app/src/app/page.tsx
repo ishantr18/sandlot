@@ -1,13 +1,19 @@
 "use client";
 
-// Home — the dashboard. Signed in: greeting, streak, stats, quick actions.
-// Signed out: the mission, one button.
+// Home dashboard. Phone: single column. Desktop: two-column spread —
+// stats/actions left, focus + recent swings right.
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { Dumbbell, Flame, TrendingUp, Video } from "lucide-react";
+import { Dumbbell, Flame, Play, TrendingUp, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { db } from "@/lib/firebase";
+
+interface SessionRow {
+  id: string;
+  createdAt: number;
+  status: string;
+}
 
 interface Stats {
   total: number;
@@ -16,13 +22,11 @@ interface Stats {
   lastAt: number | null;
 }
 
-// Day streak: consecutive calendar days with ≥1 swing, counting back from
-// today (or yesterday — missing today doesn't break it until tomorrow).
 function computeStats(timestamps: number[]): Stats {
   const days = new Set(timestamps.map((t) => new Date(t).toDateString()));
   const day = new Date();
   let streak = 0;
-  if (!days.has(day.toDateString())) day.setDate(day.getDate() - 1); // grace for today
+  if (!days.has(day.toDateString())) day.setDate(day.getDate() - 1);
   while (days.has(day.toDateString())) {
     streak++;
     day.setDate(day.getDate() - 1);
@@ -45,6 +49,7 @@ const ACTIONS = [
 export default function Home() {
   const { user, loading } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [recent, setRecent] = useState<SessionRow[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -52,11 +57,15 @@ export default function Home() {
       const snap = await getDocs(
         query(collection(db, "sessions"), where("playerId", "==", user.uid)),
       );
-      setStats(computeStats(snap.docs.map((d) => d.data().createdAt as number)));
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRow & {
+        createdAt: number;
+      });
+      rows.sort((a, b) => b.createdAt - a.createdAt);
+      setStats(computeStats(rows.map((r) => r.createdAt)));
+      setRecent(rows.slice(0, 4));
     })();
   }, [user]);
 
-  // Signed out: mission + one door in
   if (!loading && !user) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-6 pb-28 text-center">
@@ -78,51 +87,97 @@ export default function Home() {
   const firstName = user?.displayName?.split(" ")[0] ?? "player";
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28">
+    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
       <p className="text-sm text-muted-foreground">Welcome back,</p>
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">{firstName}</h1>
+      <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">
+        {firstName}
+      </h1>
 
-      {/* Stat row — mono digits, tiny labels */}
-      <div className="mb-6 grid grid-cols-3 gap-2">
-        <div className="rounded-2xl bg-card p-4">
-          <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary">
-            <Flame className="h-5 w-5" />
-            {stats?.streak ?? "–"}
+      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+        {/* Left: stats + actions */}
+        <div className="lg:col-span-3">
+          <div className="mb-6 grid grid-cols-3 gap-2 lg:gap-4">
+            <div className="rounded-2xl bg-card p-4 lg:p-6">
+              <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary lg:text-4xl">
+                <Flame className="h-5 w-5 lg:h-7 lg:w-7" />
+                {stats?.streak ?? "–"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">day streak</div>
+            </div>
+            <div className="rounded-2xl bg-card p-4 lg:p-6">
+              <div className="font-mono text-2xl font-bold lg:text-4xl">
+                {stats?.thisWeek ?? "–"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">this week</div>
+            </div>
+            <div className="rounded-2xl bg-card p-4 lg:p-6">
+              <div className="font-mono text-2xl font-bold lg:text-4xl">
+                {stats?.total ?? "–"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">
+                total swings
+              </div>
+            </div>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">day streak</div>
+
+          <div className="mb-6 grid grid-cols-3 gap-2 lg:gap-4">
+            {ACTIONS.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium transition-colors hover:bg-secondary lg:p-8 lg:text-sm"
+              >
+                <a.icon className="h-5 w-5 text-primary lg:h-7 lg:w-7" />
+                {a.label}
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="rounded-2xl bg-card p-4">
-          <div className="font-mono text-2xl font-bold">{stats?.thisWeek ?? "–"}</div>
-          <div className="mt-1 text-xs text-muted-foreground">this week</div>
-        </div>
-        <div className="rounded-2xl bg-card p-4">
-          <div className="font-mono text-2xl font-bold">{stats?.total ?? "–"}</div>
-          <div className="mt-1 text-xs text-muted-foreground">total swings</div>
+
+        {/* Right: focus + recent activity */}
+        <div className="lg:col-span-2">
+          <section className="mb-6 rounded-2xl bg-card p-4 lg:p-6">
+            <h2 className="mb-1 text-sm font-semibold">Today&apos;s focus</h2>
+            <p className="text-sm text-muted-foreground">
+              {stats?.lastAt
+                ? `Last swing ${new Date(stats.lastAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}. Film a new one and keep the streak alive.`
+                : "Film your first swing to get your baseline analysis."}
+            </p>
+          </section>
+
+          <section className="rounded-2xl bg-card lg:min-h-48">
+            <div className="flex items-center justify-between p-4 pb-2">
+              <h2 className="text-sm font-semibold">Recent swings</h2>
+              <Link href="/progress" className="text-xs text-primary">
+                See all →
+              </Link>
+            </div>
+            {recent.length === 0 && (
+              <p className="p-4 pt-0 text-sm text-muted-foreground">Nothing yet.</p>
+            )}
+            {recent.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-3 border-t border-border p-4 py-3"
+              >
+                <Play className="h-4 w-4 text-primary" />
+                <div className="flex-1 text-sm">
+                  {new Date(s.createdAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}{" "}
+                  ·{" "}
+                  {new Date(s.createdAt).toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </div>
+                <span className="text-xs text-muted-foreground">{s.status}</span>
+              </div>
+            ))}
+          </section>
         </div>
       </div>
-
-      {/* Quick actions — icon-over-label tiles */}
-      <div className="mb-6 grid grid-cols-3 gap-2">
-        {ACTIONS.map((a) => (
-          <Link
-            key={a.href}
-            href={a.href}
-            className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium"
-          >
-            <a.icon className="h-5 w-5 text-primary" />
-            {a.label}
-          </Link>
-        ))}
-      </div>
-
-      <section className="rounded-2xl bg-card p-4">
-        <h2 className="mb-1 text-sm font-semibold">Today&apos;s focus</h2>
-        <p className="text-sm text-muted-foreground">
-          {stats?.lastAt
-            ? `Last swing ${new Date(stats.lastAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}. Film a new one and keep the streak alive.`
-            : "Film your first swing to get your baseline analysis."}
-        </p>
-      </section>
     </main>
   );
 }

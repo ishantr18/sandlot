@@ -95,8 +95,10 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">Upload</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">Upload</h1>
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div>
 
       {!loading && !user && (
         <Link
@@ -133,6 +135,9 @@ export default function UploadPage() {
         </div>
       )}
 
+      </div>
+
+      <div>
       {stage === "blurring" && (
         <div className="mb-4 rounded-2xl bg-card p-4">
           <p className="mb-2 text-sm font-semibold">🔒 Blurring faces on your device…</p>
@@ -201,6 +206,8 @@ export default function UploadPage() {
             ? "Done — pick another to re-test"
             : "Analyze my swing"}
       </button>
+      </div>
+      </div>
     </main>
   );
 }

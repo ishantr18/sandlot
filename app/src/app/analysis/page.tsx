@@ -9,14 +9,18 @@ const METRICS = [
 
 export default function AnalysisPage() {
   return (
-    <main className="mx-auto max-w-md p-6 pb-28">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">Analysis</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">Analysis</h1>
+      <div className="lg:grid lg:grid-cols-5 lg:items-start lg:gap-8">
+      <div className="lg:col-span-3">
 
       <section className="mb-4 flex aspect-video items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
         Your swing + AI skeleton overlay (Phase 3)
       </section>
 
-      <section className="mb-4 grid grid-cols-2 gap-2">
+      </div>
+      <div className="lg:col-span-2">
+      <section className="mb-4 grid grid-cols-2 gap-2 lg:gap-4">
         {METRICS.map((m) => (
           <div key={m.label} className="rounded-2xl bg-card p-4">
             <div className="font-mono text-3xl font-bold text-primary">
@@ -31,6 +35,8 @@ export default function AnalysisPage() {
         Plain-English findings appear here — &ldquo;Your hips fire late → Hip fire tee
         drill assigned.&rdquo;
       </section>
+      </div>
+      </div>
     </main>
   );
 }

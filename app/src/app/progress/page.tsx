@@ -58,9 +58,9 @@ export default function ProgressPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28">
-      <div className="mb-6 flex items-end justify-between">
-        <h1 className="text-4xl font-bold tracking-tight">Progress</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+      <div className="mb-6 flex items-end justify-between lg:mb-10">
+        <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Progress</h1>
         {user && (
           <button
             onClick={() => signOut(auth)}
@@ -71,9 +71,11 @@ export default function ProgressPage() {
         )}
       </div>
 
-      <section className="mb-6 flex h-40 items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+      <section className="mb-6 flex h-40 items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground lg:h-64">
         Improvement charts arrive with swing metrics (Phase 4)
       </section>
+      <div>
 
       <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Session history</h2>
 
@@ -123,6 +125,8 @@ export default function ProgressPage() {
           ))}
         </section>
       )}
+      </div>
+      </div>
     </main>
   );
 }
