@@ -54,6 +54,14 @@ export async function blurVideo(
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d")!;
 
+  // Tiny scratch canvas for pixelation — a face gets squashed down to
+  // PIXEL_BLOCKS×~PIXEL_BLOCKS pixels, then stretched back up. The detail is
+  // destroyed, not smoothed: no amount of enhancement can recover it, and it
+  // is equally anonymous for close-ups and distant faces.
+  const PIXEL_BLOCKS = 8;
+  const scratch = document.createElement("canvas");
+  const sctx = scratch.getContext("2d")!;
+
   // Re-record the canvas as a new video, at the clip's own pace
   const { mime, ext } = pickMimeType();
   const stream = canvas.captureStream(30);
@@ -89,9 +97,9 @@ export async function blurVideo(
     if (result.detections.length > 0) {
       lastBoxes = result.detections.map((d) => {
         const b = d.boundingBox!;
-        // Expand the box ~40% — hair/chin stay covered, and margins forgive jitter
-        const mx = b.width * 0.4;
-        const my = b.height * 0.4;
+        // Expand the box ~50% — hair/chin stay covered, and margins forgive jitter
+        const mx = b.width * 0.5;
+        const my = b.height * 0.5;
         return {
           x: Math.max(0, b.originX - mx),
           y: Math.max(0, b.originY - my),
@@ -105,15 +113,16 @@ export async function blurVideo(
       if (framesSinceSeen > HOLD_FRAMES) lastBoxes = [];
     }
 
-    // Repaint each face region through a strong blur filter
+    // Pixelate each face region: squash to a tiny mosaic, stretch back up
     for (const box of lastBoxes) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(box.x, box.y, box.w, box.h);
-      ctx.clip();
-      ctx.filter = "blur(16px)";
-      ctx.drawImage(video, 0, 0);
-      ctx.restore();
+      const bw = Math.max(2, PIXEL_BLOCKS);
+      const bh = Math.max(2, Math.round((PIXEL_BLOCKS * box.h) / box.w));
+      scratch.width = bw;
+      scratch.height = bh;
+      sctx.drawImage(video, box.x, box.y, box.w, box.h, 0, 0, bw, bh);
+      ctx.imageSmoothingEnabled = false; // keep the blocks chunky, no re-smoothing
+      ctx.drawImage(scratch, 0, 0, bw, bh, box.x, box.y, box.w, box.h);
+      ctx.imageSmoothingEnabled = true;
     }
 
     onProgress(video.duration ? video.currentTime / video.duration : 0);
