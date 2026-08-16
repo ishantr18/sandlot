@@ -125,9 +125,9 @@ export default function UploadPage() {
           <VideoRecorder onRecorded={acceptFile} />
           <button
             onClick={() => inputRef.current?.click()}
-            className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl bg-card text-xs font-medium"
+            className="flex h-56 flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary lg:h-72"
           >
-            <FolderOpen className="h-5 w-5 text-primary" />
+            <FolderOpen className="h-8 w-8 text-primary" />
             <span className="px-2 text-muted-foreground">
               {file ? file.name : "Choose from library"}
             </span>

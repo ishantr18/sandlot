@@ -168,9 +168,9 @@ export default function VideoRecorder({
       <div>
         <button
           onClick={openCamera}
-          className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-card text-xs font-medium"
+          className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary lg:h-72"
         >
-          <span className="text-2xl">🎥</span>
+          <span className="text-4xl">🎥</span>
           <span className="text-muted-foreground">Record now</span>
         </button>
         {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
