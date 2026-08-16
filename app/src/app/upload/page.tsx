@@ -10,10 +10,16 @@ import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
-import { blurVideo } from "@/lib/faceblur";
+import { blurVideo, type BlurStage } from "@/lib/faceblur";
 import { db } from "@/lib/firebase";
 
 type Stage = "pick" | "blurring" | "ready" | "uploading" | "done" | "error";
+
+const BLUR_STAGE_LABEL: Record<BlurStage, string> = {
+  scan: "🔍 Scanning every frame for faces and heads…",
+  render: "🔒 Pixelating faces on your device…",
+  verify: "🕵️ Verifying anonymity of the result…",
+};
 
 export default function UploadPage() {
   const { user, loading } = useAuth();
@@ -24,6 +30,8 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [blurStage, setBlurStage] = useState<BlurStage>("scan");
+  const [auditCount, setAuditCount] = useState<number | null>(null);
 
   // One entry point whether the video was recorded in-browser or picked from disk.
   // Faces are blurred ON-DEVICE here, before anything else can happen — the
@@ -35,7 +43,11 @@ export default function UploadPage() {
     setStage("blurring");
     setProgress(0);
     try {
-      const blurred = await blurVideo(picked, (f) => setProgress(f * 100));
+      const { file: blurred, auditFacesFound } = await blurVideo(picked, (s, f) => {
+        setBlurStage(s);
+        setProgress(f * 100);
+      });
+      setAuditCount(auditFacesFound);
       setFile(blurred);
       setPreviewUrl(URL.createObjectURL(blurred));
       setStage("ready");
@@ -140,7 +152,7 @@ export default function UploadPage() {
       <div>
       {stage === "blurring" && (
         <div className="mb-4 rounded-2xl bg-card p-4">
-          <p className="mb-2 text-sm font-semibold">🔒 Blurring faces on your device…</p>
+          <p className="mb-2 text-sm font-semibold">{BLUR_STAGE_LABEL[blurStage]}</p>
           <div className="h-2 w-full overflow-hidden rounded bg-secondary">
             <div
               className="h-full bg-primary transition-all"
@@ -156,7 +168,9 @@ export default function UploadPage() {
       {previewUrl && !playbackUrl && (
         <div className="mb-4 overflow-hidden rounded-2xl bg-card">
           <p className="p-3 text-sm font-semibold text-primary">
-            🔒 Faces blurred on your device ✓ — this is the only version that can upload:
+            {auditCount === 0
+              ? "🕵️ Anonymity verified — 0 faces detectable in this video. Only this version can upload:"
+              : "🔒 Faces pixelated on your device — double-check the preview before uploading:"}
           </p>
           <video src={previewUrl} controls playsInline className="w-full" />
           <button

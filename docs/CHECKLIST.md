@@ -25,9 +25,9 @@ Order: **framework → face blurring → swing analysis** (each phase builds the
 - [ ] **Aug 15:** Film test clips ON THE TRIP — dry/shadow swings anywhere (parking lot/park, side view, full body; no ball or bat needed — Dad films). Build filming-setup guide screen. Fallback: YouTube/Pexels slow-mo swings for dev only (never in the submission)
 
 ## Phase 2 — Face blurring (Aug 16–18)
-- [ ] **Aug 16:** MediaPipe Face Detector running on video frames in-browser
-- [ ] **Aug 17:** Blur + re-encode pipeline BEFORE upload; verify raw video never leaves device
-- [ ] **Aug 18:** Edge cases (multiple faces, motion), performance pass, "blurred ✓" confirmation UX
+- [x] **Aug 16:** Face detection + pixelation live in upload flow (user-verified)
+- [x] **Aug 17:** Full pipeline before upload (done early, Aug 16)
+- [x] **Aug 18:** Edge cases: two-pass scan, pose-based head backup, self-audit + auto re-blur, anonymity-verified UX
 
 ## Phase 3 — Swing analysis (Aug 19–24)
 - [ ] **Aug 19:** Full pose extraction → per-frame landmark time series
