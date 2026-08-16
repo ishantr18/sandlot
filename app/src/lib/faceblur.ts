@@ -97,9 +97,10 @@ export async function blurVideo(
     if (result.detections.length > 0) {
       lastBoxes = result.detections.map((d) => {
         const b = d.boundingBox!;
-        // Expand the box ~50% — hair/chin stay covered, and margins forgive jitter
-        const mx = b.width * 0.5;
-        const my = b.height * 0.5;
+        // Tight box: modest margin keeps the mosaic concentrated on the face
+        // itself (hairline/chin) without swallowing the surrounding frame
+        const mx = b.width * 0.15;
+        const my = b.height * 0.2;
         return {
           x: Math.max(0, b.originX - mx),
           y: Math.max(0, b.originY - my),
