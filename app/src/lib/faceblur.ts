@@ -63,10 +63,14 @@ function getModels() {
 }
 
 function pickMimeType(): { mime: string; ext: string } {
+  // WebM FIRST: Chrome's MP4 recorder is broken on some Windows hardware
+  // (records files it can't play back). WebM is reliable everywhere it's
+  // offered; Safari doesn't offer it and falls through to MP4, which it
+  // handles natively.
   const candidates: [string, string][] = [
-    ["video/mp4", "mp4"],
     ["video/webm;codecs=vp9", "webm"],
     ["video/webm", "webm"],
+    ["video/mp4", "mp4"],
   ];
   for (const [mime, ext] of candidates) {
     if (MediaRecorder.isTypeSupported(mime)) return { mime, ext };

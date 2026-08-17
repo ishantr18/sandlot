@@ -8,10 +8,14 @@ import { useEffect, useRef, useState } from "react";
 
 // Safari records .mp4, Chrome records .webm — ask the browser what it can do.
 function pickMimeType(): { mime: string; ext: string } {
+  // WebM FIRST: Chrome's MP4 recorder is broken on some Windows hardware
+  // (records files it can't play back). WebM is reliable everywhere it's
+  // offered; Safari doesn't offer it and falls through to MP4, which it
+  // handles natively.
   const candidates: [string, string][] = [
-    ["video/mp4", "mp4"],
     ["video/webm;codecs=vp9", "webm"],
     ["video/webm", "webm"],
+    ["video/mp4", "mp4"],
   ];
   for (const [mime, ext] of candidates) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
@@ -103,8 +107,14 @@ export default function VideoRecorder({
     recorder.onstop = () => {
       const type = recorder.mimeType || mime || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
-      const file = new File([blob], `recording-${Date.now()}.${ext}`, { type });
       cleanupStream();
+      // Guard: some machines produce empty/broken recordings — catch it here
+      if (blob.size < 2000) {
+        setError("Recording came out empty — that's a browser hiccup, try again.");
+        setMode("idle");
+        return;
+      }
+      const file = new File([blob], `recording-${Date.now()}.${ext}`, { type });
       // Don't hand the clip over yet — let the user review it first
       setRecorded({ file, url: URL.createObjectURL(blob) });
       setMode("review");
