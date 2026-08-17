@@ -271,12 +271,36 @@ async function renderBlurred(
 }
 
 // ---- Stage 3: self-audit the output ---------------------------------------
+// Chrome reports MediaRecorder output as duration=Infinity until forced to
+// index the file (same quirk as the recorder preview). Seek far ahead once;
+// the browser builds the index and duration becomes a real number.
+async function ensureFiniteDuration(video: HTMLVideoElement): Promise<boolean> {
+  if (Number.isFinite(video.duration) && video.duration > 0) return true;
+  await new Promise<void>((res) => {
+    const timeout = setTimeout(() => res(), 3000); // never hang
+    video.ontimeupdate = () => {
+      video.ontimeupdate = null;
+      clearTimeout(timeout);
+      video.currentTime = 0;
+      res();
+    };
+    video.currentTime = 1e7;
+  });
+  return Number.isFinite(video.duration) && video.duration > 0;
+}
+
 async function auditOutput(
   blurred: Blob,
   onFraction: (f: number) => void,
 ): Promise<number> {
   const { face } = await getModels();
   const video = await loadVideo(blurred);
+  if (!(await ensureFiniteDuration(video))) {
+    // Can't seek this file → can't verify. Report "unverified", never "verified".
+    URL.revokeObjectURL(video.src);
+    onFraction(1);
+    return -1;
+  }
   const SAMPLES = 12;
   let found = 0;
   for (let i = 0; i < SAMPLES; i++) {
@@ -307,6 +331,7 @@ export async function blurVideo(
   );
   let found = await auditOutput(out, (f) => onProgress("verify", f));
 
+  // found === -1 means "couldn't verify" — re-rendering wouldn't help that
   if (found > 0) {
     // Audit failed → re-blur with 40% bigger boxes, audit once more
     out = await renderBlurred(video, track, 1.4, baseName, (f) =>

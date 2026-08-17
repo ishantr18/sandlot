@@ -17,8 +17,15 @@ function pickMimeType(): { mime: string; ext: string } {
     ["video/webm", "webm"],
     ["video/mp4", "mp4"],
   ];
+  // A machine can sometimes RECORD a format it cannot PLAY BACK (hardware
+  // encoders vs decoders are separate). Require BOTH before choosing.
+  const probe = document.createElement("video");
   for (const [mime, ext] of candidates) {
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
+    if (
+      typeof MediaRecorder !== "undefined" &&
+      MediaRecorder.isTypeSupported(mime) &&
+      probe.canPlayType(mime) !== ""
+    ) {
       return { mime, ext };
     }
   }
