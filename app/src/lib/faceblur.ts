@@ -72,10 +72,26 @@ function pickMimeType(): { mime: string; ext: string } {
     ["video/webm", "webm"],
     ["video/mp4", "mp4"],
   ];
+  // A machine can sometimes RECORD a format it cannot PLAY BACK (hardware
+  // encoders vs decoders are separate). Require BOTH before choosing.
+  const probe = document.createElement("video");
   for (const [mime, ext] of candidates) {
-    if (MediaRecorder.isTypeSupported(mime)) return { mime, ext };
+    if (MediaRecorder.isTypeSupported(mime) && probe.canPlayType(mime) !== "") {
+      return { mime, ext };
+    }
   }
   return { mime: "", ext: "webm" };
+}
+
+export function formatSupportMatrix(): string {
+  const probe = typeof document !== "undefined" ? document.createElement("video") : null;
+  return ["video/webm;codecs=vp9", "video/webm", "video/mp4"]
+    .map((m) => {
+      const rec = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m) ? "rec" : "-";
+      const play = probe ? probe.canPlayType(m) || "-" : "?";
+      return `${m}[${rec}/${play}]`;
+    })
+    .join(" ");
 }
 
 export class VideoFormatError extends Error {
@@ -102,7 +118,7 @@ async function loadVideo(src: Blob): Promise<HTMLVideoElement> {
       const e = video.error;
       rej(
         new VideoFormatError(
-          `${codes[e?.code ?? 0] ?? "unknown decode error"}${e?.message ? ` (${e.message})` : ""} — type "${(src as File).type || "unknown"}"`,
+          `${codes[e?.code ?? 0] ?? "unknown decode error"}${e?.message ? ` (${e.message})` : ""} — type "${(src as File).type || "unknown"}" — device support: ${formatSupportMatrix()}`,
         ),
       );
     };
