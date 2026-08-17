@@ -11,6 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
 import { blurVideo, type BlurStage } from "@/lib/faceblur";
+import { blacklistMime } from "@/lib/videoFormat";
 import { db } from "@/lib/firebase";
 
 type Stage = "pick" | "blurring" | "ready" | "uploading" | "done" | "error";
@@ -56,10 +57,18 @@ export default function UploadPage() {
       const isFormat =
         (err as Error).name === "VideoFormatError" ||
         /codec|format|decode/i.test(detail);
+      const fromOurRecorder = picked.name.startsWith("recording-");
+      if (isFormat && fromOurRecorder) {
+        // This device recorded a file it can't read back — remember the bad
+        // format; the next recording automatically uses a different one.
+        blacklistMime(picked.type);
+      }
       setErrorMsg(
-        isFormat
-          ? `This browser can't read that video format (${detail}). This usually means an iPhone HEVC video. Fixes: use the 🎥 Record now button instead, open this page in Safari, or set the iPhone camera to Most Compatible (Settings → Camera → Formats). Nothing was uploaded.`
-          : `Couldn't blur this video (${detail}) — nothing was uploaded.`,
+        isFormat && fromOurRecorder
+          ? `This device's recorder produced an unreadable file (${detail}). That format is now blocked on this device — press 🎥 Record now again and the app will automatically try a different format.`
+          : isFormat
+            ? `This browser can't read that video format (${detail}). If the file came from an iPhone: use 🎥 Record now instead, open this page in Safari, or set the iPhone camera to Most Compatible (Settings → Camera → Formats). Nothing was uploaded.`
+            : `Couldn't blur this video (${detail}) — nothing was uploaded.`,
       );
       setFile(null);
       setPreviewUrl(null);

@@ -16,6 +16,7 @@ import {
   FilesetResolver,
   PoseLandmarker,
 } from "@mediapipe/tasks-vision";
+import { formatSupportMatrix, pickMimeType } from "@/lib/videoFormat";
 
 interface Box {
   x: number;
@@ -60,38 +61,6 @@ function getModels() {
     })();
   }
   return modelsPromise;
-}
-
-function pickMimeType(): { mime: string; ext: string } {
-  // WebM FIRST: Chrome's MP4 recorder is broken on some Windows hardware
-  // (records files it can't play back). WebM is reliable everywhere it's
-  // offered; Safari doesn't offer it and falls through to MP4, which it
-  // handles natively.
-  const candidates: [string, string][] = [
-    ["video/webm;codecs=vp9", "webm"],
-    ["video/webm", "webm"],
-    ["video/mp4", "mp4"],
-  ];
-  // A machine can sometimes RECORD a format it cannot PLAY BACK (hardware
-  // encoders vs decoders are separate). Require BOTH before choosing.
-  const probe = document.createElement("video");
-  for (const [mime, ext] of candidates) {
-    if (MediaRecorder.isTypeSupported(mime) && probe.canPlayType(mime) !== "") {
-      return { mime, ext };
-    }
-  }
-  return { mime: "", ext: "webm" };
-}
-
-export function formatSupportMatrix(): string {
-  const probe = typeof document !== "undefined" ? document.createElement("video") : null;
-  return ["video/webm;codecs=vp9", "video/webm", "video/mp4"]
-    .map((m) => {
-      const rec = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m) ? "rec" : "-";
-      const play = probe ? probe.canPlayType(m) || "-" : "?";
-      return `${m}[${rec}/${play}]`;
-    })
-    .join(" ");
 }
 
 export class VideoFormatError extends Error {
@@ -329,7 +298,16 @@ export async function blurVideo(
   let out = await renderBlurred(video, track, 1, baseName, (f) =>
     onProgress("render", f),
   );
-  let found = await auditOutput(out, (f) => onProgress("verify", f));
+  let found: number;
+  try {
+    try {
+      found = await auditOutput(out, (f) => onProgress("verify", f));
+    } catch {
+      found = -1;
+    }
+  } catch {
+    found = -1; // output unreadable on this device → "unverified", not fatal
+  }
 
   // found === -1 means "couldn't verify" — re-rendering wouldn't help that
   if (found > 0) {
@@ -337,7 +315,11 @@ export async function blurVideo(
     out = await renderBlurred(video, track, 1.4, baseName, (f) =>
       onProgress("render", f),
     );
-    found = await auditOutput(out, (f) => onProgress("verify", f));
+    try {
+      found = await auditOutput(out, (f) => onProgress("verify", f));
+    } catch {
+      found = -1;
+    }
   }
 
   URL.revokeObjectURL(video.src);

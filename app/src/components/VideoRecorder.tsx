@@ -5,32 +5,7 @@
 // MediaRecorder = capture that stream into a real video file, all on-device.
 // Flow: open camera → 3-2-1 countdown → record → review → use / retake / discard.
 import { useEffect, useRef, useState } from "react";
-
-// Safari records .mp4, Chrome records .webm — ask the browser what it can do.
-function pickMimeType(): { mime: string; ext: string } {
-  // WebM FIRST: Chrome's MP4 recorder is broken on some Windows hardware
-  // (records files it can't play back). WebM is reliable everywhere it's
-  // offered; Safari doesn't offer it and falls through to MP4, which it
-  // handles natively.
-  const candidates: [string, string][] = [
-    ["video/webm;codecs=vp9", "webm"],
-    ["video/webm", "webm"],
-    ["video/mp4", "mp4"],
-  ];
-  // A machine can sometimes RECORD a format it cannot PLAY BACK (hardware
-  // encoders vs decoders are separate). Require BOTH before choosing.
-  const probe = document.createElement("video");
-  for (const [mime, ext] of candidates) {
-    if (
-      typeof MediaRecorder !== "undefined" &&
-      MediaRecorder.isTypeSupported(mime) &&
-      probe.canPlayType(mime) !== ""
-    ) {
-      return { mime, ext };
-    }
-  }
-  return { mime: "", ext: "webm" }; // let the browser choose a default
-}
+import { pickMimeType } from "@/lib/videoFormat";
 
 type Mode = "idle" | "live" | "countdown" | "recording" | "review";
 
