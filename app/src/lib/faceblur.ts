@@ -34,7 +34,7 @@ export interface BlurResult {
   auditFacesFound: number; // faces still detectable in final output (goal: 0)
 }
 
-const HOLD_SEC = 0.4; // boxes cover this far before/after their sighting
+const HOLD_SEC = 0.25; // boxes cover this far before/after their sighting
 const PIXEL_BLOCKS = 8;
 
 let modelsPromise: Promise<{ face: FaceDetector; pose: PoseLandmarker }> | null =
@@ -107,7 +107,7 @@ function headBoxFromPose(
   const earL = lms[7];
   const earR = lms[8];
   const earDist = Math.hypot((earL.x - earR.x) * W, (earL.y - earR.y) * H);
-  const size = Math.max(earDist * 2.4, W * 0.04); // never smaller than 4% of frame
+  const size = Math.max(earDist * 1.8, W * 0.03); // never smaller than 3% of frame
   return { x: cx - size / 2, y: cy - size / 2, w: size, h: size };
 }
 
@@ -128,8 +128,8 @@ async function scanFaces(
 
       for (const d of face.detectForVideo(video, nextTs()).detections) {
         const b = d.boundingBox!;
-        const mx = b.width * 0.15;
-        const my = b.height * 0.2;
+        const mx = b.width * 0.1;
+        const my = b.height * 0.14;
         boxes.push({
           x: Math.max(0, b.originX - mx),
           y: Math.max(0, b.originY - my),
@@ -268,8 +268,8 @@ export async function blurVideo(
   let found = await auditOutput(out, (f) => onProgress("verify", f));
 
   if (found > 0) {
-    // Audit failed → re-blur with 60% bigger boxes, audit once more
-    out = await renderBlurred(video, track, 1.6, baseName, (f) =>
+    // Audit failed → re-blur with 40% bigger boxes, audit once more
+    out = await renderBlurred(video, track, 1.4, baseName, (f) =>
       onProgress("render", f),
     );
     found = await auditOutput(out, (f) => onProgress("verify", f));
