@@ -74,6 +74,13 @@ function pickMimeType(): { mime: string; ext: string } {
   return { mime: "", ext: "webm" };
 }
 
+export class VideoFormatError extends Error {
+  constructor(detail: string) {
+    super(detail);
+    this.name = "VideoFormatError";
+  }
+}
+
 async function loadVideo(src: Blob): Promise<HTMLVideoElement> {
   const video = document.createElement("video");
   video.src = URL.createObjectURL(src);
@@ -81,7 +88,20 @@ async function loadVideo(src: Blob): Promise<HTMLVideoElement> {
   video.playsInline = true;
   await new Promise<void>((res, rej) => {
     video.onloadedmetadata = () => res();
-    video.onerror = () => rej(new Error("Could not read video"));
+    video.onerror = () => {
+      const codes: Record<number, string> = {
+        1: "loading was aborted",
+        2: "a network error occurred",
+        3: "the video is corrupted or uses an unsupported codec",
+        4: "this video format isn't supported by this browser",
+      };
+      const e = video.error;
+      rej(
+        new VideoFormatError(
+          `${codes[e?.code ?? 0] ?? "unknown decode error"}${e?.message ? ` (${e.message})` : ""} — type "${(src as File).type || "unknown"}"`,
+        ),
+      );
+    };
   });
   return video;
 }

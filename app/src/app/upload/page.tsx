@@ -52,7 +52,15 @@ export default function UploadPage() {
       setPreviewUrl(URL.createObjectURL(blurred));
       setStage("ready");
     } catch (err) {
-      setErrorMsg(`Couldn't blur this video (${(err as Error).message}) — nothing was uploaded.`);
+      const detail = (err as Error).message;
+      const isFormat =
+        (err as Error).name === "VideoFormatError" ||
+        /codec|format|decode/i.test(detail);
+      setErrorMsg(
+        isFormat
+          ? `This browser can't read that video format (${detail}). This usually means an iPhone HEVC video. Fixes: use the 🎥 Record now button instead, open this page in Safari, or set the iPhone camera to Most Compatible (Settings → Camera → Formats). Nothing was uploaded.`
+          : `Couldn't blur this video (${detail}) — nothing was uploaded.`,
+      );
       setFile(null);
       setPreviewUrl(null);
       setStage("error");
