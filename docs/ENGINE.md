@@ -26,7 +26,72 @@ served from our own domain, inference happens in the browser, and only *numbers*
 (landmark series, metrics) plus the anonymized video ever reach the cloud.
 Privacy isn't a policy here; it's the data flow.
 
-## 2. Pipeline overview
+## 2. How the computer vision was built
+
+The honest engineering answer, in two halves: what we built on, and what we built.
+
+### 2a. The pretrained backbone (what we did NOT build)
+
+We did **not** train a neural network. BlazePose — the pose model — was trained
+by Google on enormous labeled datasets (millions of images of humans with
+hand-marked body points) using compute far beyond any student project. Training
+our own would have needed a labeled dataset that doesn't exist for baseball
+(see §11), months of GPU time, and would have produced a worse model.
+
+Using a pretrained model is not a shortcut — it's how professional CV products
+are built (the same way real apps don't write their own operating system).
+The skill being judged is what you build *on top of* the model.
+
+How the model itself works, in plain terms:
+- A **convolutional neural network (CNN)** scans the image with small learned
+  filters. Early layers detect edges and textures; deeper layers combine those
+  into "elbow-like" and "knee-like" patterns — the network learned these
+  patterns from its training data, nobody programmed them.
+- BlazePose runs **two stages**: a fast detector finds *where the person is*,
+  then a landmark network looks only at that region and regresses **33 body
+  points**, each with x, y and a **confidence score** (how sure it is the
+  point is really visible).
+- In VIDEO mode it also **tracks** between frames — using the previous frame's
+  result to stay fast and stable instead of re-detecting from scratch.
+
+### 2b. The CV system we DID build
+
+The model outputs dots. Everything decided from those dots is ours:
+
+1. **On-device deployment** — models ship from our own domain and run as
+   WebAssembly in the page. No cloud inference, no Google servers at runtime.
+   This choice IS the privacy architecture.
+2. **The frame-feeding pipeline** — video decoded through hidden `<video>` +
+   canvas elements; frames sampled at up to 60 fps; the model demands strictly
+   increasing timestamps, so we maintain a monotonic clock (`nextTs()`).
+3. **Two-model fusion** (`faceblur.ts`) — face detector *and* pose model both
+   vote on where heads are; the union of their boxes drives the pixelation.
+   One model's blind spot (small faces at distance) is covered by the other.
+4. **The temporal layer** — a CNN sees one frame at a time; a swing is a
+   *sequence*. We turn per-frame dots into time series, smooth them (3-point
+   moving average), differentiate them (angular velocity of hip and shoulder
+   lines), and detect events in them (contact = hand-speed peak; launch =
+   walk-back to 15% of peak; foot plant = front-ankle speed collapse).
+   **This temporal reasoning is the core of the swing engine and is entirely
+   original code** (`swingMetrics.ts`).
+5. **Normalization** — dividing all distances by in-frame body height so the
+   same swing measures the same from any camera distance (see §7).
+6. **Confidence-aware logic** — the model's per-point confidence scores drive
+   the quality gate (feet not visible? lighting bad?) and choices like "use
+   whichever wrist the model sees better."
+7. **Verification loops** — the anonymization self-audit re-runs the face
+   detector on our own output to *prove* the blur worked; the camera-angle
+   check rejects geometry the math can't handle.
+8. **Calibration against reality** — thresholds fitted from our own filmed
+   clips + published biomechanics, with every bug found by testing on real
+   video (see §11).
+
+One-sentence version for the interview: *"Google's model tells us where the
+body is; every baseball question — when the swing happens, whether the hips
+fire first, whether to trust the clip at all — is answered by code we wrote
+and calibrated ourselves."*
+
+## 3. Pipeline overview
 
 ```
 video file (already face-anonymized by lib/faceblur.ts)
@@ -48,15 +113,15 @@ session record (Firestore): landmarks + metrics + findings
 [REPLAY]  skeleton overlay drawn from STORED series, synced to video scrubbing
 ```
 
-## 3. Extraction (`lib/poseExtract.ts`)
+## 4. Extraction (`lib/poseExtract.ts`)
 
-- Samples at up to **60 fps** (was 20 — see §7 for why that failed).
+- Samples at up to **60 fps** (was 20 — see §11 for why that failed).
 - Each frame stores 33 landmarks as `{x, y, v}`: x/y are **normalized 0–1**
   (fraction of frame size), `v` is the model's confidence the point is visible.
 - Coordinates rounded to 4 decimals; capped at 15 s — keeps the stored series
   well under Firestore's 1 MB document limit.
 
-## 4. The quality gate (`analyzeSwing`, top of `lib/swingMetrics.ts`)
+## 5. The quality gate (`analyzeSwing`, top of `lib/swingMetrics.ts`)
 
 Principle: **never issue confident coaching on input the math can't trust.**
 Every rejection tells the user how to fix the filming.
@@ -75,13 +140,13 @@ video produces *confident nonsense* (our Front.MOV test measured a fake 70°
 shoulder tilt). Facing the camera spreads the shoulders horizontally; a side
 view stacks them — the ratio separates the two.
 
-## 5. Finding the swing
+## 6. Finding the swing
 
 A clip is mostly standing around plus ~0.5 s of action. The engine finds the
 action by **hand speed**:
 
 1. Wrist position per frame (whichever wrist the model sees better)
-2. Speed = distance moved ÷ time, in **body-heights per second** (see §6)
+2. Speed = distance moved ÷ time, in **body-heights per second** (see §7)
 3. **Peak speed ≈ contact** (`swingPeak`)
 4. Walk backwards until speed < 15% of peak → **launch** (`swingStart`)
 5. **Front-foot plant** (`footPlant`): the front ankle's own speed spikes
@@ -90,7 +155,7 @@ action by **hand speed**:
 
 Front leg / swing direction are inferred from which way the hips travel.
 
-## 6. The ruler: body-height normalization
+## 7. The ruler: body-height normalization
 
 Raw pixel distances depend on how far the camera stands. Every distance in the
 engine is divided by the batter's **in-frame body height** (shoulder-mid to
@@ -98,7 +163,7 @@ ankle-mid), so "head moved 8% of body height" means the same thing filmed from
 3 m or 6 m. This is why the app has no calibration step and no required
 filming distance.
 
-## 7. The seven metrics
+## 8. The seven metrics
 
 | Metric | How it's computed | Coaching meaning |
 |---|---|---|
@@ -111,9 +176,9 @@ filming distance.
 | Shoulder tilt (°) | Back-shoulder dip below front shoulder at launch | Backside collapse / uppercut warning |
 
 All formulas are 2D **side-view proxies** — honest approximations measurable
-from one camera, not lab values (see §9).
+from one camera, not lab values (see §10).
 
-## 8. Findings & thresholds
+## 9. Findings & thresholds
 
 `buildFindings()` compares each metric to thresholds in the exported `T`
 constant and emits severity-ranked cards (🔴 major → 🟡 minor → 🟢 good),
@@ -133,7 +198,7 @@ Threshold sources, in priority order:
 Status: **provisional** — final fit happens after the labeled mini-dataset
 (deliberate-flaw swings) is filmed and run through `/lab`.
 
-## 9. Honest limitations (say these proudly)
+## 10. Honest limitations (say these proudly)
 
 - **2D, one camera**: angles are projections; absolute values shift with
   camera placement. We compare users to themselves over time, not to lab data.
@@ -144,7 +209,7 @@ Status: **provisional** — final fit happens after the labeled mini-dataset
 - **Youth ≠ small adults** (Escamilla): thresholds deliberately gentler than
   pro numbers.
 
-## 10. Calibration war stories (the "technical difficulty" essay material)
+## 11. Calibration war stories (the "technical difficulty" essay material)
 
 Testing on our own 5 clips exposed four real bugs, all fixed:
 1. **`tempo: 0`** — 20 fps sampling = 50 ms clock ticks vs a 150 ms swing.
@@ -162,7 +227,7 @@ Internet Archive) for robustness against stranger footage; next, a
 verdict is known before analysis — because no public labeled baseball-swing
 dataset exists (golf has GolfDB; baseball doesn't).
 
-## 11. File map
+## 12. File map
 
 | File | Role |
 |---|---|
@@ -174,7 +239,7 @@ dataset exists (golf has GolfDB; baseball doesn't).
 | `app/src/app/analysis/[id]/page.tsx` | replay: skeleton overlay + tiles + coaching |
 | `app/src/app/lab/page.tsx` | tuning bench (batch-analyze clips, raw numbers) |
 
-## 12. Glossary (interview prep)
+## 13. Glossary (interview prep)
 
 - **Landmark**: one tracked body point (33 per frame)
 - **Kinematic sequence**: energy order hips→torso→arms; the engine measures it
