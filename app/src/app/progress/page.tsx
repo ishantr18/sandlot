@@ -91,7 +91,7 @@ export default function ProgressPage() {
           {sessions.map((s, i) => (
             <div key={s.id} className={i > 0 ? "border-t border-border" : ""}>
               <div className="flex items-center gap-3 p-4">
-                <div className="flex-1">
+                <Link href={s.status === "analyzed" ? `/analysis/${s.id}` : "#"} className="flex-1">
                   <div className="text-sm font-medium">
                     {new Date(s.createdAt).toLocaleDateString(undefined, {
                       month: "short",
@@ -103,8 +103,10 @@ export default function ProgressPage() {
                       minute: "2-digit",
                     })}
                   </div>
-                  <div className="text-xs text-muted-foreground">{s.status}</div>
-                </div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.status === "analyzed" ? "analyzed — tap for breakdown" : s.status}
+                  </div>
+                </Link>
                 <button
                   onClick={() => play(s)}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15"

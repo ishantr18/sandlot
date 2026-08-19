@@ -10,11 +10,14 @@ import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
+import { useRouter } from "next/navigation";
 import { blurVideo, type BlurStage } from "@/lib/faceblur";
+import { extractPose } from "@/lib/poseExtract";
+import { analyzeSwing } from "@/lib/swingMetrics";
 import { blacklistMime } from "@/lib/videoFormat";
 import { db } from "@/lib/firebase";
 
-type Stage = "pick" | "blurring" | "ready" | "uploading" | "done" | "error";
+type Stage = "pick" | "blurring" | "ready" | "analyzing" | "uploading" | "done" | "error";
 
 const BLUR_STAGE_LABEL: Record<BlurStage, string> = {
   scan: "🔍 Scanning every frame for faces and heads…",
@@ -23,6 +26,7 @@ const BLUR_STAGE_LABEL: Record<BlurStage, string> = {
 };
 
 export default function UploadPage() {
+  const router = useRouter();
   const { user, loading } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -92,24 +96,45 @@ export default function UploadPage() {
 
   async function handleUploadClick() {
     if (!file) return;
-    setStage("uploading");
-    setProgress(0);
     try {
+      // 1) Run the swing engine ON-DEVICE against the blurred file
+      setStage("analyzing");
+      setProgress(0);
+      const frames = await extractPose(file, (f) => setProgress(f * 100));
+      const analysis = analyzeSwing(frames);
+
+      // Quality gate: bad clips never reach the cloud
+      if (!analysis.ok) {
+        setErrorMsg(`Clip rejected by the analysis engine: ${analysis.rejectReason}`);
+        setStage("error");
+        return;
+      }
+
+      // 2) Upload the blurred video
+      setStage("uploading");
+      setProgress(0);
       const blob = await upload(`videos/${file.name}`, file, {
         access: "private",
         handleUploadUrl: "/api/upload",
         onUploadProgress: ({ percentage }) => setProgress(percentage),
       });
 
+      // 3) Save the session: video path + landmark series + metrics + findings
       if (user) {
-        await addDoc(collection(db, "sessions"), {
+        const doc = await addDoc(collection(db, "sessions"), {
           playerId: user.uid,
           videoPathname: blob.pathname,
           createdAt: Date.now(),
-          status: "uploaded",
+          status: "analyzed",
+          metrics: analysis.metrics,
+          findings: analysis.findings,
+          landmarks: JSON.stringify(frames),
         });
+        router.push(`/analysis/${doc.id}`);
+        return;
       }
 
+      // Signed-out fallback: just prove the round trip
       const res = await fetch(
         `/api/video?pathname=${encodeURIComponent(blob.pathname)}`,
       );
@@ -208,6 +233,15 @@ export default function UploadPage() {
         </div>
       )}
 
+      {stage === "analyzing" && (
+        <div className="mb-4 rounded-2xl bg-card p-4">
+          <p className="mb-2 text-sm font-semibold">📐 Analyzing your swing on this device…</p>
+          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
+
       {stage === "uploading" && (
         <div className="mb-4">
           <div className="h-2 w-full overflow-hidden rounded bg-secondary">
@@ -231,11 +265,13 @@ export default function UploadPage() {
         disabled={stage !== "ready"}
         className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
       >
-        {stage === "uploading"
-          ? "Uploading…"
-          : stage === "done"
-            ? "Done — pick another to re-test"
-            : "Analyze my swing"}
+        {stage === "analyzing"
+          ? "Analyzing…"
+          : stage === "uploading"
+            ? "Uploading…"
+            : stage === "done"
+              ? "Done — pick another to re-test"
+              : "Analyze my swing"}
       </button>
       </div>
       </div>

@@ -29,6 +29,13 @@ Order: **framework → face blurring → swing analysis** (each phase builds the
 - [x] **Aug 17:** Full pipeline before upload (done early, Aug 16)
 - [x] **Aug 18:** Edge cases: two-pass scan, pose-based head backup, self-audit + auto re-blur, anonymity-verified UX
 
+## Phase 3 pre-flight (user tasks — REQUIRED before engine work)
+- [ ] Film 6 swing clips → `test-clips/`: side-good-1/2/3, front-1, side-bad-feet, side-bad-backlit
+- [ ] End-to-end sanity: upload one side-good clip signed in → verify it shows + plays in Progress
+- [ ] (Recommended) Full-distance blur check on that upload
+- [ ] (Recommended) Blur tests: two-people, walk-across
+- [ ] (Recommended) Confirm which account is the official test account (TCE?)
+
 ## Phase 3 — Swing analysis (Aug 19–24)
 - [ ] **Aug 19:** Full pose extraction → per-frame landmark time series
 - [ ] **Aug 20:** Skeleton overlay + video scrubber

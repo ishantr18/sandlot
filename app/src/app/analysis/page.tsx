@@ -1,42 +1,56 @@
-// Analysis — full-bleed video + 2×2 stat tiles (huge mono numbers).
-// The pose engine wires in here in Phase 3 (Aug 19–24).
-const METRICS = [
-  { label: "Hip–shoulder sep", unit: "°" },
-  { label: "Swing tempo", unit: "s" },
-  { label: "Head movement", unit: "cm" },
-  { label: "Stride", unit: "%" },
-];
+"use client";
 
-export default function AnalysisPage() {
+// Analysis tab — jumps to your most recent analyzed swing, or explains how
+// to get one.
+import { collection, getDocs, query, where } from "firebase/firestore";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { db } from "@/lib/firebase";
+
+export default function AnalysisIndex() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [empty, setEmpty] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const snap = await getDocs(
+        query(collection(db, "sessions"), where("playerId", "==", user.uid)),
+      );
+      const analyzed = snap.docs
+        .filter((d) => d.data().status === "analyzed")
+        .sort((a, b) => b.data().createdAt - a.data().createdAt);
+      if (analyzed.length > 0) router.replace(`/analysis/${analyzed[0].id}`);
+      else setEmpty(true);
+    })();
+  }, [user, router]);
+
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
       <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">Analysis</h1>
-      <div className="lg:grid lg:grid-cols-5 lg:items-start lg:gap-8">
-      <div className="lg:col-span-3">
-
-      <section className="mb-4 flex aspect-video items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
-        Your swing + AI skeleton overlay (Phase 3)
+      <section className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
+        {!loading && !user ? (
+          <>
+            <Link href="/auth" className="text-primary underline">
+              Sign in
+            </Link>{" "}
+            to see your swing analysis.
+          </>
+        ) : empty ? (
+          <>
+            No analyzed swings yet —{" "}
+            <Link href="/upload" className="text-primary underline">
+              upload one
+            </Link>{" "}
+            and the AI will break it down here.
+          </>
+        ) : (
+          "Loading your latest analysis…"
+        )}
       </section>
-
-      </div>
-      <div className="lg:col-span-2">
-      <section className="mb-4 grid grid-cols-2 gap-2 lg:gap-4">
-        {METRICS.map((m) => (
-          <div key={m.label} className="rounded-2xl bg-card p-4">
-            <div className="font-mono text-3xl font-bold text-primary">
-              –<span className="text-lg text-muted-foreground">{m.unit}</span>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">{m.label}</div>
-          </div>
-        ))}
-      </section>
-
-      <section className="rounded-2xl bg-card p-4 text-sm text-muted-foreground">
-        Plain-English findings appear here — &ldquo;Your hips fire late → Hip fire tee
-        drill assigned.&rdquo;
-      </section>
-      </div>
-      </div>
     </main>
   );
 }
