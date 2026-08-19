@@ -37,7 +37,7 @@ function nextTs() {
 const r4 = (n: number) => Math.round(n * 10000) / 10000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-const MAX_FPS = 20; // enough temporal resolution for swing metrics, small storage
+const MAX_FPS = 60; // fine clock: a 150ms swing needs more than 20fps (tempo=0 bug)
 const MAX_SECONDS = 15; // safety cap so a long video can't blow up the record
 
 export async function extractPose(

@@ -34,6 +34,7 @@ export interface SwingMetrics {
   footPlant: number; // s — front-foot plant (estimated)
   swingPeak: number; // s — peak hand speed (≈ contact)
   trackingQuality: number; // 0..1 mean landmark visibility
+  viewRatio: number; // shoulder-width/body-height — camera-angle indicator (side ≈ <0.2)
 }
 
 export interface Finding {
@@ -55,11 +56,12 @@ export const T = {
   minHandSpeed: 0.8, // body-heights/sec — below this, no swing detected
   seq: { good: 25, ok: 0 }, // ms hip-peak leads shoulder-peak
   sep: { good: 22, minor: 14 }, // degrees (2D proxy)
-  tempo: { fastest: 0.1, slowest: 0.45 }, // seconds
+  tempo: { fastest: 0.1, slowest: 0.6 }, // seconds (0.5s was a real swing — widened)
   headDrift: { good: 6, minor: 12 }, // % of body height AFTER plant
   stride: { min: 8, max: 35 }, // % of body height
   knee: { braced: 158, soft: 140 }, // degrees at contact
   tilt: { level: 15, dipped: 25 }, // degrees at launch
+  viewRatioMax: 0.22, // shoulder width / body height — above this it's a front-facing video
 };
 // ---------------------------------------------------------------------------
 
@@ -148,6 +150,19 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
     };
   }
 
+  // Camera-angle check: side-view math on a front-facing video produces
+  // confident nonsense (proven by our Front.MOV test). Shoulders wide apart
+  // horizontally = facing the camera.
+  const viewRatio =
+    mean(frames.map((f) => Math.abs(f.lm[L_SHOULDER].x - f.lm[R_SHOULDER].x))) / bodyH;
+  if (viewRatio > T.viewRatioMax) {
+    return {
+      ok: false,
+      rejectReason:
+        "This looks like a front-facing video — the analysis needs a SIDE view. Set the camera to your side (where the pitcher would see your profile) and try again.",
+    };
+  }
+
   // ---- Hand speed → find the swing ----
   const wrist = (f: PoseFrame) =>
     f.lm[L_WRIST].v > f.lm[R_WRIST].v ? f.lm[L_WRIST] : f.lm[R_WRIST];
@@ -170,6 +185,30 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
   let startI = peakI;
   while (startI > 0 && handSpeed[startI - 1] > peakSpeed * 0.15) startI--;
   const winStart = Math.max(0, startI - 4);
+
+  // Degenerate-clip guards: never issue confident coaching on a swing the
+  // camera didn't fully capture (our Side_good3 test failed exactly this way).
+  if (frames[peakI].t < 0.35 || peakI < 3) {
+    return {
+      ok: false,
+      rejectReason:
+        "The swing happens at the very start of the clip, so there's nothing to measure it against. Start recording at least a second BEFORE you swing.",
+    };
+  }
+  if (peakI >= frames.length - 2) {
+    return {
+      ok: false,
+      rejectReason:
+        "The clip ends right at the swing — keep recording for a second after contact so the full motion is captured.",
+    };
+  }
+  if (peakI - startI < 2) {
+    return {
+      ok: false,
+      rejectReason:
+        "Couldn't reliably time this swing (too few frames across the motion). Try again with steadier framing and the whole load-to-contact visible.",
+    };
+  }
 
   // ---- Swing direction & front leg ----
   const hipMidX = (i: number) => (frames[i].lm[L_HIP].x + frames[i].lm[R_HIP].x) / 2;
@@ -275,6 +314,7 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
     footPlant: frames[plantI].t,
     swingPeak: frames[peakI].t,
     trackingQuality: Math.round(meanVis * 100) / 100,
+    viewRatio: Math.round(viewRatio * 100) / 100,
   };
 
   return { ok: true, metrics, findings: buildFindings(metrics) };
