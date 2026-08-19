@@ -1,13 +1,15 @@
-// Swing metrics engine — turns a pose time series into coaching.
+// Swing metrics engine v2 — turns a pose time series into coaching.
 //
-// Design notes (see docs/BLUEPRINT.md):
-// - All positions are normalized to BODY HEIGHT measured in-frame, so the
-//   numbers don't depend on camera distance.
-// - Target ranges are anchored in published biomechanics (pro kinematic
-//   sequencing) but expressed as proxies measurable from a single 2D side
-//   view. THRESHOLDS ARE PROVISIONAL — tuned against our own test clips.
-// - The quality gate rejects clips the math can't trust (feet out of frame,
-//   poor tracking) with actionable messages.
+// Grounded in coaching literature (docs/RESEARCH.md + Aug 18 research):
+// the master key is the KINEMATIC SEQUENCE (hips fire before shoulders);
+// supporting checks: separation, lunge (head drift AFTER front-foot plant),
+// front-knee brace at contact, backside collapse, stride, tempo.
+//
+// Design rules:
+// - Positions normalized to BODY HEIGHT in-frame → distance-independent.
+// - 2D side-view PROXIES, honestly labeled — no fake lab numbers.
+// - THRESHOLDS PROVISIONAL — tuned against test-clips/ (our own swings).
+// - Quality gate rejects clips the math can't trust, with actionable fixes.
 import type { PoseFrame } from "./poseExtract";
 
 // MediaPipe pose landmark indices
@@ -15,17 +17,23 @@ const NOSE = 0;
 const L_SHOULDER = 11, R_SHOULDER = 12;
 const L_HIP = 23, R_HIP = 24;
 const L_WRIST = 15, R_WRIST = 16;
+const L_KNEE = 25, R_KNEE = 26;
 const L_ANKLE = 27, R_ANKLE = 28;
 
 export interface SwingMetrics {
-  hipShoulderSepDeg: number; // peak line-angle difference before contact (proxy)
+  // The flagship: kinematic sequence
+  sequenceGapMs: number; // hip-rotation peak → shoulder-rotation peak (+ = hips first ✓)
+  hipShoulderSepDeg: number; // peak line-angle difference pre-contact (proxy)
   tempoSec: number; // launch → peak hand speed
-  headDriftPct: number; // nose travel as % of body height
+  headDriftPct: number; // nose travel AFTER front-foot plant, % of body height (lunge)
   stridePct: number; // ankle spread as % of body height
+  kneeBraceDeg: number; // front-knee angle at contact (≈180 = braced)
+  shoulderTiltDeg: number; // back-shoulder dip at launch (collapse/uppercut)
   peakHandSpeed: number; // body-heights per second (relative unit)
-  swingStart: number; // seconds — start of measured window
-  swingPeak: number; // seconds — peak hand speed (≈ contact)
-  trackingQuality: number; // 0..1 mean landmark visibility in window
+  swingStart: number; // s — launch
+  footPlant: number; // s — front-foot plant (estimated)
+  swingPeak: number; // s — peak hand speed (≈ contact)
+  trackingQuality: number; // 0..1 mean landmark visibility
 }
 
 export interface Finding {
@@ -40,28 +48,62 @@ export type SwingAnalysis =
   | { ok: false; rejectReason: string };
 
 // ---- PROVISIONAL THRESHOLDS (tune against test-clips/) ---------------------
-const T = {
+export const T = {
   minFrames: 12,
-  minAnkleVis: 0.45, // below this → feet not reliably in frame
-  minMeanVis: 0.5, // below this → lighting/tracking too poor
+  minAnkleVis: 0.45,
+  minMeanVis: 0.5,
   minHandSpeed: 0.8, // body-heights/sec — below this, no swing detected
-  sep: { good: 22, minor: 14 }, // degrees (2D side-view proxy)
-  tempo: { fastest: 0.10, slowest: 0.45 }, // seconds
-  headDrift: { good: 8, minor: 14 }, // % of body height
+  seq: { good: 25, ok: 0 }, // ms hip-peak leads shoulder-peak
+  sep: { good: 22, minor: 14 }, // degrees (2D proxy)
+  tempo: { fastest: 0.1, slowest: 0.45 }, // seconds
+  headDrift: { good: 6, minor: 12 }, // % of body height AFTER plant
   stride: { min: 8, max: 35 }, // % of body height
+  knee: { braced: 158, soft: 140 }, // degrees at contact
+  tilt: { level: 15, dipped: 25 }, // degrees at launch
 };
 // ---------------------------------------------------------------------------
 
 const deg = (rad: number) => (rad * 180) / Math.PI;
+const mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length;
 
 function lineAngle(a: { x: number; y: number }, b: { x: number; y: number }) {
   return deg(Math.atan2(b.y - a.y, b.x - a.x));
 }
-
 function angleDiff(a: number, b: number) {
   let d = Math.abs(a - b) % 360;
   if (d > 180) d = 360 - d;
   return d;
+}
+function signedAngleDelta(a: number, b: number) {
+  return ((a - b + 540) % 360) - 180;
+}
+// Interior angle at joint B (degrees) for segment A-B-C
+function jointAngle(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  c: { x: number; y: number },
+) {
+  const v1 = { x: a.x - b.x, y: a.y - b.y };
+  const v2 = { x: c.x - b.x, y: c.y - b.y };
+  const dot = v1.x * v2.x + v1.y * v2.y;
+  const mag = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y) || 1e-9;
+  return deg(Math.acos(Math.min(1, Math.max(-1, dot / mag))));
+}
+function smooth3(v: number[]) {
+  return v.map((_, i) => {
+    const a = v[Math.max(0, i - 1)], b = v[i], c = v[Math.min(v.length - 1, i + 1)];
+    return (a + b + c) / 3;
+  });
+}
+// |angular speed| series (deg/sec) of the line between two landmarks
+function rotationSpeed(frames: PoseFrame[], ia: number, ib: number) {
+  const angles = frames.map((f) => lineAngle(f.lm[ia], f.lm[ib]));
+  const out = [0];
+  for (let i = 1; i < frames.length; i++) {
+    const dt = frames[i].t - frames[i - 1].t || 1e-6;
+    out.push(Math.abs(signedAngleDelta(angles[i], angles[i - 1])) / dt);
+  }
+  return smooth3(out);
 }
 
 export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
@@ -73,7 +115,6 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
         "Couldn't track a person in this clip. Make sure your whole body is visible and the clip is at least a few seconds long.",
     };
   }
-  const mean = (vals: number[]) => vals.reduce((s, v) => s + v, 0) / vals.length;
   const ankleVis = mean(frames.map((f) => (f.lm[L_ANKLE].v + f.lm[R_ANKLE].v) / 2));
   if (ankleVis < T.minAnkleVis) {
     return {
@@ -91,13 +132,15 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
     };
   }
 
-  // Body height in-frame (shoulder-mid to ankle-mid) — our distance-free ruler
-  const heights = frames.map((f) => {
-    const shoulderMidY = (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2;
-    const ankleMidY = (f.lm[L_ANKLE].y + f.lm[R_ANKLE].y) / 2;
-    return Math.abs(ankleMidY - shoulderMidY);
-  });
-  const bodyH = mean(heights);
+  // Body height in-frame — our distance-free ruler
+  const bodyH = mean(
+    frames.map((f) =>
+      Math.abs(
+        (f.lm[L_ANKLE].y + f.lm[R_ANKLE].y) / 2 -
+          (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2,
+      ),
+    ),
+  );
   if (bodyH < 0.1) {
     return {
       ok: false,
@@ -105,71 +148,131 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
     };
   }
 
-  // ---- Hand speed per frame (body-heights / second) ----
+  // ---- Hand speed → find the swing ----
   const wrist = (f: PoseFrame) =>
     f.lm[L_WRIST].v > f.lm[R_WRIST].v ? f.lm[L_WRIST] : f.lm[R_WRIST];
-  const speeds: number[] = [0];
+  const handSpeed: number[] = [0];
   for (let i = 1; i < frames.length; i++) {
     const dt = frames[i].t - frames[i - 1].t || 1e-6;
-    const a = wrist(frames[i - 1]);
-    const b = wrist(frames[i]);
-    speeds.push(Math.hypot(b.x - a.x, b.y - a.y) / bodyH / dt);
+    const a = wrist(frames[i - 1]), b = wrist(frames[i]);
+    handSpeed.push(Math.hypot(b.x - a.x, b.y - a.y) / bodyH / dt);
   }
-
-  // ---- Find the swing: peak hand speed ≈ contact ----
   let peakI = 0;
-  for (let i = 1; i < speeds.length; i++) if (speeds[i] > speeds[peakI]) peakI = i;
-  const peakSpeed = speeds[peakI];
+  for (let i = 1; i < handSpeed.length; i++) if (handSpeed[i] > handSpeed[peakI]) peakI = i;
+  const peakSpeed = handSpeed[peakI];
   if (peakSpeed < T.minHandSpeed) {
     return {
       ok: false,
       rejectReason:
-        "No swing detected in this clip — make sure you take one full swing, and that your hands are visible.",
+        "No swing detected in this clip — take one full swing with your hands visible.",
     };
   }
-  // Launch = last time before the peak that speed was below 15% of peak
   let startI = peakI;
-  while (startI > 0 && speeds[startI - 1] > peakSpeed * 0.15) startI--;
+  while (startI > 0 && handSpeed[startI - 1] > peakSpeed * 0.15) startI--;
+  const winStart = Math.max(0, startI - 4);
 
-  const winStart = Math.max(0, startI - 3); // small pre-roll for separation peak
-  const window = frames.slice(winStart, Math.min(frames.length, peakI + 3));
+  // ---- Swing direction & front leg ----
+  const hipMidX = (i: number) => (frames[i].lm[L_HIP].x + frames[i].lm[R_HIP].x) / 2;
+  const dir = Math.sign(hipMidX(peakI) - hipMidX(winStart)) || 1;
+  const frontIsLeft =
+    (frames[peakI].lm[L_ANKLE].x - frames[peakI].lm[R_ANKLE].x) * dir > 0;
+  const F_ANKLE = frontIsLeft ? L_ANKLE : R_ANKLE;
+  const F_KNEE = frontIsLeft ? L_KNEE : R_KNEE;
+  const F_HIP = frontIsLeft ? L_HIP : R_HIP;
+  const B_SHOULDER = frontIsLeft ? R_SHOULDER : L_SHOULDER;
+  const F_SHOULDER = frontIsLeft ? L_SHOULDER : R_SHOULDER;
 
-  // ---- Metric 1: hip–shoulder separation (peak, pre-contact) ----
-  let sepPeak = 0;
-  for (const f of frames.slice(winStart, peakI + 1)) {
-    const sAng = lineAngle(f.lm[L_SHOULDER], f.lm[R_SHOULDER]);
-    const hAng = lineAngle(f.lm[L_HIP], f.lm[R_HIP]);
-    sepPeak = Math.max(sepPeak, angleDiff(sAng, hAng));
+  // ---- Front-foot plant: front ankle stops moving before contact ----
+  const ankleSpeed: number[] = [0];
+  for (let i = 1; i < frames.length; i++) {
+    const dt = frames[i].t - frames[i - 1].t || 1e-6;
+    const a = frames[i - 1].lm[F_ANKLE], b = frames[i].lm[F_ANKLE];
+    ankleSpeed.push(Math.hypot(b.x - a.x, b.y - a.y) / bodyH / dt);
+  }
+  let plantI = startI;
+  {
+    let maxI = winStart;
+    for (let i = winStart; i <= peakI; i++)
+      if (ankleSpeed[i] > ankleSpeed[maxI]) maxI = i;
+    const thresh = ankleSpeed[maxI] * 0.25;
+    for (let i = maxI; i <= peakI; i++) {
+      if (ankleSpeed[i] < thresh) {
+        plantI = i;
+        break;
+      }
+    }
+    if (plantI <= winStart) plantI = startI;
   }
 
-  // ---- Metric 2: tempo (launch → peak) ----
-  const tempo = frames[peakI].t - frames[startI].t;
+  // ---- Metric: kinematic sequence (hip peak vs shoulder peak) ----
+  const hipRot = rotationSpeed(frames, L_HIP, R_HIP);
+  const shoulderRot = rotationSpeed(frames, L_SHOULDER, R_SHOULDER);
+  const peakIn = (series: number[]) => {
+    let best = winStart;
+    for (let i = winStart; i <= Math.min(frames.length - 1, peakI + 2); i++)
+      if (series[i] > series[best]) best = i;
+    return best;
+  };
+  const hipPeakI = peakIn(hipRot);
+  const shoulderPeakI = peakIn(shoulderRot);
+  const sequenceGapMs = Math.round(
+    (frames[shoulderPeakI].t - frames[hipPeakI].t) * 1000,
+  );
 
-  // ---- Metric 3: head drift (% of body height, within window) ----
-  const noseXs = window.map((f) => f.lm[NOSE].x);
-  const noseYs = window.map((f) => f.lm[NOSE].y);
-  const drift =
-    Math.hypot(
-      Math.max(...noseXs) - Math.min(...noseXs),
-      Math.max(...noseYs) - Math.min(...noseYs),
-    ) / bodyH;
-
-  // ---- Metric 4: stride (max ankle spread in window, % of body height) ----
-  let strideMax = 0;
-  for (const f of window) {
-    strideMax = Math.max(
-      strideMax,
-      Math.abs(f.lm[L_ANKLE].x - f.lm[R_ANKLE].x) / bodyH,
+  // ---- Metric: hip–shoulder separation (peak, pre-contact) ----
+  let sepPeak = 0;
+  for (const f of frames.slice(winStart, peakI + 1)) {
+    sepPeak = Math.max(
+      sepPeak,
+      angleDiff(
+        lineAngle(f.lm[L_SHOULDER], f.lm[R_SHOULDER]),
+        lineAngle(f.lm[L_HIP], f.lm[R_HIP]),
+      ),
     );
   }
 
+  // ---- Metric: tempo ----
+  const tempo = frames[peakI].t - frames[startI].t;
+
+  // ---- Metric: head drift AFTER plant (the lunge definition) ----
+  const lungeWindow = frames.slice(plantI, Math.min(frames.length, peakI + 2));
+  const noseXs = lungeWindow.map((f) => f.lm[NOSE].x);
+  const noseYs = lungeWindow.map((f) => f.lm[NOSE].y);
+  const drift =
+    lungeWindow.length > 1
+      ? Math.hypot(
+          Math.max(...noseXs) - Math.min(...noseXs),
+          Math.max(...noseYs) - Math.min(...noseYs),
+        ) / bodyH
+      : 0;
+
+  // ---- Metric: stride ----
+  let strideMax = 0;
+  for (const f of frames.slice(winStart, peakI + 2)) {
+    strideMax = Math.max(strideMax, Math.abs(f.lm[L_ANKLE].x - f.lm[R_ANKLE].x) / bodyH);
+  }
+
+  // ---- Metric: front-knee brace at contact ----
+  const fc = frames[peakI].lm;
+  const kneeBrace = jointAngle(fc[F_HIP], fc[F_KNEE], fc[F_ANKLE]);
+
+  // ---- Metric: backside collapse (back-shoulder dip at launch) ----
+  const fl = frames[startI].lm;
+  const dy = fl[B_SHOULDER].y - fl[F_SHOULDER].y; // + = back shoulder lower
+  const dx = Math.abs(fl[B_SHOULDER].x - fl[F_SHOULDER].x) + 1e-6;
+  const shoulderTilt = Math.max(0, Math.round(deg(Math.atan2(dy, dx))));
+
   const metrics: SwingMetrics = {
+    sequenceGapMs,
     hipShoulderSepDeg: Math.round(sepPeak),
     tempoSec: Math.round(tempo * 100) / 100,
     headDriftPct: Math.round(drift * 100),
     stridePct: Math.round(strideMax * 100),
+    kneeBraceDeg: Math.round(kneeBrace),
+    shoulderTiltDeg: shoulderTilt,
     peakHandSpeed: Math.round(peakSpeed * 10) / 10,
     swingStart: frames[startI].t,
+    footPlant: frames[plantI].t,
     swingPeak: frames[peakI].t,
     trackingQuality: Math.round(meanVis * 100) / 100,
   };
@@ -179,100 +282,166 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
 
 function buildFindings(m: SwingMetrics): Finding[] {
   const out: Finding[] = [];
+  const add = (
+    metric: Finding["metric"],
+    severity: Finding["severity"],
+    message: string,
+    drillIds: string[] = [],
+  ) => out.push({ metric, severity, message, drillIds });
 
+  // 1. Kinematic sequence — the flagship
+  if (m.sequenceGapMs >= T.seq.good) {
+    add(
+      "sequenceGapMs",
+      "good",
+      `Textbook sequence — your hips fire ${m.sequenceGapMs}ms before your shoulders. That's how power travels up the chain.`,
+    );
+  } else if (m.sequenceGapMs >= T.seq.ok) {
+    add(
+      "sequenceGapMs",
+      "minor",
+      `Hips and shoulders are rotating almost together (${m.sequenceGapMs}ms gap). Let the hips START the swing — the shoulders should be reacting, not leading.`,
+      ["hip-fire-tee", "separation-stretch"],
+    );
+  } else {
+    add(
+      "sequenceGapMs",
+      "major",
+      `Your shoulders are firing BEFORE your hips (${m.sequenceGapMs}ms) — that's an arm swing. Biggest power unlock available: hips first, always.`,
+      ["hip-fire-tee", "separation-stretch"],
+    );
+  }
+
+  // 2. Separation
   if (m.hipShoulderSepDeg >= T.sep.good) {
-    out.push({
-      metric: "hipShoulderSepDeg",
-      severity: "good",
-      message: `Great separation (${m.hipShoulderSepDeg}°) — your hips are leading and loading power like they should.`,
-      drillIds: [],
-    });
+    add(
+      "hipShoulderSepDeg",
+      "good",
+      `Great separation (${m.hipShoulderSepDeg}°) — you're loading the rubber band.`,
+    );
   } else if (m.hipShoulderSepDeg >= T.sep.minor) {
-    out.push({
-      metric: "hipShoulderSepDeg",
-      severity: "minor",
-      message: `Decent separation (${m.hipShoulderSepDeg}°), but there's more power available — let your hips start before your hands.`,
-      drillIds: ["hip-fire-tee", "separation-stretch"],
-    });
+    add(
+      "hipShoulderSepDeg",
+      "minor",
+      `Some separation (${m.hipShoulderSepDeg}°), but there's more coil available between hips and shoulders.`,
+      ["separation-stretch"],
+    );
   } else {
-    out.push({
-      metric: "hipShoulderSepDeg",
-      severity: "major",
-      message: `Low separation (${m.hipShoulderSepDeg}°) — hips and shoulders are turning together, which leaks power. This is the #1 thing to work on.`,
-      drillIds: ["hip-fire-tee", "separation-stretch"],
-    });
+    add(
+      "hipShoulderSepDeg",
+      "major",
+      `Low separation (${m.hipShoulderSepDeg}°) — hips and shoulders turning as one block leaks power.`,
+      ["hip-fire-tee", "separation-stretch"],
+    );
   }
 
-  if (m.tempoSec < T.tempo.fastest) {
-    out.push({
-      metric: "tempoSec",
-      severity: "minor",
-      message: `Very quick trigger (${m.tempoSec}s) — could be rushing. A slightly longer load gives your body time to sequence.`,
-      drillIds: ["wall-bat-tempo"],
-    });
-  } else if (m.tempoSec > T.tempo.slowest) {
-    out.push({
-      metric: "tempoSec",
-      severity: "minor",
-      message: `Long swing (${m.tempoSec}s from launch to contact) — a more compact path gets you to the ball sooner.`,
-      drillIds: ["wall-bat-tempo"],
-    });
-  } else {
-    out.push({
-      metric: "tempoSec",
-      severity: "good",
-      message: `Swing tempo (${m.tempoSec}s) is in a healthy range.`,
-      drillIds: [],
-    });
-  }
-
+  // 3. Lunge (head drift after plant)
   if (m.headDriftPct <= T.headDrift.good) {
-    out.push({
-      metric: "headDriftPct",
-      severity: "good",
-      message: `Quiet head (${m.headDriftPct}% drift) — that's what consistent contact is built on.`,
-      drillIds: [],
-    });
+    add(
+      "headDriftPct",
+      "good",
+      `Quiet head after foot plant (${m.headDriftPct}% drift) — consistent contact starts here.`,
+    );
   } else if (m.headDriftPct <= T.headDrift.minor) {
-    out.push({
-      metric: "headDriftPct",
-      severity: "minor",
-      message: `Some head movement (${m.headDriftPct}% of body height) — keep your eyes level through contact.`,
-      drillIds: ["balance-beam"],
-    });
+    add(
+      "headDriftPct",
+      "minor",
+      `Head keeps moving after your front foot lands (${m.headDriftPct}%) — early lunge warning. Land, THEN turn.`,
+      ["balance-beam"],
+    );
   } else {
-    out.push({
-      metric: "headDriftPct",
-      severity: "major",
-      message: `Big head movement (${m.headDriftPct}%) — you're likely lunging. A moving head makes the ball look like it's moving too.`,
-      drillIds: ["balance-beam"],
-    });
+    add(
+      "headDriftPct",
+      "major",
+      `Lunging: your head travels ${m.headDriftPct}% of your height after foot plant. The ball appears to speed up when your head is moving — quiet it down.`,
+      ["balance-beam"],
+    );
   }
 
+  // 4. Front-knee brace
+  if (m.kneeBraceDeg >= T.knee.braced) {
+    add(
+      "kneeBraceDeg",
+      "good",
+      `Front leg braces at contact (${m.kneeBraceDeg}°) — you're turning against a firm post.`,
+    );
+  } else if (m.kneeBraceDeg >= T.knee.soft) {
+    add(
+      "kneeBraceDeg",
+      "minor",
+      `Front knee stays a bit bent at contact (${m.kneeBraceDeg}°) — firming it up converts your stride into rotation.`,
+      ["stride-ladder"],
+    );
+  } else {
+    add(
+      "kneeBraceDeg",
+      "major",
+      `Soft front leg (${m.kneeBraceDeg}° at contact) — power is leaking into the ground instead of into the ball.`,
+      ["stride-ladder"],
+    );
+  }
+
+  // 5. Backside collapse
+  if (m.shoulderTiltDeg <= T.tilt.level) {
+    add(
+      "shoulderTiltDeg",
+      "good",
+      `Shoulders stay level at launch (${m.shoulderTiltDeg}° tilt) — no collapse.`,
+    );
+  } else if (m.shoulderTiltDeg <= T.tilt.dipped) {
+    add(
+      "shoulderTiltDeg",
+      "minor",
+      `Back shoulder dips ${m.shoulderTiltDeg}° at launch — watch for the uppercut creeping in.`,
+      ["wall-bat-tempo"],
+    );
+  } else {
+    add(
+      "shoulderTiltDeg",
+      "major",
+      `Backside collapse: ${m.shoulderTiltDeg}° shoulder dip at launch. You'll swing uphill from there — stay tall through the load.`,
+      ["wall-bat-tempo"],
+    );
+  }
+
+  // 6. Tempo
+  if (m.tempoSec < T.tempo.fastest) {
+    add(
+      "tempoSec",
+      "minor",
+      `Very quick trigger (${m.tempoSec}s) — could be rushing the sequence.`,
+      ["wall-bat-tempo"],
+    );
+  } else if (m.tempoSec > T.tempo.slowest) {
+    add(
+      "tempoSec",
+      "minor",
+      `Long swing (${m.tempoSec}s launch→contact) — a more compact path gets you to the ball sooner.`,
+      ["wall-bat-tempo"],
+    );
+  } else {
+    add("tempoSec", "good", `Swing tempo (${m.tempoSec}s) is in a healthy range.`);
+  }
+
+  // 7. Stride
   if (m.stridePct < T.stride.min) {
-    out.push({
-      metric: "stridePct",
-      severity: "minor",
-      message: `Narrow stride (${m.stridePct}% of height) — you may be all arms. A real stride gets your lower half into the swing.`,
-      drillIds: ["stride-ladder"],
-    });
+    add(
+      "stridePct",
+      "minor",
+      `Narrow stride (${m.stridePct}% of height) — get your lower half started.`,
+      ["stride-ladder"],
+    );
   } else if (m.stridePct > T.stride.max) {
-    out.push({
-      metric: "stridePct",
-      severity: "minor",
-      message: `Very wide stride (${m.stridePct}%) — can cost you balance and rotation. Try a slightly more compact base.`,
-      drillIds: ["stride-ladder"],
-    });
+    add(
+      "stridePct",
+      "minor",
+      `Very wide stride (${m.stridePct}%) — can cost balance and rotation.`,
+      ["stride-ladder"],
+    );
   } else {
-    out.push({
-      metric: "stridePct",
-      severity: "good",
-      message: `Stride width (${m.stridePct}% of height) looks solid.`,
-      drillIds: [],
-    });
+    add("stridePct", "good", `Stride width (${m.stridePct}% of height) looks solid.`);
   }
 
-  // Most important first: majors, then minors, then praise
   const rank = { major: 0, minor: 1, good: 2 };
   out.sort((a, b) => rank[a.severity] - rank[b.severity]);
   return out;

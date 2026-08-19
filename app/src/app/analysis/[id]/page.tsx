@@ -118,10 +118,14 @@ export default function AnalysisSessionPage() {
   const m = session?.metrics;
   const tiles = m
     ? [
+        { label: "Hips→shoulders gap", value: m.sequenceGapMs, unit: "ms" },
         { label: "Hip–shoulder sep", value: m.hipShoulderSepDeg, unit: "°" },
         { label: "Swing tempo", value: m.tempoSec, unit: "s" },
-        { label: "Head movement", value: m.headDriftPct, unit: "%" },
+        { label: "Head drift (after plant)", value: m.headDriftPct, unit: "%" },
         { label: "Stride", value: m.stridePct, unit: "%" },
+        { label: "Front-knee brace", value: m.kneeBraceDeg, unit: "°" },
+        { label: "Shoulder tilt", value: m.shoulderTiltDeg, unit: "°" },
+        { label: "Tracking quality", value: Math.round((m.trackingQuality ?? 0) * 100), unit: "%" },
       ]
     : [];
 
