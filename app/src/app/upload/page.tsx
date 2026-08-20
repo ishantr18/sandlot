@@ -123,6 +123,7 @@ export default function UploadPage() {
       if (user) {
         const doc = await addDoc(collection(db, "sessions"), {
           playerId: user.uid,
+          playerName: user.displayName ?? "",
           videoPathname: blob.pathname,
           createdAt: Date.now(),
           status: "analyzed",

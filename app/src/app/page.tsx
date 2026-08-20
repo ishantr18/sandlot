@@ -47,7 +47,7 @@ const ACTIONS = [
 ];
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<SessionRow[]>([]);
 
@@ -85,6 +85,32 @@ export default function Home() {
   }
 
   const firstName = user?.displayName?.split(" ")[0] ?? "player";
+
+  // Coaches and parents get their own hub — player stats don't apply to them
+  if (profile?.role === "mentor" || profile?.role === "guardian") {
+    const isCoach = profile.role === "mentor";
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+        <p className="text-sm text-muted-foreground">Welcome back,</p>
+        <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">
+          {firstName}
+        </h1>
+        <Link
+          href={isCoach ? "/coach" : "/family"}
+          className="block rounded-2xl bg-card p-6 transition-colors hover:bg-secondary lg:max-w-md"
+        >
+          <div className="mb-1 text-lg font-semibold">
+            {isCoach ? "🧢 Review queue →" : "👨‍👩‍👧 Your player's activity →"}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {isCoach
+              ? "Anonymized swings waiting for your eye. Comments and drills you leave are visible to players and their parents."
+              : "Every swing, coach comment, and assigned drill — nothing on this app is hidden from you."}
+          </p>
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">

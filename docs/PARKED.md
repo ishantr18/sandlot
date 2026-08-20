@@ -14,3 +14,6 @@ Progress metrics double as a **verified Skill Card**: objective stats (rotation-
 
 ## 3. Other v2.0 material (from cut list)
 Virtual little league, live virtual practices, open Q&A forum, coach discovery/matching.
+
+## 4. Drill library brainstorm (parked Aug 20 — decision needed before demo video)
+10-drill proposal delivered (sequence: hip-fire tee, separation holds, step-back; lunge: no-stride, balance-beam; knee: firm-front-side finish; collapse: high-tee, wall-behind-back-foot; tempo: 1-2-3 rhythm; stride: stride ladder). All equipment-free. User to review as the baseball player: confirm real names, add drills that worked for them, cut fakes. Current shipped library = 5 placeholder drills in app/src/lib/drills.ts.

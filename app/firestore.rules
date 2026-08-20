@@ -1,12 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // DEV RULES — signed-in users only.
-    // TODO (Phase 4, Aug 26–27): tighten per-role rules —
-    //   players write only their own sessions; mentors comment/assign only;
-    //   guardians read everything linked to their player. No DMs by design.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isMentor() {
+      return request.auth != null && me().role == 'mentor';
+    }
+    function isGuardianOf(pid) {
+      return request.auth != null
+        && me().role == 'guardian'
+        && pid in me().get('guardianOf', []);
+    }
+
+    // Profiles: anyone signed-in can read (needed for guardian linking &
+    // coach names); only you can write yours.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Sessions: players create/modify their own; readable by owner,
+    // mentors (review queue), and the player's linked guardian.
+    match /sessions/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.playerId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.playerId == request.auth.uid
+        || isMentor()
+        || isGuardianOf(resource.data.playerId)
+      );
+      allow update, delete: if request.auth != null
+        && resource.data.playerId == request.auth.uid;
+    }
+
+    // Coach comments: ONLY mentors write, as themselves; readable by any
+    // signed-in participant (player/guardian views filter by session).
+    // No DMs exist anywhere by design — comments attach to sessions only.
+    match /comments/{id} {
+      allow create: if isMentor()
+        && request.resource.data.mentorId == request.auth.uid;
+      allow read: if request.auth != null;
+    }
+
+    // Drill assignments: mentors create; player (or their guardian) reads;
+    // player can update status (mark done).
+    match /assignments/{id} {
+      allow create: if isMentor()
+        && request.resource.data.assignedBy == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.playerId == request.auth.uid
+        || isMentor()
+        || isGuardianOf(resource.data.playerId)
+      );
+      allow update: if request.auth != null
+        && resource.data.playerId == request.auth.uid;
     }
   }
 }

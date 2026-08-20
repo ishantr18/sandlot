@@ -4,7 +4,15 @@
 // overlaid (drawn from the stored landmark series, synced to playback),
 // real metric tiles, and plain-English findings with assigned drills.
 import { DrawingUtils, PoseLandmarker } from "@mediapipe/tasks-vision";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -14,6 +22,14 @@ import { DRILLS } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 import type { PoseFrame } from "@/lib/poseExtract";
 import type { Finding, SwingMetrics } from "@/lib/swingMetrics";
+
+interface CommentRow {
+  id: string;
+  mentorName?: string;
+  timestampSec: number;
+  text: string;
+  createdAt: number;
+}
 
 interface SessionDoc {
   playerId: string;
@@ -32,7 +48,7 @@ const SEVERITY_STYLE = {
 
 export default function AnalysisSessionPage() {
   const { id } = useParams<{ id: string }>();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<PoseFrame[]>([]);
@@ -40,6 +56,10 @@ export default function AnalysisSessionPage() {
   const [session, setSession] = useState<SessionDoc | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [drillPick, setDrillPick] = useState("");
+  const [coachMsg, setCoachMsg] = useState("");
 
   useEffect(() => {
     if (!user || !id) return;
@@ -47,8 +67,19 @@ export default function AnalysisSessionPage() {
       const snap = await getDoc(doc(db, "sessions", id));
       if (!snap.exists()) return setError("Session not found.");
       const data = snap.data() as SessionDoc;
-      if (data.playerId !== user.uid) return setError("This isn't your session.");
+      const isOwner = data.playerId === user.uid;
+      const isMentor = profile?.role === "mentor";
+      const isGuardian = (profile?.guardianOf ?? []).includes(data.playerId);
+      if (!isOwner && !isMentor && !isGuardian)
+        return setError("You don't have access to this session.");
       setSession(data);
+      // load coach comments (visible to player, guardian, and mentors alike)
+      const csnap = await getDocs(
+        query(collection(db, "comments"), where("sessionId", "==", id)),
+      );
+      const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
+      cs.sort((a, b) => a.timestampSec - b.timestampSec);
+      setComments(cs);
       framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
       const res = await fetch(
         `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,
@@ -59,7 +90,7 @@ export default function AnalysisSessionPage() {
       } else setError("Couldn't load the video (link may have expired — reload).");
     })();
     return () => cancelAnimationFrame(rafRef.current);
-  }, [user, id]);
+  }, [user, profile, id]);
 
   // Draw the skeleton for whichever stored frame is nearest to playback time
   function startOverlay() {
@@ -185,7 +216,7 @@ export default function AnalysisSessionPage() {
             ))}
           </section>
 
-          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Coaching</h2>
+          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
           <div className="space-y-2">
             {session?.findings?.map((f, i) => (
               <section key={i} className={`rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
@@ -200,6 +231,113 @@ export default function AnalysisSessionPage() {
                 )}
               </section>
             ))}
+          </div>
+
+          <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">
+            Coach comments
+          </h2>
+          <div className="space-y-2">
+            {comments.length === 0 && (
+              <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground">
+                No coach comments yet.
+              </p>
+            )}
+            {comments.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
+                }}
+                className="block w-full rounded-2xl bg-card p-4 text-left"
+              >
+                <span className="font-mono text-xs text-primary">
+                  {c.timestampSec.toFixed(1)}s
+                </span>{" "}
+                <span className="text-xs text-muted-foreground">
+                  {c.mentorName ?? "Coach"}
+                </span>
+                <p className="mt-1 text-sm">{c.text}</p>
+              </button>
+            ))}
+
+            {profile?.role === "mentor" && session && (
+              <div className="rounded-2xl bg-card p-4">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Comment lands at the video&apos;s current time — pause where you want it.
+                  Visible to the player and their parent.
+                </p>
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="At this moment — watch your back elbow…"
+                  className="mb-2 w-full rounded-xl border-0 bg-secondary p-3 text-sm"
+                  rows={2}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!newComment.trim() || !user) return;
+                      const timestampSec = videoRef.current?.currentTime ?? 0;
+                      await addDoc(collection(db, "comments"), {
+                        sessionId: id,
+                        mentorId: user.uid,
+                        mentorName: user.displayName ?? "Coach",
+                        timestampSec,
+                        text: newComment.trim(),
+                        createdAt: Date.now(),
+                      });
+                      setComments((cs) =>
+                        [...cs, {
+                          id: `local-${Date.now()}`,
+                          mentorName: user.displayName ?? "Coach",
+                          timestampSec,
+                          text: newComment.trim(),
+                          createdAt: Date.now(),
+                        }].sort((a, b) => a.timestampSec - b.timestampSec),
+                      );
+                      setNewComment("");
+                      setCoachMsg("Comment posted.");
+                    }}
+                    className="flex-1 rounded-full bg-primary py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Post comment
+                  </button>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <select
+                    value={drillPick}
+                    onChange={(e) => setDrillPick(e.target.value)}
+                    className="flex-1 rounded-xl border-0 bg-secondary p-2 text-sm"
+                  >
+                    <option value="">Assign a drill…</option>
+                    {DRILLS.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (!drillPick || !user || !session) return;
+                      await addDoc(collection(db, "assignments"), {
+                        playerId: session.playerId,
+                        drillId: drillPick,
+                        assignedBy: user.uid,
+                        mentorName: user.displayName ?? "Coach",
+                        status: "assigned",
+                        createdAt: Date.now(),
+                      });
+                      setDrillPick("");
+                      setCoachMsg("Drill assigned — it appears on the player's Drills page.");
+                    }}
+                    className="rounded-full border border-border px-4 py-2 text-sm"
+                  >
+                    Assign
+                  </button>
+                </div>
+                {coachMsg && <p className="mt-2 text-xs text-primary">{coachMsg}</p>}
+              </div>
+            )}
           </div>
         </div>
       </div>
