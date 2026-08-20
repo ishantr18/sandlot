@@ -7,13 +7,16 @@ import { Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import ProgressCharts from "@/components/ProgressCharts";
 import { auth, db } from "@/lib/firebase";
+import type { SwingMetrics } from "@/lib/swingMetrics";
 
 interface SessionRow {
   id: string;
   videoPathname: string;
   createdAt: number;
   status: string;
+  metrics?: SwingMetrics;
 }
 
 export default function ProgressPage() {
@@ -72,9 +75,10 @@ export default function ProgressPage() {
       </div>
 
       <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
-      <section className="mb-6 flex h-40 items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground lg:h-64">
-        Improvement charts arrive with swing metrics (Phase 4)
-      </section>
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Trends</h2>
+        <ProgressCharts sessions={sessions ?? []} />
+      </div>
       <div>
 
       <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Session history</h2>
