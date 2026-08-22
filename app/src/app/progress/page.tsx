@@ -20,7 +20,7 @@ interface SessionRow {
 }
 
 export default function ProgressPage() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
 
@@ -43,6 +43,20 @@ export default function ProgressPage() {
     if (!res.ok) return;
     const { url } = (await res.json()) as { url: string };
     setPlaying({ id: session.id, url });
+  }
+
+  if (profile?.role === "mentor" || profile?.role === "guardian") {
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28">
+        <h1 className="mb-6 text-4xl font-bold tracking-tight">Progress</h1>
+        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
+          Progress tracks a player&apos;s own swings.{" "}
+          <Link href={profile.role === "mentor" ? "/coach" : "/family"} className="text-primary underline">
+            {profile.role === "mentor" ? "Head to your review queue →" : "See your player's activity →"}
+          </Link>
+        </p>
+      </main>
+    );
   }
 
   if (!loading && !user) {

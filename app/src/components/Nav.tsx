@@ -1,20 +1,34 @@
 "use client";
 
-// Floating pill dock (Elevate-style): dark pill, active tab lifted in a
-// lighter pill with the field-green icon.
-import { Dumbbell, House, TrendingUp, Video } from "lucide-react";
+// Floating pill dock — tabs depend on WHO you are.
+// Player: full training loop. Coach: review work. Parent: the window.
+import { Dumbbell, House, TrendingUp, Users, Video, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
-const tabs = [
-  { href: "/", label: "Home", icon: House },
-  { href: "/upload", label: "Upload", icon: Video },
-  { href: "/drills", label: "Drills", icon: Dumbbell },
-  { href: "/progress", label: "Progress", icon: TrendingUp },
-];
+const TABS = {
+  player: [
+    { href: "/", label: "Home", icon: House },
+    { href: "/upload", label: "Upload", icon: Video },
+    { href: "/drills", label: "Drills", icon: Dumbbell },
+    { href: "/progress", label: "Progress", icon: TrendingUp },
+  ],
+  mentor: [
+    { href: "/", label: "Home", icon: House },
+    { href: "/coach", label: "Review", icon: ClipboardList },
+    { href: "/drills", label: "Drills", icon: Dumbbell },
+  ],
+  guardian: [
+    { href: "/", label: "Home", icon: House },
+    { href: "/family", label: "Family", icon: Users },
+  ],
+};
 
 export default function Nav() {
   const pathname = usePathname();
+  const { profile } = useAuth();
+  const tabs = TABS[profile?.role ?? "player"] ?? TABS.player;
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur">
       {tabs.map((t) => {

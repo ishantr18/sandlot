@@ -1,19 +1,27 @@
 "use client";
 
-// Coach view — the review queue. Mentors see analyzed swings (already
-// face-anonymized by the pipeline), open one, and coach it.
-// Deliberately narrow: no DMs, no browsing anything but submitted swings.
+// Coach review queue — the certified-coach open pool.
+//
+// Trust model (user-designed, Aug 22):
+// - Only CERTIFIED coaches (verifiedMentor flag, granted by a human) see anything
+// - Players are ANONYMOUS to coaches (number, pixelated video, no name);
+//   coaches are fully identified to players and parents
+// - EQUITY QUEUE: swings with the fewest coach reviews come first, so
+//   attention flows to whoever has received the least
+// - One-way: coaches give feedback; there is no reply channel
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { db } from "@/lib/firebase";
+import { anonPlayer } from "@/lib/anon";
 
 interface QueueRow {
   id: string;
-  playerName?: string;
+  playerId: string;
   createdAt: number;
+  reviews: number;
 }
 
 export default function CoachPage() {
@@ -21,17 +29,35 @@ export default function CoachPage() {
   const [rows, setRows] = useState<QueueRow[] | null>(null);
 
   useEffect(() => {
-    if (!user || profile?.role !== "mentor") return;
+    if (!user || profile?.role !== "mentor" || !profile.verifiedMentor) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "sessions"), where("status", "==", "analyzed")),
-      );
-      const r = snap.docs.map((d) => ({
-        id: d.id,
-        playerName: d.data().playerName as string | undefined,
-        createdAt: d.data().createdAt as number,
-      }));
-      r.sort((a, b) => b.createdAt - a.createdAt);
+      const [sessSnap, commentSnap, blockSnap] = await Promise.all([
+        getDocs(query(collection(db, "sessions"), where("status", "==", "analyzed"))),
+        getDocs(collection(db, "comments")),
+        getDocs(query(collection(db, "blocks"), where("coachId", "==", user.uid))),
+      ]);
+
+      // Count existing coach reviews per session (the equity signal)
+      const reviewCount = new Map<string, number>();
+      commentSnap.docs.forEach((d) => {
+        const sid = d.data().sessionId as string;
+        reviewCount.set(sid, (reviewCount.get(sid) ?? 0) + 1);
+      });
+
+      // Blocks in either direction remove the player from this coach's world
+      const blockedPlayers = new Set(blockSnap.docs.map((d) => d.data().playerId as string));
+
+      const r = sessSnap.docs
+        .map((d) => ({
+          id: d.id,
+          playerId: d.data().playerId as string,
+          createdAt: d.data().createdAt as number,
+          reviews: reviewCount.get(d.id) ?? 0,
+        }))
+        .filter((s) => !blockedPlayers.has(s.playerId));
+
+      // EQUITY SORT: least-reviewed first, then newest
+      r.sort((a, b) => a.reviews - b.reviews || b.createdAt - a.createdAt);
       setRows(r);
     })();
   }, [user, profile]);
@@ -51,12 +77,30 @@ export default function CoachPage() {
     );
   }
 
+  // Certification gate — uncertified coaches see nothing but this
+  if (profile?.role === "mentor" && !profile.verifiedMentor) {
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28">
+        <h1 className="mb-6 text-4xl font-bold tracking-tight">Almost there</h1>
+        <div className="rounded-2xl bg-card p-6">
+          <p className="mb-2 text-lg font-semibold">🧢 Certification pending</p>
+          <p className="text-sm text-muted-foreground">
+            Coach accounts are verified by a real person before they can see any
+            player videos — that&apos;s a promise we make to families. You&apos;ll
+            get access once your organization confirms you.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
       <h1 className="mb-2 text-4xl font-bold tracking-tight lg:text-6xl">Review queue</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Every video is face-anonymized before it reaches you. Comments and drill
-        assignments are visible to the player AND their parent.
+        Sorted so the least-coached players come first. Players are anonymous to
+        you; your name and every word you write are visible to them and their
+        parents. Videos are face-anonymized before they ever reach the cloud.
       </p>
 
       {rows === null && <p className="text-sm text-muted-foreground">Loading…</p>}
@@ -75,19 +119,23 @@ export default function CoachPage() {
               className={`flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}
             >
               <div className="flex-1">
-                <div className="text-sm font-medium">{r.playerName ?? "Player"}</div>
+                <div className="text-sm font-medium">{anonPlayer(r.playerId)}</div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(r.createdAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
-                  })}{" "}
-                  ·{" "}
-                  {new Date(r.createdAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
                   })}
                 </div>
               </div>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  r.reviews === 0
+                    ? "bg-primary/15 text-primary"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {r.reviews === 0 ? "never reviewed" : `${r.reviews} review${r.reviews > 1 ? "s" : ""}`}
+              </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
           ))}

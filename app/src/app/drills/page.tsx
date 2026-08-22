@@ -16,7 +16,7 @@ interface AssignmentRow {
 }
 
 export default function DrillsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [assigned, setAssigned] = useState<AssignmentRow[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -39,6 +39,7 @@ export default function DrillsPage() {
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
       <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">Drills</h1>
       <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+        {profile?.role !== "mentor" && profile?.role !== "guardian" && (
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
             Assigned to you
@@ -83,6 +84,7 @@ export default function DrillsPage() {
             </section>
           )}
         </div>
+        )}
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Library</h2>
           <section className="rounded-2xl bg-card">

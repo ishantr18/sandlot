@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 import type { PoseFrame } from "@/lib/poseExtract";
@@ -25,6 +26,7 @@ import type { Finding, SwingMetrics } from "@/lib/swingMetrics";
 
 interface CommentRow {
   id: string;
+  mentorId?: string;
   mentorName?: string;
   timestampSec: number;
   text: string;
@@ -60,6 +62,8 @@ export default function AnalysisSessionPage() {
   const [newComment, setNewComment] = useState("");
   const [drillPick, setDrillPick] = useState("");
   const [coachMsg, setCoachMsg] = useState("");
+  const [blockedCoaches, setBlockedCoaches] = useState<Set<string>>(new Set());
+  const [safetyMsg, setSafetyMsg] = useState("");
 
   useEffect(() => {
     if (!user || !id) return;
@@ -80,6 +84,10 @@ export default function AnalysisSessionPage() {
       const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
       cs.sort((a, b) => a.timestampSec - b.timestampSec);
       setComments(cs);
+      const bsnap = await getDocs(
+        query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
+      );
+      setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
       framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
       const res = await fetch(
         `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,
@@ -198,9 +206,44 @@ export default function AnalysisSessionPage() {
             )}
           </section>
           <p className="mb-4 text-xs text-muted-foreground">
-            ▶ Play or scrub — the green skeleton is the AI&apos;s view of your body,
-            computed on your device.
+            ▶ Play or scrub — the green skeleton is the AI&apos;s view of the body,
+            computed on-device.
           </p>
+          {profile?.role === "mentor" && session && user && (
+            <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="font-medium">{anonPlayer(session.playerId)}</span>
+              <button
+                onClick={async () => {
+                  await addDoc(collection(db, "reports"), {
+                    targetId: session.playerId,
+                    targetRole: "player",
+                    byId: user.uid,
+                    sessionId: id,
+                    createdAt: Date.now(),
+                  });
+                  setSafetyMsg("Reported — thank you.");
+                }}
+                className="underline"
+              >
+                ⚑ Report video
+              </button>
+              <button
+                onClick={async () => {
+                  await addDoc(collection(db, "blocks"), {
+                    playerId: session.playerId,
+                    coachId: user.uid,
+                    byId: user.uid,
+                    createdAt: Date.now(),
+                  });
+                  setSafetyMsg("Hidden — this player won't appear in your queue.");
+                }}
+                className="underline"
+              >
+                🚫 Hide this player
+              </button>
+              {safetyMsg && <span className="text-primary">{safetyMsg}</span>}
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2">
@@ -242,23 +285,64 @@ export default function AnalysisSessionPage() {
                 No coach comments yet.
               </p>
             )}
-            {comments.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
-                }}
-                className="block w-full rounded-2xl bg-card p-4 text-left"
-              >
-                <span className="font-mono text-xs text-primary">
-                  {c.timestampSec.toFixed(1)}s
-                </span>{" "}
-                <span className="text-xs text-muted-foreground">
-                  {c.mentorName ?? "Coach"}
-                </span>
-                <p className="mt-1 text-sm">{c.text}</p>
-              </button>
+            {comments
+              .filter((c) => !c.mentorId || !blockedCoaches.has(c.mentorId))
+              .map((c) => (
+              <div key={c.id} className="rounded-2xl bg-card p-4">
+                <button
+                  onClick={() => {
+                    if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
+                  }}
+                  className="block w-full text-left"
+                >
+                  <span className="font-mono text-xs text-primary">
+                    {c.timestampSec.toFixed(1)}s
+                  </span>{" "}
+                  <span className="text-xs text-muted-foreground">
+                    {c.mentorName ?? "Coach"}
+                  </span>
+                  <p className="mt-1 text-sm">{c.text}</p>
+                </button>
+                {profile?.role !== "mentor" && c.mentorId && user && session && (
+                  <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                    <button
+                      onClick={async () => {
+                        await addDoc(collection(db, "reports"), {
+                          targetId: c.mentorId,
+                          targetRole: "mentor",
+                          byId: user.uid,
+                          sessionId: id,
+                          commentText: c.text,
+                          createdAt: Date.now(),
+                        });
+                        setSafetyMsg("Reported — we review every report.");
+                      }}
+                      className="underline"
+                    >
+                      ⚑ Report
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await addDoc(collection(db, "blocks"), {
+                          playerId: session.playerId,
+                          coachId: c.mentorId,
+                          byId: user.uid,
+                          createdAt: Date.now(),
+                        });
+                        setBlockedCoaches((s) => new Set([...s, c.mentorId!]));
+                        setSafetyMsg(
+                          "Coach blocked — their comments are hidden and your swings leave their queue.",
+                        );
+                      }}
+                      className="underline"
+                    >
+                      🚫 Block this coach
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
+            {safetyMsg && <p className="text-xs text-primary">{safetyMsg}</p>}
 
             {profile?.role === "mentor" && session && (
               <div className="rounded-2xl bg-card p-4">

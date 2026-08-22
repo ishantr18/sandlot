@@ -27,7 +27,7 @@ const BLUR_STAGE_LABEL: Record<BlurStage, string> = {
 
 export default function UploadPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -147,6 +147,20 @@ export default function UploadPage() {
       setErrorMsg((err as Error).message);
       setStage("error");
     }
+  }
+
+  if (profile?.role === "mentor" || profile?.role === "guardian") {
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28">
+        <h1 className="mb-6 text-4xl font-bold tracking-tight">Upload</h1>
+        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
+          Uploading swings is a player thing.{" "}
+          <Link href={profile.role === "mentor" ? "/coach" : "/family"} className="text-primary underline">
+            {profile.role === "mentor" ? "Head to your review queue →" : "See your player's activity →"}
+          </Link>
+        </p>
+      </main>
+    );
   }
 
   return (

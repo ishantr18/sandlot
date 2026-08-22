@@ -8,6 +8,11 @@ service cloud.firestore {
     function isMentor() {
       return request.auth != null && me().role == 'mentor';
     }
+    // CERTIFIED coach: role granted at signup, verification granted by a HUMAN
+    // (org/admin flips verifiedMentor). Uncertified coaches see nothing.
+    function isCertMentor() {
+      return isMentor() && me().verifiedMentor == true;
+    }
     function isGuardianOf(pid) {
       return request.auth != null
         && me().role == 'guardian'
@@ -28,7 +33,7 @@ service cloud.firestore {
         && request.resource.data.playerId == request.auth.uid;
       allow read: if request.auth != null && (
         resource.data.playerId == request.auth.uid
-        || isMentor()
+        || isCertMentor()
         || isGuardianOf(resource.data.playerId)
       );
       allow update, delete: if request.auth != null
@@ -39,7 +44,7 @@ service cloud.firestore {
     // signed-in participant (player/guardian views filter by session).
     // No DMs exist anywhere by design — comments attach to sessions only.
     match /comments/{id} {
-      allow create: if isMentor()
+      allow create: if isCertMentor()
         && request.resource.data.mentorId == request.auth.uid;
       allow read: if request.auth != null;
     }
@@ -47,7 +52,7 @@ service cloud.firestore {
     // Drill assignments: mentors create; player (or their guardian) reads;
     // player can update status (mark done).
     match /assignments/{id} {
-      allow create: if isMentor()
+      allow create: if isCertMentor()
         && request.resource.data.assignedBy == request.auth.uid;
       allow read: if request.auth != null && (
         resource.data.playerId == request.auth.uid
@@ -56,6 +61,32 @@ service cloud.firestore {
       );
       allow update: if request.auth != null
         && resource.data.playerId == request.auth.uid;
+    }
+
+    // Blocks: player/guardian block a coach, or a coach hides a player.
+    // Creator must be a participant; both sides can read their own blocks.
+    match /blocks/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.byId == request.auth.uid
+        && (
+          request.resource.data.playerId == request.auth.uid
+          || request.resource.data.coachId == request.auth.uid
+          || isGuardianOf(request.resource.data.playerId)
+        );
+      allow read: if request.auth != null && (
+        resource.data.playerId == request.auth.uid
+        || resource.data.coachId == request.auth.uid
+        || isGuardianOf(resource.data.playerId)
+      );
+      allow delete: if request.auth != null && resource.data.byId == request.auth.uid;
+    }
+
+    // Reports: anyone signed-in can file one about a participant; NOBODY can
+    // read them in-app — review happens in the admin console only.
+    match /reports/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.byId == request.auth.uid;
+      allow read: if false;
     }
   }
 }
