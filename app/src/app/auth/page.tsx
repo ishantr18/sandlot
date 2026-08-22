@@ -61,29 +61,29 @@ export default function AuthPage() {
     setError("");
     try {
       if (mode === "signup") {
-        // Parents: find the player FIRST — never create a login until every
-        // precondition passes (a failed lookup used to orphan half-accounts)
-        let guardianOf: string[] = [];
-        if (role === "guardian") {
-          const snap = await getDocs(
-            query(
-              collection(db, "users"),
-              where("email", "==", childEmail.trim().toLowerCase()),
-              limit(1),
-            ),
-          );
-          if (snap.empty) {
-            setError(
-              "No player account found with that email. The player should create their account first — and if it's an older account, they just need to sign in once, then this will work.",
-            );
-            setBusy(false);
-            return;
-          }
-          guardianOf = [snap.docs[0].id];
-        }
-
+        // Create the login first (profile reads require auth), then verify;
+        // ANY later failure deletes the login again — no orphans, ever.
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         try {
+          let guardianOf: string[] = [];
+          if (role === "guardian") {
+            const snap = await getDocs(
+              query(
+                collection(db, "users"),
+                where("email", "==", childEmail.trim().toLowerCase()),
+                limit(1),
+              ),
+            );
+            if (snap.empty) {
+              await cred.user.delete().catch(() => {});
+              setError(
+                "No player account found with that email — double-check it, or have your player create their account first.",
+              );
+              setBusy(false);
+              return;
+            }
+            guardianOf = [snap.docs[0].id];
+          }
           await updateProfile(cred.user, { displayName: name });
           await setDoc(doc(db, "users", cred.user.uid), {
             uid: cred.user.uid,
@@ -93,10 +93,9 @@ export default function AuthPage() {
             ...(guardianOf.length ? { guardianOf } : {}),
             createdAt: Date.now(),
           });
-        } catch (profileErr) {
-          // Profile failed → undo the login so no orphan is left behind
+        } catch (err) {
           await cred.user.delete().catch(() => {});
-          throw profileErr;
+          throw err;
         }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
