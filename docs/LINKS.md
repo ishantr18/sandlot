@@ -2,10 +2,21 @@
 
 ## The app (live)
 - **App (production):** https://sandlot-ishantr18s-projects.vercel.app
-- Sign in / create account: https://sandlot-ishantr18s-projects.vercel.app/auth
-- Upload (blur pipeline): https://sandlot-ishantr18s-projects.vercel.app/upload
-- Progress: https://sandlot-ishantr18s-projects.vercel.app/progress
-- ⚡ Pose spike (lab page): https://sandlot-ishantr18s-projects.vercel.app/spike
+- Sign in / create account (role picker): https://sandlot-ishantr18s-projects.vercel.app/auth
+- Upload (blur → analyze pipeline): https://sandlot-ishantr18s-projects.vercel.app/upload
+- Progress (charts + history): https://sandlot-ishantr18s-projects.vercel.app/progress
+- Drills (assignments + library): https://sandlot-ishantr18s-projects.vercel.app/drills
+- Analysis (latest swing breakdown): https://sandlot-ishantr18s-projects.vercel.app/analysis
+
+### The three POVs (same app — the page checks your account's role)
+- ⚾ Player: sign in as a player → Home dashboard, /upload, /analysis, /drills, /progress
+- 🧢 Coach review queue: https://sandlot-ishantr18s-projects.vercel.app/coach (coach accounts only)
+- 👨‍👩‍👧 Parent family view: https://sandlot-ishantr18s-projects.vercel.app/family (parent accounts, linked to a player's email at signup)
+- 3-POV test scheme: yourname+player@ / +coach@ / +parent@ (parent signup asks for the player's email — use accounts created after Aug 20)
+
+### Dev/lab pages (not part of the product)
+- 🧪 Engine tuning bench: https://sandlot-ishantr18s-projects.vercel.app/lab
+- ⚡ Pose spike (original GO/NO-GO test): https://sandlot-ishantr18s-projects.vercel.app/spike
 - Local dev: http://localhost:3000 (`cd app && npm run dev`)
 
 ## Code & infrastructure (all under your accounts)
