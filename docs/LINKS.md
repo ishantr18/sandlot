@@ -2,6 +2,7 @@
 
 ## The app (live)
 - **App (production):** https://sandlot-ishantr18s-projects.vercel.app
+- Welcome screen (signed-out root — Player/Coach/Parent entry): https://sandlot-ishantr18s-projects.vercel.app
 - Sign in / create account (role picker): https://sandlot-ishantr18s-projects.vercel.app/auth
 - Upload (blur → analyze pipeline): https://sandlot-ishantr18s-projects.vercel.app/upload
 - Progress (charts + history): https://sandlot-ishantr18s-projects.vercel.app/progress

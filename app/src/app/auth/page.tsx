@@ -17,7 +17,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 
 function friendly(code: string): string {
@@ -39,6 +39,15 @@ export default function AuthPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [role, setRole] = useState<"player" | "mentor" | "guardian">("player");
+
+  // Arrive pre-set from the welcome screen (?mode=signup&role=mentor)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const m = p.get("mode");
+    const r = p.get("role");
+    if (m === "signup" || m === "signin") setMode(m);
+    if (r === "player" || r === "mentor" || r === "guardian") setRole(r);
+  }, []);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -67,19 +67,63 @@ export default function Home() {
   }, [user]);
 
   if (!loading && !user) {
+    const roles = [
+      {
+        role: "player",
+        icon: "⚾",
+        label: "Player",
+        pitch: "Film your swing, get AI coaching — free",
+      },
+      {
+        role: "mentor",
+        icon: "🧢",
+        label: "Coach",
+        pitch: "Review swings, leave frame-by-frame tips",
+      },
+      {
+        role: "guardian",
+        icon: "👨‍👩‍👧",
+        label: "Parent",
+        pitch: "See everything your player does — always",
+      },
+    ];
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-6 pb-28 text-center">
-        <h1 className="mb-3 text-5xl font-bold tracking-tight">⚾ Diamond Drive</h1>
-        <p className="mb-8 text-muted-foreground">
-          Pro-level baseball coaching on any phone — for every kid, not just the ones who
-          can afford it.
+      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 pb-16 lg:max-w-2xl">
+        <h1 className="mb-3 text-center text-5xl font-bold tracking-tight lg:text-7xl">
+          ⚾ Diamond Drive
+        </h1>
+        <p className="mb-10 text-center text-muted-foreground lg:text-lg">
+          Pro-level baseball coaching on any phone — for every kid, not just the
+          ones who can afford it.
         </p>
-        <Link
-          href="/auth"
-          className="rounded-full bg-primary px-8 py-3 font-semibold text-primary-foreground"
-        >
-          Get started
-        </Link>
+
+        <div className="space-y-3">
+          {roles.map((r) => (
+            <Link
+              key={r.role}
+              href={`/auth?mode=signup&role=${r.role}`}
+              className="flex items-center gap-5 rounded-2xl bg-card p-6 transition-colors hover:bg-secondary lg:p-8"
+            >
+              <span className="text-4xl lg:text-5xl">{r.icon}</span>
+              <span>
+                <span className="block text-2xl font-bold lg:text-3xl">{r.label}</span>
+                <span className="block text-sm text-muted-foreground lg:text-base">
+                  {r.pitch}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/auth?mode=signin" className="font-semibold text-primary">
+            Sign in
+          </Link>
+        </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          🔒 Videos are face-anonymized on your device before anything uploads.
+        </p>
       </main>
     );
   }
