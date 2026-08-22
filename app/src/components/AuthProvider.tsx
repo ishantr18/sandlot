@@ -3,7 +3,7 @@
 // Auth context — who is signed in AND what role they play.
 // Roles: player (default) · mentor (coach) · guardian (parent).
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 
@@ -31,7 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (u) {
         try {
           const snap = await getDoc(doc(db, "users", u.uid));
-          setProfile(snap.exists() ? (snap.data() as Profile) : { role: "player" });
+          if (snap.exists()) {
+            const p = snap.data() as Profile & { email?: string };
+            // Self-heal pre-Aug-20 profiles: backfill email so parents can link
+            if (!p.email && u.email) {
+              await setDoc(
+                doc(db, "users", u.uid),
+                { email: u.email.toLowerCase() },
+                { merge: true },
+              ).catch(() => {});
+            }
+            setProfile(p);
+          } else {
+            setProfile({ role: "player" });
+          }
         } catch {
           setProfile({ role: "player" });
         }

@@ -61,10 +61,8 @@ export default function AuthPage() {
     setError("");
     try {
       if (mode === "signup") {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName: name });
-
-        // Parents link to their player by the player's email
+        // Parents: find the player FIRST — never create a login until every
+        // precondition passes (a failed lookup used to orphan half-accounts)
         let guardianOf: string[] = [];
         if (role === "guardian") {
           const snap = await getDocs(
@@ -76,7 +74,7 @@ export default function AuthPage() {
           );
           if (snap.empty) {
             setError(
-              "No player account found with that email — have your player create their account first, then sign up.",
+              "No player account found with that email. The player should create their account first — and if it's an older account, they just need to sign in once, then this will work.",
             );
             setBusy(false);
             return;
@@ -84,14 +82,22 @@ export default function AuthPage() {
           guardianOf = [snap.docs[0].id];
         }
 
-        await setDoc(doc(db, "users", cred.user.uid), {
-          uid: cred.user.uid,
-          displayName: name,
-          email: email.trim().toLowerCase(),
-          role,
-          ...(guardianOf.length ? { guardianOf } : {}),
-          createdAt: Date.now(),
-        });
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        try {
+          await updateProfile(cred.user, { displayName: name });
+          await setDoc(doc(db, "users", cred.user.uid), {
+            uid: cred.user.uid,
+            displayName: name,
+            email: email.trim().toLowerCase(),
+            role,
+            ...(guardianOf.length ? { guardianOf } : {}),
+            createdAt: Date.now(),
+          });
+        } catch (profileErr) {
+          // Profile failed → undo the login so no orphan is left behind
+          await cred.user.delete().catch(() => {});
+          throw profileErr;
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
