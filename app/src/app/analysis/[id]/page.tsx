@@ -259,6 +259,13 @@ export default function AnalysisSessionPage() {
             ))}
           </section>
 
+          {!m && session && (
+            <section className="mb-4 rounded-2xl bg-card p-4 text-sm text-muted-foreground">
+              This swing has the video only — it was uploaded before AI analysis
+              existed (or was analyzed on an older version). New uploads get the
+              full breakdown automatically.
+            </section>
+          )}
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
           <div className="space-y-2">
             {session?.findings?.map((f, i) => (

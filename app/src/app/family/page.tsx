@@ -73,7 +73,7 @@ export default function FamilyPage() {
           {rows.map((r, i) => (
             <Link
               key={r.id}
-              href={r.status === "analyzed" ? `/analysis/${r.id}` : "#"}
+              href={`/analysis/${r.id}`}
               className={`flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}
             >
               <div className="flex-1">
