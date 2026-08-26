@@ -20,4 +20,5 @@ An AI baseball coach that gives underprivileged kids pro-level swing analysis on
 | `docs/LINKS.md` | Every link: live app, GitHub, Vercel, Firebase, CAC, design refs |
 | `docs/ENGINE.md` | Swing engine deep-dive: CV models, pipeline, metrics math, calibration story |
 | `docs/WEEKLY-PLAN.md` | Week-by-week plan from Aug 17 to the Oct 26 submission |
+| `docs/STUDY-GUIDE.md` | Every AI/coding concept + judge Q&A prep + what is left |
 | `docs/AI_USAGE_LOG.md` | Daily log of AI tool usage — required disclosure at submission |
