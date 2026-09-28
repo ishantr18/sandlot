@@ -251,8 +251,16 @@ export default function AnalysisSessionPage() {
             {tiles.map((t) => (
               <div key={t.label} className="rounded-2xl bg-card p-4">
                 <div className="font-mono text-3xl font-bold text-primary">
-                  {t.value}
-                  <span className="text-lg text-muted-foreground">{t.unit}</span>
+                  {t.value === null || t.value === undefined ? (
+                    // This clip couldn't support the measurement — an em dash is
+                    // honest; a 0 would read as a (very good) score.
+                    <span className="text-muted-foreground">&mdash;</span>
+                  ) : (
+                    <>
+                      {t.value}
+                      <span className="text-lg text-muted-foreground">{t.unit}</span>
+                    </>
+                  )}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">{t.label}</div>
               </div>

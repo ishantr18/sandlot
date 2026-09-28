@@ -25,16 +25,19 @@ export interface SwingMetrics {
   sequenceGapMs: number; // hip-rotation peak → shoulder-rotation peak (+ = hips first ✓)
   hipShoulderSepDeg: number; // peak line-angle difference pre-contact (proxy)
   tempoSec: number; // launch → peak hand speed
-  headDriftPct: number; // nose travel AFTER front-foot plant, % of body height (lunge)
-  stridePct: number; // ankle spread as % of body height
-  kneeBraceDeg: number; // front-knee angle at contact (≈180 = braced)
-  shoulderTiltDeg: number; // back-shoulder dip at launch (collapse/uppercut)
+  // Nullable metrics: null means "this clip could not support the
+  // measurement" — never 0, which would read as a real (and excellent) score.
+  headDriftPct: number | null; // nose travel AFTER front-foot plant, % of body height (lunge)
+  stridePct: number | null; // ankle spread as % of body height
+  kneeBraceDeg: number | null; // front-knee angle at contact (≈180 = braced)
+  shoulderTiltDeg: number | null; // back-shoulder dip at launch (collapse/uppercut)
   peakHandSpeed: number; // body-heights per second (relative unit)
   swingStart: number; // s — launch
-  footPlant: number; // s — front-foot plant (estimated)
+  footPlant: number | null; // s — front-foot plant (estimated)
   swingPeak: number; // s — peak hand speed (≈ contact)
   trackingQuality: number; // 0..1 mean landmark visibility
   viewRatio: number; // shoulder-width/body-height — camera-angle indicator (side ≈ <0.2)
+  coverage: "full" | "upper-body"; // which measurements this clip supported
 }
 
 export interface Finding {
@@ -52,7 +55,7 @@ export type SwingAnalysis =
 export const T = {
   minFrames: 12,
   minAnkleVis: 0.45,
-  minMeanVis: 0.5,
+  minCoreVis: 0.5, // mean visibility of the CORE landmarks, not all 33
   minHandSpeed: 0.8, // body-heights/sec — below this, no swing detected
   seq: { good: 25, ok: 0 }, // ms hip-peak leads shoulder-peak
   sep: { good: 22, minor: 14 }, // degrees (2D proxy)
@@ -63,6 +66,32 @@ export const T = {
   tilt: { level: 15, dipped: 25 }, // degrees at launch
   viewRatioMax: 0.22, // shoulder width / body height — above this it's a front-facing video
 };
+
+// Standing proportions: shoulder→hip is ~38% of shoulder→ankle. Lets an
+// upper-body clip keep a body-relative ruler when the feet are out of frame.
+const TORSO_RATIO = 0.38;
+
+// The landmarks that decide whether a clip is trackable at all.
+const CORE = [NOSE, L_SHOULDER, R_SHOULDER, L_HIP, R_HIP, L_WRIST, R_WRIST];
+
+// Which side is the front side? Handles left-handed hitters and either camera
+// side. Ankles are the clearest signal; knees and hips are fallbacks for clips
+// that cut the feet off. Returns null when none of the three can separate the
+// sides — guessing would report a collapsed back shoulder as "level".
+function frontSide(frames: PoseFrame[], i: number, dir: number): boolean | null {
+  const pairs: [number, number][] = [
+    [L_ANKLE, R_ANKLE],
+    [L_KNEE, R_KNEE],
+    [L_HIP, R_HIP],
+  ];
+  for (const [l, r] of pairs) {
+    const a = frames[i].lm[l], b = frames[i].lm[r];
+    if (Math.min(a.v, b.v) < 0.4) continue;
+    if (Math.abs(a.x - b.x) < 0.02) continue; // too close together to tell apart
+    return (a.x - b.x) * dir > 0;
+  }
+  return null;
+}
 // ---------------------------------------------------------------------------
 
 const deg = (rad: number) => (rad * 180) / Math.PI;
@@ -117,16 +146,12 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
         "Couldn't track a person in this clip. Make sure your whole body is visible and the clip is at least a few seconds long.",
     };
   }
-  const ankleVis = mean(frames.map((f) => (f.lm[L_ANKLE].v + f.lm[R_ANKLE].v) / 2));
-  if (ankleVis < T.minAnkleVis) {
-    return {
-      ok: false,
-      rejectReason:
-        "Your feet aren't reliably in frame — step back or tilt the camera down so your WHOLE body is visible (head to feet). The analysis needs your legs.",
-    };
-  }
-  const meanVis = mean(frames.map((f) => mean(f.lm.map((l) => l.v))));
-  if (meanVis < T.minMeanVis) {
+  // Trackability is judged on the CORE landmarks. v1 averaged all 33, so a
+  // clip lost points for feet that were merely out of frame and a perfectly
+  // readable upper body got rejected with a "bad lighting" message that
+  // wasn't true.
+  const coreVis = mean(frames.map((f) => mean(CORE.map((i) => f.lm[i].v))));
+  if (coreVis < T.minCoreVis) {
     return {
       ok: false,
       rejectReason:
@@ -134,15 +159,32 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
     };
   }
 
-  // Body height in-frame — our distance-free ruler
-  const bodyH = mean(
-    frames.map((f) =>
-      Math.abs(
-        (f.lm[L_ANKLE].y + f.lm[R_ANKLE].y) / 2 -
-          (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2,
-      ),
-    ),
-  );
+  // Feet out of frame is NOT fatal. Four of the seven metrics never touch the
+  // lower body, so we drop to upper-body coverage and say exactly which
+  // measurements were unavailable instead of throwing the clip away.
+  const ankleVis = mean(frames.map((f) => (f.lm[L_ANKLE].v + f.lm[R_ANKLE].v) / 2));
+  const lowerBody = ankleVis >= T.minAnkleVis;
+
+  // Body height in-frame — our distance-free ruler. Shoulder→ankle when the
+  // feet are visible, otherwise the torso scaled by standing proportions, so
+  // an upper-body clip still has a body-relative scale for hand speed.
+  const bodyH = lowerBody
+    ? mean(
+        frames.map((f) =>
+          Math.abs(
+            (f.lm[L_ANKLE].y + f.lm[R_ANKLE].y) / 2 -
+              (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2,
+          ),
+        ),
+      )
+    : mean(
+        frames.map((f) =>
+          Math.abs(
+            (f.lm[L_HIP].y + f.lm[R_HIP].y) / 2 -
+              (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2,
+          ),
+        ),
+      ) / TORSO_RATIO;
   if (bodyH < 0.1) {
     return {
       ok: false,
@@ -213,8 +255,7 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
   // ---- Swing direction & front leg ----
   const hipMidX = (i: number) => (frames[i].lm[L_HIP].x + frames[i].lm[R_HIP].x) / 2;
   const dir = Math.sign(hipMidX(peakI) - hipMidX(winStart)) || 1;
-  const frontIsLeft =
-    (frames[peakI].lm[L_ANKLE].x - frames[peakI].lm[R_ANKLE].x) * dir > 0;
+  const frontIsLeft = frontSide(frames, peakI, dir);
   const F_ANKLE = frontIsLeft ? L_ANKLE : R_ANKLE;
   const F_KNEE = frontIsLeft ? L_KNEE : R_KNEE;
   const F_HIP = frontIsLeft ? L_HIP : R_HIP;
@@ -222,25 +263,29 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
   const F_SHOULDER = frontIsLeft ? L_SHOULDER : R_SHOULDER;
 
   // ---- Front-foot plant: front ankle stops moving before contact ----
-  const ankleSpeed: number[] = [0];
-  for (let i = 1; i < frames.length; i++) {
-    const dt = frames[i].t - frames[i - 1].t || 1e-6;
-    const a = frames[i - 1].lm[F_ANKLE], b = frames[i].lm[F_ANKLE];
-    ankleSpeed.push(Math.hypot(b.x - a.x, b.y - a.y) / bodyH / dt);
-  }
-  let plantI = startI;
-  {
+  // Needs the feet; without them there is no plant, and every metric defined
+  // relative to the plant reports null rather than a number measured from a
+  // guessed instant.
+  let plantI: number | null = null;
+  if (lowerBody && frontIsLeft !== null) {
+    const ankleSpeed: number[] = [0];
+    for (let i = 1; i < frames.length; i++) {
+      const dt = frames[i].t - frames[i - 1].t || 1e-6;
+      const a = frames[i - 1].lm[F_ANKLE], b = frames[i].lm[F_ANKLE];
+      ankleSpeed.push(Math.hypot(b.x - a.x, b.y - a.y) / bodyH / dt);
+    }
     let maxI = winStart;
     for (let i = winStart; i <= peakI; i++)
       if (ankleSpeed[i] > ankleSpeed[maxI]) maxI = i;
     const thresh = ankleSpeed[maxI] * 0.25;
+    let p = startI;
     for (let i = maxI; i <= peakI; i++) {
       if (ankleSpeed[i] < thresh) {
-        plantI = i;
+        p = i;
         break;
       }
     }
-    if (plantI <= winStart) plantI = startI;
+    plantI = p <= winStart ? startI : p;
   }
 
   // ---- Metric: kinematic sequence (hip peak vs shoulder peak) ----
@@ -274,47 +319,61 @@ export function analyzeSwing(frames: PoseFrame[]): SwingAnalysis {
   const tempo = frames[peakI].t - frames[startI].t;
 
   // ---- Metric: head drift AFTER plant (the lunge definition) ----
-  const lungeWindow = frames.slice(plantI, Math.min(frames.length, peakI + 2));
-  const noseXs = lungeWindow.map((f) => f.lm[NOSE].x);
-  const noseYs = lungeWindow.map((f) => f.lm[NOSE].y);
-  const drift =
-    lungeWindow.length > 1
-      ? Math.hypot(
-          Math.max(...noseXs) - Math.min(...noseXs),
-          Math.max(...noseYs) - Math.min(...noseYs),
-        ) / bodyH
-      : 0;
+  let drift: number | null = null;
+  if (plantI !== null) {
+    const lungeWindow = frames.slice(plantI, Math.min(frames.length, peakI + 2));
+    const noseXs = lungeWindow.map((f) => f.lm[NOSE].x);
+    const noseYs = lungeWindow.map((f) => f.lm[NOSE].y);
+    drift =
+      lungeWindow.length > 1
+        ? Math.hypot(
+            Math.max(...noseXs) - Math.min(...noseXs),
+            Math.max(...noseYs) - Math.min(...noseYs),
+          ) / bodyH
+        : 0;
+  }
 
   // ---- Metric: stride ----
-  let strideMax = 0;
-  for (const f of frames.slice(winStart, peakI + 2)) {
-    strideMax = Math.max(strideMax, Math.abs(f.lm[L_ANKLE].x - f.lm[R_ANKLE].x) / bodyH);
+  let strideMax: number | null = null;
+  if (lowerBody) {
+    let s = 0;
+    for (const f of frames.slice(winStart, peakI + 2)) {
+      s = Math.max(s, Math.abs(f.lm[L_ANKLE].x - f.lm[R_ANKLE].x) / bodyH);
+    }
+    strideMax = s;
   }
 
   // ---- Metric: front-knee brace at contact ----
-  const fc = frames[peakI].lm;
-  const kneeBrace = jointAngle(fc[F_HIP], fc[F_KNEE], fc[F_ANKLE]);
+  let kneeBrace: number | null = null;
+  if (lowerBody && frontIsLeft !== null) {
+    const fc = frames[peakI].lm;
+    kneeBrace = jointAngle(fc[F_HIP], fc[F_KNEE], fc[F_ANKLE]);
+  }
 
   // ---- Metric: backside collapse (back-shoulder dip at launch) ----
-  const fl = frames[startI].lm;
-  const dy = fl[B_SHOULDER].y - fl[F_SHOULDER].y; // + = back shoulder lower
-  const dx = Math.abs(fl[B_SHOULDER].x - fl[F_SHOULDER].x) + 1e-6;
-  const shoulderTilt = Math.max(0, Math.round(deg(Math.atan2(dy, dx))));
+  let shoulderTilt: number | null = null;
+  if (frontIsLeft !== null) {
+    const fl = frames[startI].lm;
+    const dy = fl[B_SHOULDER].y - fl[F_SHOULDER].y; // + = back shoulder lower
+    const dx = Math.abs(fl[B_SHOULDER].x - fl[F_SHOULDER].x) + 1e-6;
+    shoulderTilt = Math.max(0, Math.round(deg(Math.atan2(dy, dx))));
+  }
 
   const metrics: SwingMetrics = {
     sequenceGapMs,
     hipShoulderSepDeg: Math.round(sepPeak),
     tempoSec: Math.round(tempo * 100) / 100,
-    headDriftPct: Math.round(drift * 100),
-    stridePct: Math.round(strideMax * 100),
-    kneeBraceDeg: Math.round(kneeBrace),
+    headDriftPct: drift === null ? null : Math.round(drift * 100),
+    stridePct: strideMax === null ? null : Math.round(strideMax * 100),
+    kneeBraceDeg: kneeBrace === null ? null : Math.round(kneeBrace),
     shoulderTiltDeg: shoulderTilt,
     peakHandSpeed: Math.round(peakSpeed * 10) / 10,
     swingStart: frames[startI].t,
-    footPlant: frames[plantI].t,
+    footPlant: plantI === null ? null : frames[plantI].t,
     swingPeak: frames[peakI].t,
-    trackingQuality: Math.round(meanVis * 100) / 100,
+    trackingQuality: Math.round(coreVis * 100) / 100,
     viewRatio: Math.round(viewRatio * 100) / 100,
+    coverage: lowerBody ? "full" : "upper-body",
   };
 
   return { ok: true, metrics, findings: buildFindings(metrics) };
@@ -375,8 +434,10 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   }
 
-  // 3. Lunge (head drift after plant)
-  if (m.headDriftPct <= T.headDrift.good) {
+  // 3. Lunge (head drift after plant) — needs the front-foot plant
+  if (m.headDriftPct === null) {
+    // nothing: unmeasured metrics are reported once, at the end
+  } else if (m.headDriftPct <= T.headDrift.good) {
     add(
       "headDriftPct",
       "good",
@@ -398,8 +459,10 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   }
 
-  // 4. Front-knee brace
-  if (m.kneeBraceDeg >= T.knee.braced) {
+  // 4. Front-knee brace — needs the front leg in frame
+  if (m.kneeBraceDeg === null) {
+    // reported at the end
+  } else if (m.kneeBraceDeg >= T.knee.braced) {
     add(
       "kneeBraceDeg",
       "good",
@@ -421,8 +484,10 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   }
 
-  // 5. Backside collapse
-  if (m.shoulderTiltDeg <= T.tilt.level) {
+  // 5. Backside collapse — needs the front/back side to be identifiable
+  if (m.shoulderTiltDeg === null) {
+    // reported at the end
+  } else if (m.shoulderTiltDeg <= T.tilt.level) {
     add(
       "shoulderTiltDeg",
       "good",
@@ -463,8 +528,10 @@ function buildFindings(m: SwingMetrics): Finding[] {
     add("tempoSec", "good", `Swing tempo (${m.tempoSec}s) is in a healthy range.`);
   }
 
-  // 7. Stride
-  if (m.stridePct < T.stride.min) {
+  // 7. Stride — needs both feet in frame
+  if (m.stridePct === null) {
+    // reported at the end
+  } else if (m.stridePct < T.stride.min) {
     add(
       "stridePct",
       "minor",
@@ -480,6 +547,25 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   } else {
     add("stridePct", "good", `Stride width (${m.stridePct}% of height) looks solid.`);
+  }
+
+  // What this clip could NOT support. One honest note beats silently missing
+  // tiles — and it tells the player exactly how to film a clip that gets the
+  // full read next time.
+  if (m.coverage === "upper-body" || m.shoulderTiltDeg === null) {
+    const missing = [
+      m.headDriftPct === null && "head drift after foot plant",
+      m.stridePct === null && "stride",
+      m.kneeBraceDeg === null && "front-knee brace",
+      m.shoulderTiltDeg === null && "shoulder tilt",
+    ].filter(Boolean) as string[];
+    if (missing.length) {
+      add(
+        "quality",
+        "minor",
+        `Measured what this framing supports. Couldn't measure ${missing.join(", ")} — your feet need to be in frame for those. Everything above is still a real read on your swing.`,
+      );
+    }
   }
 
   const rank = { major: 0, minor: 1, good: 2 };

@@ -115,11 +115,31 @@ session record (Firestore): landmarks + metrics + findings
 
 ## 4. Extraction (`lib/poseExtract.ts`)
 
-- Samples at up to **60 fps** (was 20 — see §11 for why that failed).
+**Two-pass deterministic seeking (v3 — Sep 20).** v1 played the clip at 1× and
+kept whatever frames `requestAnimationFrame` happened to land on, which made
+the real sample rate a property of the *device*: a 30 Hz display or a busy
+phone silently sampled at ~30 fps or less — the exact condition behind the
+original `tempo: 0` bug (§11). It also took as long as the clip and discarded
+everything past 15 s, so a swing at 0:20 didn't exist.
+
+v3 seeks to explicit timestamps instead:
+- **Pass 1 — coarse:** 12 fps across the whole clip (up to 60 s) to *locate*
+  the swing via peak wrist speed, measured in torso-lengths/sec so "fast" is
+  relative to the player, not the frame.
+- **Pass 2 — fine:** 60 fps across a −1.2 s/+0.8 s window around that peak to
+  *measure* it.
+- Each frame is keyed by the timestamp that **actually decoded**
+  (`requestVideoFrameCallback`'s `mediaTime`), so asking a 30 fps video for
+  60 fps yields 30 honest frames instead of 60, half of them duplicates with
+  zero displacement — which would corrupt every speed calculation.
+- Falls back to the `seeked` event where `requestVideoFrameCallback` is
+  missing; a stalled seek times out at 2.5 s rather than hanging the upload.
 - Each frame stores 33 landmarks as `{x, y, v}`: x/y are **normalized 0–1**
   (fraction of frame size), `v` is the model's confidence the point is visible.
-- Coordinates rounded to 4 decimals; capped at 15 s — keeps the stored series
-  well under Firestore's 1 MB document limit.
+- Coordinates rounded to 4 decimals; hard cap of 460 frames, thinning outside
+  the swing window first — the stored series stays well inside Firestore's
+  1 MB document limit no matter how long the clip is (v1 only capped seconds,
+  which was a gamble).
 
 ## 5. The quality gate (`analyzeSwing`, top of `lib/swingMetrics.ts`)
 
@@ -129,11 +149,27 @@ Every rejection tells the user how to fix the filming.
 | Check | Rejects when | Message theme |
 |---|---|---|
 | Frame count | < 12 tracked frames | "couldn't track a person" |
-| Ankle visibility | mean < 0.45 | "feet aren't in frame" |
-| Overall visibility | mean < 0.5 | "lighting too poor / backlit" |
+| Core visibility | mean < 0.5 over head/shoulders/hips/wrists | "lighting too poor / backlit" |
 | Body size | body height < 10% of frame | "too far from camera" |
 | **Camera angle** | shoulder-width ÷ body-height > 0.22 | "film from the SIDE" |
 | Swing position | swing at clip start / clip ends at contact / < 2 frames across swing | "start recording before you swing" |
+
+**Partial coverage instead of rejection (v3).** Feet out of frame used to
+reject the whole clip. It no longer does: four of the seven metrics (sequence
+gap, separation, tempo, shoulder tilt) never touch the lower body. When the
+ankles aren't reliable the engine reports `coverage: "upper-body"`, measures
+what it can, and returns `null` — never `0` — for head drift, stride and knee
+brace, with a finding naming exactly what was skipped and how to film for a
+full read. Two supporting changes make that safe:
+- **Core visibility** replaced the mean over all 33 landmarks. Averaging every
+  point punished a clip for feet that were merely out of frame, and rejected a
+  readable upper body with a "bad lighting" message that wasn't true.
+- **The ruler falls back** from shoulder→ankle to torso ÷ 0.38 (standing
+  proportions), so hand speed still has a body-relative scale.
+- **Front-side detection falls back** ankles → knees → hips, and returns
+  "unknown" if none can separate the sides. That matters: guessing wrong flips
+  the sign of the shoulder-tilt calculation and would report a collapsed back
+  shoulder as perfectly level.
 
 The camera-angle check exists because side-view math applied to a front-facing
 video produces *confident nonsense* (our Front.MOV test measured a fake 70°
@@ -220,6 +256,13 @@ Testing on our own 5 clips exposed four real bugs, all fixed:
    Fix: the camera-angle gate.
 4. **Real swing flagged "long"** — threshold was tighter than reality. Fix:
    widened from our measured data.
+
+5. **Whole clips thrown away for one missing body part** — a clip with the
+   feet cropped was rejected outright even though the flagship metric (the
+   kinematic sequence) only needs hips and shoulders. Fix: per-metric
+   coverage, `null` instead of `0`, and the gate reworded to judge core
+   landmarks only. Same rule as everywhere else — refuse the *measurement*
+   you can't trust, not the whole video.
 
 Validation methodology (in progress): free-license stock clips (Mixkit,
 Internet Archive) for robustness against stranger footage; next, a

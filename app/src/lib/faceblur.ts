@@ -243,7 +243,7 @@ async function renderBlurred(
 // Chrome reports MediaRecorder output as duration=Infinity until forced to
 // index the file (same quirk as the recorder preview). Seek far ahead once;
 // the browser builds the index and duration becomes a real number.
-async function ensureFiniteDuration(video: HTMLVideoElement): Promise<boolean> {
+export async function ensureFiniteDuration(video: HTMLVideoElement): Promise<boolean> {
   if (Number.isFinite(video.duration) && video.duration > 0) return true;
   await new Promise<void>((res) => {
     const timeout = setTimeout(() => res(), 3000); // never hang

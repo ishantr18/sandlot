@@ -49,13 +49,18 @@ export default function ProgressCharts({ sessions }: { sessions: ChartSession[] 
   return (
     <section className="mb-6 grid grid-cols-2 gap-2 lg:gap-3">
       {SERIES.map(({ key, label, unit }) => {
-        const data = analyzed.map((s) => ({
-          date: new Date(s.createdAt).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          }),
-          value: s.metrics![key] as number,
-        }));
+        // Per-series filtering: an upper-body clip has no stride number, and a
+        // gap in the trend line is better than a fake point at zero.
+        const data = analyzed
+          .filter((s) => typeof s.metrics![key] === "number")
+          .map((s) => ({
+            date: new Date(s.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            }),
+            value: s.metrics![key] as number,
+          }));
+        if (data.length < 2) return null;
         const latest = data[data.length - 1].value;
         return (
           <div key={key} className="rounded-2xl bg-card p-3">
