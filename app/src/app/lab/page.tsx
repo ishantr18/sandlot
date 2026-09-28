@@ -1,6 +1,6 @@
 "use client";
 
-// 🧪 LAB — engine tuning bench (dev page, like /spike).
+// 🧪 LAB — engine tuning bench (dev page).
 // Drop test clips in, see raw metrics + verdicts side by side.
 // Used to calibrate thresholds in lib/swingMetrics.ts against test-clips/.
 import { useState } from "react";

@@ -17,7 +17,6 @@
 
 ### Dev/lab pages (not part of the product)
 - 🧪 Engine tuning bench: https://sandlot-ishantr18s-projects.vercel.app/lab
-- ⚡ Pose spike (original GO/NO-GO test): https://sandlot-ishantr18s-projects.vercel.app/spike
 - Local dev: http://localhost:3000 (`cd app && npm run dev`)
 
 ## Code & infrastructure (all under your accounts)

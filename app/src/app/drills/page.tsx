@@ -17,23 +17,28 @@ interface AssignmentRow {
 
 export default function DrillsPage() {
   const { user, profile } = useAuth();
-  const [assigned, setAssigned] = useState<AssignmentRow[] | null>(null);
+  const [fetched, setFetched] = useState<AssignmentRow[] | null>(null);
+  // Signed out → nothing assigned (derived, no extra state update needed)
+  const assigned = user ? fetched : [];
   const [open, setOpen] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
-    if (!user) {
-      setAssigned([]);
-      return;
-    }
+    if (!user) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "assignments"), where("playerId", "==", user.uid)),
-      );
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AssignmentRow);
-      rows.sort((a, b) => b.createdAt - a.createdAt);
-      setAssigned(rows);
+      try {
+        const snap = await getDocs(
+          query(collection(db, "assignments"), where("playerId", "==", user.uid)),
+        );
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AssignmentRow);
+        rows.sort((a, b) => b.createdAt - a.createdAt);
+        setFetched(rows);
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
@@ -44,11 +49,26 @@ export default function DrillsPage() {
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
             Assigned to you
           </h2>
-          {(!assigned || assigned.length === 0) && (
-            <section className="mb-6 rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground">
-              Nothing assigned yet — your AI findings and your coach both assign
-              drills here.
+          {user && !fetched && loadError ? (
+            <section className="mb-6 rounded-2xl bg-card p-6 text-center text-sm text-destructive">
+              Couldn&apos;t load your drills — check your connection and try again.{" "}
+              <button
+                onClick={() => {
+                  setLoadError(false);
+                  setReloadKey((k) => k + 1);
+                }}
+                className="text-primary underline"
+              >
+                Retry
+              </button>
             </section>
+          ) : (
+            (!assigned || assigned.length === 0) && (
+              <section className="mb-6 rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground">
+                Nothing assigned yet — your AI findings and your coach both assign
+                drills here.
+              </section>
+            )
           )}
           {assigned && assigned.length > 0 && (
             <section className="mb-6 rounded-2xl bg-card">

@@ -64,41 +64,48 @@ export default function AnalysisSessionPage() {
   const [coachMsg, setCoachMsg] = useState("");
   const [blockedCoaches, setBlockedCoaches] = useState<Set<string>>(new Set());
   const [safetyMsg, setSafetyMsg] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     if (!user || !id) return;
     (async () => {
-      const snap = await getDoc(doc(db, "sessions", id));
-      if (!snap.exists()) return setError("Session not found.");
-      const data = snap.data() as SessionDoc;
-      const isOwner = data.playerId === user.uid;
-      const isMentor = profile?.role === "mentor";
-      const isGuardian = (profile?.guardianOf ?? []).includes(data.playerId);
-      if (!isOwner && !isMentor && !isGuardian)
-        return setError("You don't have access to this session.");
-      setSession(data);
-      // load coach comments (visible to player, guardian, and mentors alike)
-      const csnap = await getDocs(
-        query(collection(db, "comments"), where("sessionId", "==", id)),
-      );
-      const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
-      cs.sort((a, b) => a.timestampSec - b.timestampSec);
-      setComments(cs);
-      const bsnap = await getDocs(
-        query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
-      );
-      setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
-      framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
-      const res = await fetch(
-        `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,
-      );
-      if (res.ok) {
-        const { url } = (await res.json()) as { url: string };
-        setVideoUrl(url);
-      } else setError("Couldn't load the video (link may have expired — reload).");
+      try {
+        const snap = await getDoc(doc(db, "sessions", id));
+        if (!snap.exists()) return setError("Session not found.");
+        const data = snap.data() as SessionDoc;
+        const isOwner = data.playerId === user.uid;
+        const isMentor = profile?.role === "mentor";
+        const isGuardian = (profile?.guardianOf ?? []).includes(data.playerId);
+        if (!isOwner && !isMentor && !isGuardian)
+          return setError("You don't have access to this session.");
+        setSession(data);
+        // load coach comments (visible to player, guardian, and mentors alike)
+        const csnap = await getDocs(
+          query(collection(db, "comments"), where("sessionId", "==", id)),
+        );
+        const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
+        cs.sort((a, b) => a.timestampSec - b.timestampSec);
+        setComments(cs);
+        const bsnap = await getDocs(
+          query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
+        );
+        setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
+        framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
+        const res = await fetch(
+          `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,
+        );
+        if (res.ok) {
+          const { url } = (await res.json()) as { url: string };
+          setVideoUrl(url);
+        } else setError("Couldn't load the video (link may have expired — reload).");
+      } catch {
+        setError("Couldn't load this swing — check your connection and try again.");
+        setLoadFailed(true);
+      }
     })();
     return () => cancelAnimationFrame(rafRef.current);
-  }, [user, profile, id]);
+  }, [user, profile, id, reloadKey]);
 
   // Draw the skeleton for whichever stored frame is nearest to playback time
   function startOverlay() {
@@ -177,7 +184,26 @@ export default function AnalysisSessionPage() {
         <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Analysis</h1>
       </div>
 
-      {error && <p className="mb-4 rounded-2xl bg-card p-4 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="mb-4 rounded-2xl bg-card p-4 text-sm text-destructive">
+          {error}
+          {loadFailed && (
+            <>
+              {" "}
+              <button
+                onClick={() => {
+                  setError("");
+                  setLoadFailed(false);
+                  setReloadKey((k) => k + 1);
+                }}
+                className="text-primary underline"
+              >
+                Retry
+              </button>
+            </>
+          )}
+        </p>
+      )}
 
       <div className="lg:grid lg:grid-cols-5 lg:items-start lg:gap-8">
         <div className="lg:col-span-3">

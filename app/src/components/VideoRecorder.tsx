@@ -41,17 +41,13 @@ export default function VideoRecorder({
     }
   }, [mode]);
 
-  // Countdown ticker: 3 → 2 → 1 → start recording for real
-  useEffect(() => {
-    if (mode !== "countdown") return;
-    if (count <= 0) {
-      beginRecording();
-      return;
-    }
-    const t = setTimeout(() => setCount((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, count]);
+  // Countdown timers live in a ref so Cancel / unmount can stop them
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  function clearTimers() {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }
+  useEffect(() => clearTimers, []);
 
   async function openCamera() {
     setError("");
@@ -72,9 +68,16 @@ export default function VideoRecorder({
     }
   }
 
+  // 3 → 2 → 1 → start recording for real
   function startCountdown() {
+    clearTimers();
     setCount(3);
     setMode("countdown");
+    timersRef.current = [
+      setTimeout(() => setCount(2), 1000),
+      setTimeout(() => setCount(1), 2000),
+      setTimeout(beginRecording, 3000),
+    ];
   }
 
   function beginRecording() {
@@ -111,6 +114,7 @@ export default function VideoRecorder({
   }
 
   function cancel() {
+    clearTimers();
     if (recorderRef.current && mode === "recording") recorderRef.current.stop();
     else {
       cleanupStream();

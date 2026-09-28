@@ -23,18 +23,24 @@ export default function ProgressPage() {
   const { user, profile, loading } = useAuth();
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "sessions"), where("playerId", "==", user.uid)),
-      );
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRow);
-      rows.sort((a, b) => b.createdAt - a.createdAt);
-      setSessions(rows);
+      try {
+        const snap = await getDocs(
+          query(collection(db, "sessions"), where("playerId", "==", user.uid)),
+        );
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRow);
+        rows.sort((a, b) => b.createdAt - a.createdAt);
+        setSessions(rows);
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   async function play(session: SessionRow) {
     const res = await fetch(
@@ -97,7 +103,23 @@ export default function ProgressPage() {
 
       <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Session history</h2>
 
-      {sessions === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {sessions === null &&
+        (loadError ? (
+          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
+            Couldn&apos;t load your swings — check your connection and try again.{" "}
+            <button
+              onClick={() => {
+                setLoadError(false);
+                setReloadKey((k) => k + 1);
+              }}
+              className="text-primary underline"
+            >
+              Retry
+            </button>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ))}
       {sessions?.length === 0 && (
         <section className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground">
           No swings yet — upload one and it&apos;ll appear here.

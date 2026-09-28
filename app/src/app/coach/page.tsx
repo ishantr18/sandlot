@@ -27,40 +27,46 @@ interface QueueRow {
 export default function CoachPage() {
   const { user, profile, loading } = useAuth();
   const [rows, setRows] = useState<QueueRow[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     if (!user || profile?.role !== "mentor" || !profile.verifiedMentor) return;
     (async () => {
-      const [sessSnap, commentSnap, blockSnap] = await Promise.all([
-        getDocs(query(collection(db, "sessions"), where("status", "==", "analyzed"))),
-        getDocs(collection(db, "comments")),
-        getDocs(query(collection(db, "blocks"), where("coachId", "==", user.uid))),
-      ]);
+      try {
+        const [sessSnap, commentSnap, blockSnap] = await Promise.all([
+          getDocs(query(collection(db, "sessions"), where("status", "==", "analyzed"))),
+          getDocs(collection(db, "comments")),
+          getDocs(query(collection(db, "blocks"), where("coachId", "==", user.uid))),
+        ]);
 
-      // Count existing coach reviews per session (the equity signal)
-      const reviewCount = new Map<string, number>();
-      commentSnap.docs.forEach((d) => {
-        const sid = d.data().sessionId as string;
-        reviewCount.set(sid, (reviewCount.get(sid) ?? 0) + 1);
-      });
+        // Count existing coach reviews per session (the equity signal)
+        const reviewCount = new Map<string, number>();
+        commentSnap.docs.forEach((d) => {
+          const sid = d.data().sessionId as string;
+          reviewCount.set(sid, (reviewCount.get(sid) ?? 0) + 1);
+        });
 
-      // Blocks in either direction remove the player from this coach's world
-      const blockedPlayers = new Set(blockSnap.docs.map((d) => d.data().playerId as string));
+        // Blocks in either direction remove the player from this coach's world
+        const blockedPlayers = new Set(blockSnap.docs.map((d) => d.data().playerId as string));
 
-      const r = sessSnap.docs
-        .map((d) => ({
-          id: d.id,
-          playerId: d.data().playerId as string,
-          createdAt: d.data().createdAt as number,
-          reviews: reviewCount.get(d.id) ?? 0,
-        }))
-        .filter((s) => !blockedPlayers.has(s.playerId));
+        const r = sessSnap.docs
+          .map((d) => ({
+            id: d.id,
+            playerId: d.data().playerId as string,
+            createdAt: d.data().createdAt as number,
+            reviews: reviewCount.get(d.id) ?? 0,
+          }))
+          .filter((s) => !blockedPlayers.has(s.playerId));
 
-      // EQUITY SORT: least-reviewed first, then newest
-      r.sort((a, b) => a.reviews - b.reviews || b.createdAt - a.createdAt);
-      setRows(r);
+        // EQUITY SORT: least-reviewed first, then newest
+        r.sort((a, b) => a.reviews - b.reviews || b.createdAt - a.createdAt);
+        setRows(r);
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user, profile]);
+  }, [user, profile, reloadKey]);
 
   if (!loading && (!user || profile?.role !== "mentor")) {
     return (
@@ -103,7 +109,23 @@ export default function CoachPage() {
         parents. Videos are face-anonymized before they ever reach the cloud.
       </p>
 
-      {rows === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {rows === null &&
+        (loadError ? (
+          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
+            Couldn&apos;t load the review queue — check your connection and try again.{" "}
+            <button
+              onClick={() => {
+                setLoadError(false);
+                setReloadKey((k) => k + 1);
+              }}
+              className="text-primary underline"
+            >
+              Retry
+            </button>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ))}
       {rows?.length === 0 && (
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
           No swings waiting — the queue fills as players upload.

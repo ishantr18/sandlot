@@ -13,20 +13,26 @@ export default function AnalysisIndex() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [empty, setEmpty] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "sessions"), where("playerId", "==", user.uid)),
-      );
-      const analyzed = snap.docs
-        .filter((d) => d.data().status === "analyzed")
-        .sort((a, b) => b.data().createdAt - a.data().createdAt);
-      if (analyzed.length > 0) router.replace(`/analysis/${analyzed[0].id}`);
-      else setEmpty(true);
+      try {
+        const snap = await getDocs(
+          query(collection(db, "sessions"), where("playerId", "==", user.uid)),
+        );
+        const analyzed = snap.docs
+          .filter((d) => d.data().status === "analyzed")
+          .sort((a, b) => b.data().createdAt - a.data().createdAt);
+        if (analyzed.length > 0) router.replace(`/analysis/${analyzed[0].id}`);
+        else setEmpty(true);
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user, router]);
+  }, [user, router, reloadKey]);
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
@@ -39,6 +45,19 @@ export default function AnalysisIndex() {
             </Link>{" "}
             to see your swing analysis.
           </>
+        ) : loadError ? (
+          <span className="text-destructive">
+            Couldn&apos;t load your swings — check your connection and try again.{" "}
+            <button
+              onClick={() => {
+                setLoadError(false);
+                setReloadKey((k) => k + 1);
+              }}
+              className="text-primary underline"
+            >
+              Retry
+            </button>
+          </span>
         ) : empty ? (
           <>
             No analyzed swings yet —{" "}

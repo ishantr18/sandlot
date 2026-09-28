@@ -37,7 +37,9 @@ export default function FilmingGuide() {
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    // Auto-collapse for returning users; stays one tap away
+    // Auto-collapse for returning users; stays one tap away.
+    // localStorage only exists after hydration, so this setState is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (localStorage.getItem("dd-seen-guide") === "1") setOpen(false);
     else localStorage.setItem("dd-seen-guide", "1");
   }, []);

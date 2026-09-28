@@ -45,6 +45,9 @@ export default function AuthPage() {
     const p = new URLSearchParams(window.location.search);
     const m = p.get("mode");
     const r = p.get("role");
+    // Reading the URL must wait until after hydration (the server has no
+    // window), so a one-time setState here is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (m === "signup" || m === "signin") setMode(m);
     if (r === "player" || r === "mentor" || r === "guardian") setRole(r);
   }, []);

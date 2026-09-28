@@ -19,23 +19,29 @@ interface Row {
 export default function FamilyPage() {
   const { user, profile, loading } = useAuth();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     const child = profile?.guardianOf?.[0];
     if (!user || profile?.role !== "guardian" || !child) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "sessions"), where("playerId", "==", child)),
-      );
-      const r = snap.docs.map((d) => ({
-        id: d.id,
-        createdAt: d.data().createdAt as number,
-        status: d.data().status as string,
-      }));
-      r.sort((a, b) => b.createdAt - a.createdAt);
-      setRows(r);
+      try {
+        const snap = await getDocs(
+          query(collection(db, "sessions"), where("playerId", "==", child)),
+        );
+        const r = snap.docs.map((d) => ({
+          id: d.id,
+          createdAt: d.data().createdAt as number,
+          status: d.data().status as string,
+        }));
+        r.sort((a, b) => b.createdAt - a.createdAt);
+        setRows(r);
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user, profile]);
+  }, [user, profile, reloadKey]);
 
   if (!loading && (!user || profile?.role !== "guardian")) {
     return (
@@ -61,7 +67,23 @@ export default function FamilyPage() {
         player&apos;s own device before upload.
       </p>
 
-      {rows === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {rows === null &&
+        (loadError ? (
+          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
+            Couldn&apos;t load your player&apos;s activity — check your connection and try again.{" "}
+            <button
+              onClick={() => {
+                setLoadError(false);
+                setReloadKey((k) => k + 1);
+              }}
+              className="text-primary underline"
+            >
+              Retry
+            </button>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ))}
       {rows?.length === 0 && (
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
           No activity yet.

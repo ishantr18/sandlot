@@ -50,21 +50,27 @@ export default function Home() {
   const { user, profile, loading } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<SessionRow[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const snap = await getDocs(
-        query(collection(db, "sessions"), where("playerId", "==", user.uid)),
-      );
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRow & {
-        createdAt: number;
-      });
-      rows.sort((a, b) => b.createdAt - a.createdAt);
-      setStats(computeStats(rows.map((r) => r.createdAt)));
-      setRecent(rows.slice(0, 4));
+      try {
+        const snap = await getDocs(
+          query(collection(db, "sessions"), where("playerId", "==", user.uid)),
+        );
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionRow & {
+          createdAt: number;
+        });
+        rows.sort((a, b) => b.createdAt - a.createdAt);
+        setStats(computeStats(rows.map((r) => r.createdAt)));
+        setRecent(rows.slice(0, 4));
+      } catch {
+        setLoadError(true);
+      }
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   if (!loading && !user) {
     const roles = [
@@ -222,8 +228,23 @@ export default function Home() {
                 See all →
               </Link>
             </div>
-            {recent.length === 0 && (
-              <p className="p-4 pt-0 text-sm text-muted-foreground">Nothing yet.</p>
+            {loadError ? (
+              <p className="p-4 pt-0 text-sm text-destructive">
+                Couldn&apos;t load your swings — check your connection and try again.{" "}
+                <button
+                  onClick={() => {
+                    setLoadError(false);
+                    setReloadKey((k) => k + 1);
+                  }}
+                  className="text-primary underline"
+                >
+                  Retry
+                </button>
+              </p>
+            ) : (
+              recent.length === 0 && (
+                <p className="p-4 pt-0 text-sm text-muted-foreground">Nothing yet.</p>
+              )
             )}
             {recent.map((s) => (
               <div

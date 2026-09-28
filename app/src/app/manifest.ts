@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
       "Pro-level baseball coaching on any phone — for every kid, not just the ones who can afford it.",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
+    background_color: "#000000",
     theme_color: "#166534",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
