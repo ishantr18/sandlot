@@ -4,8 +4,12 @@
 // Drop test clips in, see raw metrics + verdicts side by side.
 // Used to calibrate thresholds in lib/swingMetrics.ts against test-clips/.
 import { useState } from "react";
-import { extractPose } from "@/lib/poseExtract";
+import { extractPose, type PoseFrame } from "@/lib/poseExtract";
 import { analyzeSwing, type SwingAnalysis } from "@/lib/swingMetrics";
+
+// Headless validation runner reads results (incl. the raw landmark series,
+// for offline threshold fitting) from here instead of scraping the page.
+type LabWindow = Window & { __lab?: { name: string; frames: PoseFrame[]; result: SwingAnalysis }[] };
 
 interface Row {
   name: string;
@@ -24,8 +28,16 @@ export default function LabPage() {
       try {
         const frames = await extractPose(f);
         const result = analyzeSwing(frames);
+        const w = window as LabWindow;
+        (w.__lab ??= []).push({ name: f.name, frames, result });
         setRows((r) => [...r, { name: f.name, frames: frames.length, result }]);
       } catch (err) {
+        const w = window as LabWindow;
+        (w.__lab ??= []).push({
+          name: f.name,
+          frames: [],
+          result: { ok: false, rejectReason: (err as Error).message },
+        });
         setRows((r) => [
           ...r,
           {
