@@ -21,9 +21,8 @@ swing analysis on any phone, with privacy built in.
 A player films a swing on a phone. Before anything leaves the device, the app
 detects and pixelates every face in the video, then re-scans its own output to
 confirm the faces are gone — if it can't confirm, the upload is blocked. It then
-tracks 33 body landmarks through the swing and measures seven biomechanical
-metrics: whether the hips fire before the shoulders, hip–shoulder separation,
-tempo, head drift after front-foot plant, stride length, front-knee brace, and
+tracks 33 body landmarks through the swing and measures six biomechanical
+metrics: whether the hips fire before the shoulders, tempo, head drift after front-foot plant, stride length, front-knee brace, and
 shoulder tilt. The player gets plain-English coaching and specific drills, and
 can watch their numbers trend over time. A layer of certified volunteer
 coaches — who see swings but never the player's identity, and who have no way to

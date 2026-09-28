@@ -71,6 +71,14 @@ export const T = {
   viewRatioMax: 0.22, // shoulder width / body height — above this it's a front-facing video
 };
 
+// Metrics still computed and stored (for /lab and a future redesign) but NOT
+// shown to players or turned into coaching. Hip–shoulder separation: from the
+// side the two hips overlap, so the hip line's angle is mostly noise — web
+// validation (docs/VALIDATION.md) found it raised false "major" alarms on 5 of
+// 10 good swings. Wrong coaching is worse than none, so it's off until it's
+// redesigned.
+export const DISABLED_METRICS = new Set<string>(["hipShoulderSepDeg"]);
+
 // Standing proportions: shoulder→hip is ~38% of shoulder→ankle. Lets an
 // upper-body clip keep a body-relative ruler when the feet are out of frame.
 export const TORSO_RATIO = 0.38;
@@ -551,27 +559,29 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   }
 
-  // 2. Separation
-  if (m.hipShoulderSepDeg >= T.sep.good) {
-    add(
-      "hipShoulderSepDeg",
-      "good",
-      `Great separation (${m.hipShoulderSepDeg}°) — you're loading the rubber band.`,
-    );
-  } else if (m.hipShoulderSepDeg >= T.sep.minor) {
-    add(
-      "hipShoulderSepDeg",
-      "minor",
-      `Some separation (${m.hipShoulderSepDeg}°), but there's more coil available between hips and shoulders.`,
-      ["separation-stretch"],
-    );
-  } else {
-    add(
-      "hipShoulderSepDeg",
-      "major",
-      `Low separation (${m.hipShoulderSepDeg}°) — hips and shoulders turning as one block leaks power.`,
-      ["hip-fire-tee", "separation-stretch"],
-    );
+  // 2. Separation — disabled (see DISABLED_METRICS)
+  if (!DISABLED_METRICS.has("hipShoulderSepDeg")) {
+    if (m.hipShoulderSepDeg >= T.sep.good) {
+      add(
+        "hipShoulderSepDeg",
+        "good",
+        `Great separation (${m.hipShoulderSepDeg}°) — you're loading the rubber band.`,
+      );
+    } else if (m.hipShoulderSepDeg >= T.sep.minor) {
+      add(
+        "hipShoulderSepDeg",
+        "minor",
+        `Some separation (${m.hipShoulderSepDeg}°), but there's more coil available between hips and shoulders.`,
+        ["separation-stretch"],
+      );
+    } else {
+      add(
+        "hipShoulderSepDeg",
+        "major",
+        `Low separation (${m.hipShoulderSepDeg}°) — hips and shoulders turning as one block leaks power.`,
+        ["hip-fire-tee", "separation-stretch"],
+      );
+    }
   }
 
   // 3. Lunge (head drift after plant) — needs the front-foot plant

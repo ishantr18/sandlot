@@ -22,7 +22,7 @@ import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 import type { PoseFrame } from "@/lib/poseExtract";
-import type { Finding, SwingMetrics } from "@/lib/swingMetrics";
+import { DISABLED_METRICS, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
 
 interface CommentRow {
   id: string;
@@ -165,14 +165,14 @@ export default function AnalysisSessionPage() {
   const tiles = m
     ? [
         { label: "Hips→shoulders gap", value: m.sequenceGapMs, unit: "ms" },
-        { label: "Hip–shoulder sep", value: m.hipShoulderSepDeg, unit: "°" },
+        { label: "Hip–shoulder sep", value: m.hipShoulderSepDeg, unit: "°", key: "hipShoulderSepDeg" },
         { label: "Swing tempo", value: m.tempoSec, unit: "s" },
         { label: "Head drift (after plant)", value: m.headDriftPct, unit: "%" },
         { label: "Stride", value: m.stridePct, unit: "%" },
         { label: "Front-knee brace", value: m.kneeBraceDeg, unit: "°" },
         { label: "Shoulder tilt", value: m.shoulderTiltDeg, unit: "°" },
         { label: "Tracking quality", value: Math.round((m.trackingQuality ?? 0) * 100), unit: "%" },
-      ]
+      ].filter((t) => !(t.key && DISABLED_METRICS.has(t.key)))
     : [];
 
   return (
@@ -302,7 +302,7 @@ export default function AnalysisSessionPage() {
           )}
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
           <div className="space-y-2">
-            {session?.findings?.map((f, i) => (
+            {session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
               <section key={i} className={`rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
                 <p className="text-sm">{f.message}</p>
                 {f.drillIds.length > 0 && (

@@ -120,7 +120,7 @@ mistakes.** Problems we measured on real clips:
 | **Left/right mix-ups** | From the side, one hip hides behind the other and the model sometimes swaps "left hip" and "right hip" for a frame | Continuity check: if swapping the labels back fits the previous frame much better, it swaps them back *(v4)* |
 | **Motion blur** | During the fastest part of a swing, wrists blur and the model loses them | Swing detection now looks for a *burst* of hand travel, not one fast frame *(v4)*. Validation (Sep 27): the swing is timed right on about half of web swings, and no-bat shadow swings remain a weak spot |
 | **Low confidence** | Dark, backlit, or cropped video | Quality gate uses the visibility scores to reject the clip with advice on how to film it better |
-| **Hips overlap from the side** | The "hip line" angle becomes mostly noise, so the separation metric raises false alarms on good swings | **Not fixed yet.** Found in validation; see VALIDATION.md |
+| **Hips overlap from the side** | The "hip line" angle becomes mostly noise, so the separation metric raises false alarms on good swings | **Switched off** (Sep 27) until redesigned. The app shows six metrics, not seven; see VALIDATION.md |
 | **Faces missed at a distance** | BlazeFace is built for faces within ~2 m | BlazePose's head points (nose, ears) act as a backup face finder, and the self-check re-scans the output |
 
 ---
@@ -159,7 +159,7 @@ project. That's the part judges care about.
 | Metric | What it means in baseball terms |
 |---|---|
 | **Kinematic sequence** (the flagship) | Do the hips start turning *before* the shoulders? That's how power travels up the body. |
-| **Hip–shoulder separation** | How much "rubber-band stretch" between hips and shoulders |
+| **Hip–shoulder separation** *(switched off Sep 27, unreliable from the side)* | How much "rubber-band stretch" between hips and shoulders |
 | **Tempo** | How long the swing takes from launch to contact |
 | **Head drift after foot plant** | Does the head lunge forward? A moving head makes the ball harder to see |
 | **Stride length** | How big the step toward the pitcher is |
@@ -238,7 +238,7 @@ Competition rules allow AI tools but require full disclosure. Every session is l
 - Register on the CAC portal; confirm district (WA-01 vs WA-02)
 - Optional: a small pilot with a few teammates (consent form: `PARENT-CONSENT.md`)
 
-**Engine accuracy (see VALIDATION.md, Sep 27):** web-clip validation done. It catches lunges 7/12, no-stride 3/3, soft knee 4/6, but gives false alarms on 8/10 good swings (mostly the separation metric). Fix separation next.
+**Engine accuracy (see VALIDATION.md, Sep 27):** web-clip validation done. It catches lunges 7/12, no-stride 3/3, soft knee 4/6, and separation is now switched off, which cut false alarms on good swings from 8/10 to 4/10.
 
 **After the filming (Claude + student):**
 - Fit the final thresholds to the new clips and build the **validation table**, the proof

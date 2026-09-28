@@ -20,7 +20,6 @@ export interface ChartSession {
 
 const SERIES: { key: keyof SwingMetrics; label: string; unit: string }[] = [
   { key: "sequenceGapMs", label: "Hips→shoulders gap", unit: "ms" },
-  { key: "hipShoulderSepDeg", label: "Separation", unit: "°" },
   { key: "tempoSec", label: "Tempo", unit: "s" },
   { key: "headDriftPct", label: "Head drift", unit: "%" },
   { key: "stridePct", label: "Stride", unit: "%" },

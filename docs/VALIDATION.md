@@ -41,7 +41,7 @@ Tools (kept out of git with the clips, in `test-clips/web/`): `run.mjs` (runner)
 | Low separation ("lack of rotation") | 4 | 4 | 1 | 3 / 4 *(same 4 swings as the lunge video, weak label)* |
 | Back-side collapse | 1 | 1 | 1 | 1 / 1 *(drop not confirmed by eye)* |
 | No hip lead (sequence) | 0 | — | — | *no usable clip found* |
-| **Good / corrected** (no major false alarm) | 10 | 10 | 8 | **2 / 10** |
+| **Good / corrected** (no major false alarm) | 10 | 10 | 8 | 2 / 10 → **6 / 10** with separation switched off |
 
 Our own 4 side-view shadow-swing clips: all analyzed after the v4 fixes (3 of 4 were
 rejected before). Side_good2 is still timed on the post-swing recoil (the model loses the
@@ -57,10 +57,13 @@ wrists to motion blur in a no-bat swing).
 
 ## Still broken (next steps, in priority order)
 
-1. **Hip–shoulder separation gives false alarms on good swings (5 of 10).** From the side,
-   the two hips overlap, so the angle of the "hip line" is mostly noise. This needs a new
-   definition, e.g. rotation estimated from how wide the hips and shoulders *appear*, or
-   switching this metric off until then. **Decision needed.**
+1. **Hip–shoulder separation gave false alarms on good swings (5 of 10).** From the side,
+   the two hips overlap, so the angle of the "hip line" is mostly noise. **Decision
+   (Sep 27): switched off.** It's still computed and stored (`DISABLED_METRICS` in
+   `swingMetrics.ts`), but players no longer see its tile, chart, or coaching. That
+   includes old sessions. Redesign idea for later: estimate rotation from how wide the hips
+   and shoulders *appear*. The remaining false alarms on good swings are head drift (3)
+   and knee (1).
 2. **Swing timing is wrong for about half the web swings,** usually 0.2–0.5 s early. Part
    of that is the videos (lesson edits jump from one swing straight to the next), and part
    is the engine picking the load or an earlier motion.
