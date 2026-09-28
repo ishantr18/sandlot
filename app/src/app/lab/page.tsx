@@ -11,6 +11,12 @@ import { analyzeSwing, type SwingAnalysis } from "@/lib/swingMetrics";
 // for offline threshold fitting) from here instead of scraping the page.
 type LabWindow = Window & { __lab?: { name: string; frames: PoseFrame[]; result: SwingAnalysis }[] };
 
+// Dense whole-clip scan for the runner's swing segmenter (dev only)
+if (typeof window !== "undefined") {
+  (window as Window & { __scan?: unknown }).__scan = (file: File) =>
+    extractPose(file, undefined, { coarseFps: 15, maxScanSeconds: 600, maxCoarseFrames: 9000 });
+}
+
 interface Row {
   name: string;
   frames: number;

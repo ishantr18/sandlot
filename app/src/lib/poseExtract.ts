@@ -22,6 +22,7 @@
 // document limit instead of gambling on clip length.
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { ensureFiniteDuration } from "./faceblur";
+import { findBursts, fixSideSwaps, TORSO_RATIO } from "./swingMetrics";
 
 export interface Lm {
   x: number; // normalized 0..1 (fraction of frame width)
@@ -70,7 +71,6 @@ const SEEK_TIMEOUT_MS = 2500; // a stalled seek must not hang the upload
 
 // Landmark indices used only for locating the swing (the engine owns the rest)
 const L_SHOULDER = 11, R_SHOULDER = 12, L_HIP = 23, R_HIP = 24;
-const L_WRIST = 15, R_WRIST = 16;
 
 interface FrameMeta {
   mediaTime: number;
@@ -128,34 +128,27 @@ async function samplePass(
   }
 }
 
-// Peak wrist speed ≈ contact. Speed is measured in torso-lengths/sec so that
-// "fast" means fast relative to the PLAYER, not to the frame — the same
-// distance-free idea the metrics engine uses, applied here so the swing can be
-// found before we know anything else about the clip.
+// Where is the swing? Same rule the engine uses (findBursts): the fast
+// stretch in which the hands travel furthest — not the single fastest frame,
+// which a wobble or a flipped left/right label can win. Speed is measured
+// against the torso scaled to body height, so "fast" is relative to the
+// PLAYER, not the frame, before we know anything else about the clip.
 function findSwingTime(frames: PoseFrame[]): number | null {
   if (frames.length < 3) return null;
-  const torso = frames.map((f) =>
+  const clean = fixSideSwaps(frames);
+  const torso = clean.map((f) =>
     Math.abs(
       (f.lm[L_HIP].y + f.lm[R_HIP].y) / 2 - (f.lm[L_SHOULDER].y + f.lm[R_SHOULDER].y) / 2,
     ),
   );
-  const scale = torso.reduce((s, x) => s + x, 0) / torso.length;
-  if (!(scale > 0.01)) return null;
-
-  const wrist = (f: PoseFrame) => (f.lm[L_WRIST].v > f.lm[R_WRIST].v ? f.lm[L_WRIST] : f.lm[R_WRIST]);
-  let peakT: number | null = null;
-  let peakSpeed = 0;
-  for (let i = 1; i < frames.length; i++) {
-    const dt = frames[i].t - frames[i - 1].t;
-    if (dt <= 0) continue;
-    const a = wrist(frames[i - 1]), b = wrist(frames[i]);
-    const speed = Math.hypot(b.x - a.x, b.y - a.y) / scale / dt;
-    if (speed > peakSpeed) {
-      peakSpeed = speed;
-      peakT = frames[i].t;
-    }
-  }
-  return peakT;
+  const scale = torso.reduce((s, x) => s + x, 0) / torso.length / TORSO_RATIO;
+  if (!(scale > 0.02)) return null;
+  const { handSpeed, bursts } = findBursts(clean, scale);
+  if (!bursts.length) return null;
+  let peak = bursts[0].from;
+  for (let i = bursts[0].from; i <= bursts[0].to; i++)
+    if (handSpeed[i] > handSpeed[peak]) peak = i;
+  return clean[peak].t;
 }
 
 // If the series is still over budget, thin the frames OUTSIDE the swing
@@ -171,9 +164,19 @@ function fitBudget(frames: PoseFrame[], from: number, to: number): PoseFrame[] {
   return [...inside, ...kept].sort((a, b) => a.t - b.t);
 }
 
+// Overrides for the coarse scan — used by /lab's validation runner to scan a
+// long multi-swing video densely and cut it into one clip per swing. The app
+// itself always uses the defaults.
+export interface ScanOptions {
+  coarseFps?: number;
+  maxScanSeconds?: number;
+  maxCoarseFrames?: number;
+}
+
 export async function extractPose(
   file: Blob,
   onProgress?: (f: number) => void,
+  opts: ScanOptions = {},
 ): Promise<PoseFrame[]> {
   const pose = await getPose();
 
@@ -193,11 +196,14 @@ export async function extractPose(
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
     if (!duration) throw new Error("Could not read video for analysis");
 
-    const scanEnd = Math.min(duration, MAX_SCAN_SECONDS);
+    const scanEnd = Math.min(duration, opts.maxScanSeconds ?? MAX_SCAN_SECONDS);
     const sink = new Map<number, PoseFrame>();
 
     // ---- Pass 1: coarse scan of the whole clip ----
-    const coarseStep = Math.max(1 / COARSE_FPS, scanEnd / MAX_COARSE_FRAMES);
+    const coarseStep = Math.max(
+      1 / (opts.coarseFps ?? COARSE_FPS),
+      scanEnd / (opts.maxCoarseFrames ?? MAX_COARSE_FRAMES),
+    );
     const coarseTimes: number[] = [];
     for (let t = 0; t < scanEnd; t += coarseStep) coarseTimes.push(r4(t));
     await samplePass(video, pose, coarseTimes, sink, (done, total) =>
