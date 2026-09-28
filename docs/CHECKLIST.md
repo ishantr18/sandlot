@@ -8,7 +8,9 @@
 - [x] 🤖 Docs: PROJECT-EXPLAINED, FOR-DAD, DEMO-SCRIPT, PARENT-CONSENT; plans updated
 
 ## Week of Sep 28
-- [ ] ✍️ Approve the 10-drill library (list in chat / PARKED.md §4) → 🤖 wire into `drills.ts` + findings
+- [x] ✍️ Drill library approved (all but tempo) → 🤖 wired in
+- [x] 🤖 Web validation (VALIDATION.md) + engine v4 fixes
+- [ ] ✍️ Decide: redesign hip–shoulder separation (false alarms on 5/10 good swings) or switch it off
 - [ ] 🎥 Calibration filming (Dad on camera, side view, full body): no-hips ×2, lunge ×2, collapsed-backside ×2, no-stride ×2, 3 normal real-bat swings, 1 Dad swing → save to `test-clips/` with the flaw in the filename
 - [ ] 🎥 Run every new clip + the 4 stock + original 5 through `/lab` → screenshots
 - [ ] 🤖 Threshold fit + validation table (engine verdict vs. known flaw per clip)

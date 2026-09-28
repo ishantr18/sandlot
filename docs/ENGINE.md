@@ -270,6 +270,25 @@ Internet Archive) for robustness against stranger footage; next, a
 verdict is known before analysis — because no public labeled baseball-swing
 dataset exists (golf has GolfDB; baseball doesn't).
 
+## 11b. Engine v4 + web validation (Sep 27)
+
+Web validation (docs/VALIDATION.md) ran 36 coach-labelled swings from YouTube
+through the real engine. It exposed, and v4 fixed:
+6. **Follow-through mistaken for the swing** — the per-frame "better-seen wrist"
+   flip-flopped between two wrists a forearm apart; at 60 fps each flip read as
+   the fastest motion in the clip. Fix: hands = wrist midpoint; speed measured
+   over ±30 ms (central difference); points averaged over ±25 ms; left/right
+   label swaps repaired by motion continuity; swing = the burst with the most
+   hand TRAVEL, not the single fastest frame (`findBursts`, also used by the
+   extractor to aim the 60 fps window).
+7. **Stride measured stance width** — no-stride hitters scored "very wide".
+   Fix: stride = front-foot travel from lift to landing.
+8. **Foot plant searched only after launch** — but the stride happens in the
+   load. Fix: search the full second before contact.
+
+Still open: separation false alarms on good swings (side-view hip line is
+noise), ~50% swing-timing error on edited web video. See VALIDATION.md.
+
 ## 12. File map
 
 | File | Role |

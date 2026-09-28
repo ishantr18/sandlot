@@ -24,35 +24,104 @@ models (LLMs)** that read and write text. **Diamond Drive has no LLM in it.** It
 
 ### The two AI models it uses
 
-Both come from Google's free, open-source **MediaPipe** toolkit. We didn't train them.
-Google trained them on millions of labeled photos. We use them the way a carpenter uses a
-power drill: we don't build the tool, we build the house with it.
+Both come from Google's free, open-source **MediaPipe** toolkit (`@mediapipe/tasks-vision`
+version 1.0.1, Apache 2.0 license, which allows free use in any project). We didn't train
+them. Google trained them on huge collections of labeled photos. We use them the way a
+carpenter uses a power drill: we don't build the tool, we build the house with it.
 
-| Model | What it does | Analogy |
+| | **BlazeFace** (face finder) | **BlazePose** (body tracker) |
 |---|---|---|
-| **BlazeFace** (224 KB) | Draws a box around every face in a video frame | A security guard who spots faces in a crowd |
-| **BlazePose** (5.5 MB) | Finds **33 points on the body** in every frame (shoulders, elbows, wrists, hips, knees, ankles, nose, ears…) | Putting dots on a player like a motion-capture suit, without the suit |
+| File in our app | `blaze_face_short_range.tflite`, 224 KB | `pose_landmarker_lite.task`, 5.5 MB |
+| Made by | Google Research (published 2019) | Google Research (published 2020) |
+| What goes in | One video frame | One video frame |
+| What comes out | A box around each face, plus a confidence score | **33 body points**, each with a position and a confidence score |
+| Used for | Finding faces so we can **destroy** them (privacy) | Tracking the body so we can **measure** the swing (coaching) |
+| Our settings | `minDetectionConfidence: 0.3`: deliberately jumpy, because hiding a non-face is harmless and missing a real face isn't | `numPoses: 1` (one hitter), "lite" version (the fastest of Google's three sizes, so it runs on cheap phones) |
+| Analogy | A security guard who spots faces in a crowd | Motion-capture dots on a player, without the suit |
 
-### How a model "sees" (the short version)
+**Why "lite"?** Google ships BlazePose in three sizes: lite (5.5 MB), full (9 MB) and heavy
+(29 MB). Bigger is slightly more precise but slower and a bigger download. Diamond Drive is
+built for kids with old or cheap phones, so it uses lite. (On Sep 27 we tested the full
+model on our clips. It did not fix the problems in the "What the AI gets wrong" table below, so the extra size
+wasn't worth it.)
+
+### The 33 body points
+
+BlazePose always returns the same 33 points in the same order, which is how the code can
+ask for "point 23" and know it's the left hip:
+
+| Body part | Points | Numbers used by the swing engine |
+|---|---|---|
+| Face | nose, eyes (inner/center/outer), ears, mouth corners | nose (0) for head drift / lunge |
+| Arms | shoulders, elbows, wrists | shoulders (11, 12), wrists (15, 16) |
+| Hands | pinky, index finger, thumb knuckles | not used (too small to track at filming distance) |
+| Legs | hips, knees, ankles | hips (23, 24), knees (25, 26), ankles (27, 28) |
+| Feet | heels, toes | not used |
+
+Each point comes back as **x** (how far across the frame, 0 to 1), **y** (how far down, 0
+to 1), and **visibility** (0 to 1, the model's confidence that the point is really
+visible and not hidden behind the body). BlazePose also guesses depth (z), but from one
+camera that guess is rough, so we don't use it.
+
+### How a model "sees"
 
 Both are **convolutional neural networks (CNNs)**. A CNN slides thousands of tiny learned
 filters across an image. The first layers notice simple things like edges and color
 changes. Later layers combine those into shapes, and the deepest layers recognize things
 like "this is a knee." Nobody programmed "what a knee looks like." The network learned it
-from examples.
+by being shown many photos where people had marked the knees by hand, and adjusting itself
+millions of times until its guesses matched.
 
-For each of the 33 body points, BlazePose returns a position plus a **confidence score**,
-its own guess of how sure it is. Our app uses those scores constantly, for example to reject
-a clip where the feet are cut off.
+BlazePose works in **two stages**, like how you'd find someone in a photo:
+1. **Detector:** "Where is the person?" A fast network finds the person and draws a box
+   around them.
+2. **Landmark network:** "Where exactly is each joint?" A second network looks only inside
+   that box and places the 33 points.
+
+In **video mode** (which we use), it also **tracks**. It uses where the body was in the last
+frame to find it faster in the next one, instead of searching the whole picture every time.
+
+### How many times the AI runs per swing
+
+| Step | How often the model runs | Why |
+|---|---|---|
+| Face scan (privacy) | BlazeFace + BlazePose on every frame, then BlazeFace again on the blurred output (the self-check) | A face must never slip through on a single frame |
+| Swing locate (pass 1) | 12 times per second across the whole clip | Cheap way to find *when* the swing happens |
+| Swing measure (pass 2) | 60 times per second for ~2 seconds around the swing | A swing takes ~0.15–0.3 s, so a fine clock is needed |
+
+A typical 10-second, 30 fps clip means **well over a thousand model runs**, all on the phone.
 
 ### The big design decision: the AI runs *on the phone*
 
 Most apps send your video to a company's computer ("the cloud") to be analyzed. Diamond
-Drive doesn't. Both models are downloaded into the web page and run **on the kid's own
-device**, using a technology called **WebAssembly** that lets a browser run heavy code fast.
+Drive doesn't. The model files and MediaPipe's engine are stored on **our own website**
+(not loaded from Google) and downloaded into the page. They run **on the kid's own
+device**, using **WebAssembly**, a format that lets a browser run heavy code almost as fast
+as a normal app. Under the hood MediaPipe uses Google's TensorFlow Lite with a CPU
+accelerator called XNNPACK.
 
-That's what makes the privacy promise real. **The original, un-blurred video never leaves
-the phone.** The cloud only ever receives the face-hidden video and a list of numbers.
+That's what makes the privacy promise real:
+- **The original, un-blurred video never leaves the phone.** The cloud only ever receives
+  the face-hidden video and a list of numbers.
+- No video is sent to Google or any AI company. Once the page has loaded, the AI makes no
+  network calls at all.
+- It costs nothing per swing, because there's no server doing the work. That's how the app
+  can stay free.
+
+### What the AI gets wrong (and why the engine exists)
+
+The models are good but not perfect, and **most of the real engineering is handling their
+mistakes.** Problems we measured on real clips:
+
+| AI weakness | What it looks like | How the app handles it |
+|---|---|---|
+| **Can't see depth** | From the front, a shoulder turning toward the camera looks like it's dipping | Camera-angle check: front-facing clips are refused, not measured |
+| **Jitter** | Each point wobbles a few pixels every frame even when the player is still | Positions are averaged over ±25 ms, and speeds are measured over ~60 ms instead of one frame *(v4: fixed 3 of our own 4 clips that were being rejected)* |
+| **Left/right mix-ups** | From the side, one hip hides behind the other and the model sometimes swaps "left hip" and "right hip" for a frame | Continuity check: if swapping the labels back fits the previous frame much better, it swaps them back *(v4)* |
+| **Motion blur** | During the fastest part of a swing, wrists blur and the model loses them | Swing detection now looks for a *burst* of hand travel, not one fast frame *(v4)*. Validation (Sep 27): the swing is timed right on about half of web swings, and no-bat shadow swings remain a weak spot |
+| **Low confidence** | Dark, backlit, or cropped video | Quality gate uses the visibility scores to reject the clip with advice on how to film it better |
+| **Hips overlap from the side** | The "hip line" angle becomes mostly noise, so the separation metric raises false alarms on good swings | **Not fixed yet.** Found in validation; see VALIDATION.md |
+| **Faces missed at a distance** | BlazeFace is built for faces within ~2 m | BlazePose's head points (nose, ears) act as a backup face finder, and the self-check re-scans the output |
 
 ---
 
@@ -168,6 +237,8 @@ Competition rules allow AI tools but require full disclosure. Every session is l
 - Write submission answers 3 (Inspiration) and 5 (Biggest takeaway) in the student's own words
 - Register on the CAC portal; confirm district (WA-01 vs WA-02)
 - Optional: a small pilot with a few teammates (consent form: `PARENT-CONSENT.md`)
+
+**Engine accuracy (see VALIDATION.md, Sep 27):** web-clip validation done. It catches lunges 7/12, no-stride 3/3, soft knee 4/6, but gives false alarms on 8/10 good swings (mostly the separation metric). Fix separation next.
 
 **After the filming (Claude + student):**
 - Fit the final thresholds to the new clips and build the **validation table**, the proof

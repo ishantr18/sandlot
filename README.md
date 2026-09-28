@@ -24,6 +24,7 @@ An AI baseball coach that gives underprivileged kids pro-level swing analysis on
 | `docs/TECHNICAL-OVERVIEW.md` | 3-page architecture/implementation review doc (for Dad + judges) |
 | `docs/PROJECT-EXPLAINED.md` | **Start here** — plain-English explainer: the AI used, features, work done, what's left |
 | `docs/FOR-DAD.md` | One-page status brief: where we are, next 4 weeks, where Dad is needed, app-store decision |
+| `docs/VALIDATION.md` | Engine accuracy test on 36 coach-labelled web swings: results, fixes, what's still broken |
 | `docs/DEMO-SCRIPT.md` | Demo video script + shot list |
 | `docs/PARENT-CONSENT.md` | Parent info + consent one-pager for any pilot |
 | `docs/SUBMISSION-ANSWERS.md` | Drafts of the six CAC portal answers |
