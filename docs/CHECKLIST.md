@@ -1,4 +1,39 @@
-# Daily Checklist — Aug 10 → Aug 31
+# Checklist — Final Stretch (Sep 27 → Oct 26)
+
+🎥 = needs recording (you) · ✍️ = your words/decision · 🤖 = Claude
+
+## Done Sep 27
+- [x] 🤖 Commit engine v3 (had been uncommitted since Sep 20)
+- [x] 🤖 Polish: load-error + retry on every data page, error/404 pages, lint clean, /spike retired, dark install splash
+- [x] 🤖 Docs: PROJECT-EXPLAINED, FOR-DAD, DEMO-SCRIPT, PARENT-CONSENT; plans updated
+
+## Week of Sep 28
+- [ ] ✍️ Approve the 10-drill library (list in chat / PARKED.md §4) → 🤖 wire into `drills.ts` + findings
+- [ ] 🎥 Calibration filming (Dad on camera, side view, full body): no-hips ×2, lunge ×2, collapsed-backside ×2, no-stride ×2, 3 normal real-bat swings, 1 Dad swing → save to `test-clips/` with the flaw in the filename
+- [ ] 🎥 Run every new clip + the 4 stock + original 5 through `/lab` → screenshots
+- [ ] 🤖 Threshold fit + validation table (engine verdict vs. known flaw per clip)
+- [ ] ✍️ Answers 3 (Inspiration) + 5 (Takeaway) in SUBMISSION-ANSWERS.md
+- [ ] ✍️ WA-01 vs WA-02 → register on the CAC portal; check per-answer character limits
+- [ ] ✍️ Mini-pilot: go (start by Oct 1) or skip
+- [ ] ✍️ Parked decision: "underutilized skills" reframe — yes/no before filming the video
+
+## Week of Oct 5
+- [ ] 🤖 Prep the pristine demo account (4+ sessions for a chart line); `+coach` and `+parent` logins ready
+- [ ] 🎥 Film the demo video (DEMO-SCRIPT.md); edit; upload public
+- [ ] ✍️ Show it to Dad + one non-technical adult; fix where they got lost
+- [ ] 🤖 Pre-submit cleanup: delete junk test accounts + test blobs; final prod deploy; feature freeze
+
+## Week of Oct 12 — SUBMIT
+- [ ] Paste answers + AI disclosure, add video link, confirm team info → submit
+- [ ] Screenshot the confirmation
+
+## Oct 19 → 26
+- [ ] Confirm received; rehearse (STUDY-GUIDE → ENGINE → PROJECT-EXPLAINED)
+- [ ] After Oct 26 noon EDT: Exit Questionnaire
+
+---
+
+# Archive — original August plan
 
 ## 🎥 FILMING TASKS (open — do before Aug 19)
 Batch 1 — blur tests (run each through /upload, scrub the preview for face leaks):

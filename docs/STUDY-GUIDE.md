@@ -110,23 +110,18 @@ device).
   machines finds bugs theory never will; verify claims instead of asserting
   them; safety can live in architecture instead of policy.
 
-## 5. WHAT'S LEFT (as of Aug 25)
+## 5. WHAT'S LEFT (as of Sep 27)
 
-### To complete the app
-- [ ] **Drills brainstorm** (user) — review the 10-drill proposal in PARKED.md as a player; final library wired in (~20 min + small code change)
-- [ ] **Calibration filming session** (user, ~30 min, real bat now available):
-      deliberate-flaw swings (no-hips ×2, lunge ×2, collapsed-backside ×2,
-      no-stride ×2), 3 real-bat normal swings, 1 Dad swing
-- [ ] **/lab runs** (user): new clips + 4 stock clips + re-run original 5 → screenshots
-- [ ] **Threshold fit + validation table** (Claude) — the accuracy proof
-- [ ] **Polish pass** (Claude): error/loading states, phone PWA check, delete junk accounts + test blobs, retire /spike
-- [ ] Optional parked: Skill Card, "underutilized skills" reframe (decide before video script)
+Full status and schedule: CHECKLIST.md (day-by-day) · FOR-DAD.md (one-page status).
 
-### Then the weekly plan takes over (WEEKLY-PLAN.md)
-- [ ] **Week of Aug 31:** pilot prep — partner org outreach, parent-consent one-pager, varsity peer-mentor recruiting, coach feedback on metrics/drills
-- [ ] **September:** pilot waves 1–2 (~8 kids), collect progress data + quotes; draft video script, all 6 submission answers, AI disclosure; register on CAC portal (confirm WA-01 vs WA-02 school address); presentation feedback month
-- [ ] **Week of Oct 5:** film demo video (pristine demo account); App-A-Thon if held
-- [ ] **Week of Oct 12: SUBMIT** (two weeks early) · **Deadline: Mon Oct 26, 12:00pm EDT** · after: Exit Questionnaire
+- [x] Engine v3 committed; polish pass (load-error states, error pages, lint clean, /spike retired)
+- [ ] **Drill library** — approve the 10 drills (user) → wire in (Claude)
+- [ ] **Calibration filming** (user + Dad, ~30 min) → `/lab` runs
+- [ ] **Threshold fit + validation table** (Claude, after filming) — the accuracy proof
+- [ ] **Answers 3 + 5** in your own words · **portal registration** (WA-01 vs WA-02)
+- [ ] **Demo video** (DEMO-SCRIPT.md) — week of Oct 5
+- [ ] **SUBMIT** week of Oct 12 · deadline Mon Oct 26, 12:00pm EDT · then Exit Questionnaire
+- [ ] Optional: mini-pilot (PARENT-CONSENT.md); app-store versions after submission (FOR-DAD.md)
 
 ### Study priorities before any judging conversation
 1. This file, top to bottom

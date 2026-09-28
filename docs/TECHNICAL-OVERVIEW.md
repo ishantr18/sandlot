@@ -137,10 +137,10 @@ quantization, mid-swing clips, front-view rejection — all fixed and
 re-deployed); full 3-role loop exercised end-to-end (player upload → coach
 comment → parent view); role rules live-tested.
 
-**Pending (scheduled):** final threshold calibration against a labeled
-deliberate-flaw dataset (filming this week); /lab regression run over stock +
-original clips; September pilot with ~8 real players; drill library v2
-(researched, awaiting final approval).
+**Pending (as of Sep 27):** final threshold calibration against a labeled
+deliberate-flaw dataset (filming week of Sep 28); /lab regression run over stock +
+original clips; drill library v2 (researched, awaiting final approval). The
+September pilot did not happen; a real pilot is framed as v2.0 work.
 
 ## 7. The review questions worth asking us
 1. Does the no-raw-video claim survive code reading? (`faceblur.ts` +
