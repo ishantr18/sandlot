@@ -400,14 +400,14 @@ function buildFindings(m: SwingMetrics): Finding[] {
       "sequenceGapMs",
       "minor",
       `Hips and shoulders are rotating almost together (${m.sequenceGapMs}ms gap). Let the hips START the swing — the shoulders should be reacting, not leading.`,
-      ["hip-fire-tee", "separation-stretch"],
+      ["hip-fire-tee", "step-back"],
     );
   } else {
     add(
       "sequenceGapMs",
       "major",
       `Your shoulders are firing BEFORE your hips (${m.sequenceGapMs}ms) — that's an arm swing. Biggest power unlock available: hips first, always.`,
-      ["hip-fire-tee", "separation-stretch"],
+      ["hip-fire-tee", "step-back"],
     );
   }
 
@@ -448,14 +448,14 @@ function buildFindings(m: SwingMetrics): Finding[] {
       "headDriftPct",
       "minor",
       `Head keeps moving after your front foot lands (${m.headDriftPct}%) — early lunge warning. Land, THEN turn.`,
-      ["balance-beam"],
+      ["no-stride", "balance-beam"],
     );
   } else {
     add(
       "headDriftPct",
       "major",
       `Lunging: your head travels ${m.headDriftPct}% of your height after foot plant. The ball appears to speed up when your head is moving — quiet it down.`,
-      ["balance-beam"],
+      ["no-stride", "balance-beam"],
     );
   }
 
@@ -473,14 +473,14 @@ function buildFindings(m: SwingMetrics): Finding[] {
       "kneeBraceDeg",
       "minor",
       `Front knee stays a bit bent at contact (${m.kneeBraceDeg}°) — firming it up converts your stride into rotation.`,
-      ["stride-ladder"],
+      ["firm-front-side"],
     );
   } else {
     add(
       "kneeBraceDeg",
       "major",
       `Soft front leg (${m.kneeBraceDeg}° at contact) — power is leaking into the ground instead of into the ball.`,
-      ["stride-ladder"],
+      ["firm-front-side"],
     );
   }
 
@@ -498,14 +498,14 @@ function buildFindings(m: SwingMetrics): Finding[] {
       "shoulderTiltDeg",
       "minor",
       `Back shoulder dips ${m.shoulderTiltDeg}° at launch — watch for the uppercut creeping in.`,
-      ["wall-bat-tempo"],
+      ["high-tee", "wall-behind-back-foot"],
     );
   } else {
     add(
       "shoulderTiltDeg",
       "major",
       `Backside collapse: ${m.shoulderTiltDeg}° shoulder dip at launch. You'll swing uphill from there — stay tall through the load.`,
-      ["wall-bat-tempo"],
+      ["high-tee", "wall-behind-back-foot"],
     );
   }
 
