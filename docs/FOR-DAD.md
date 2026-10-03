@@ -60,6 +60,45 @@ it in the app stores is a separate, optional step:
 web apps. "No app store, works from a link on any phone, free" is itself an equity
 argument in the pitch. Revisit Play Store in November, App Store after that.
 
+## Where the code lives and how it goes live
+
+**The code is a folder on the Mac:** `~/Desktop/CAC-2026- (baseball)/app/`. There's no
+website for editing it; editing these files changes the app.
+
+**Editor:** Visual Studio Code (already installed). **File → Open Folder** → the `app` folder.
+The files that matter are in `app/src/`:
+
+| Folder / file | What's in it |
+|---|---|
+| `src/lib/swingMetrics.ts` | **The swing engine**: quality gate, swing detection, the 6 metrics, coaching text. Ish's part for judges |
+| `src/lib/poseExtract.ts` | Turns the video into the 33 body points |
+| `src/lib/faceblur.ts` | Face hiding |
+| `src/lib/drills.ts` | The drill list |
+| `src/app/<page>/page.tsx` | Each screen (`upload`, `analysis`, `progress`, `coach`, `family`, `drills`, `lab`) |
+
+**Seeing changes while coding (only on this Mac):**
+1. In VS Code: **View → Terminal**, then run `npm run dev`.
+2. Open **http://localhost:3000** in Chrome. Saving a file updates the page within a second or two.
+3. To test an engine change, open **localhost:3000/lab** and drop in clips from `test-clips/`.
+
+Good first files to read: `drills.ts` (simple), and the `T = { ... }` thresholds block near
+the top of `swingMetrics.ts`. Changing a number there changes when the app flags a flaw.
+
+**Getting a change to the live site:** three steps, run in the `app` folder:
+
+| Step | Command | What it does |
+|---|---|---|
+| 1. Save a checkpoint | `git add -A` then `git commit -m "what I changed"` | Records the change so it can be undone |
+| 2. Back up | `git push` | Copies it to GitHub (private). **Does not update the live app** |
+| 3. Go live | `vercel --prod` | Builds on Vercel and replaces the live site (~1 minute) |
+
+Vercel isn't connected to GitHub, so step 3 is always separate. That's on purpose until
+after submission: a half-finished push can't accidentally replace the version judges might
+open. (Before Oct 3 the live site hadn't been deployed for 37 days for exactly this reason.)
+
+**Testing on a phone:** localhost only works on the Mac. Deploy, open the live link on the
+phone, tap Share → **Add to Home Screen**, and test record → blur → analysis.
+
 ## Money spent so far
 
 $0. Everything runs on free tiers (Vercel, Firebase).
