@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
+import VerifyEmailGate from "@/components/VerifyEmailGate";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          {children}
+          <VerifyEmailGate>{children}</VerifyEmailGate>
           <Nav />
         </AuthProvider>
       </body>

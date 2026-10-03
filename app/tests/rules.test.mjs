@@ -32,7 +32,8 @@ beforeEach(async () => {
   });
 });
 
-const as = (uid) => env.authenticatedContext(uid).firestore();
+const as = (uid) => env.authenticatedContext(uid, { email_verified: true }).firestore();
+const unverified = (uid) => env.authenticatedContext(uid, { email_verified: false }).firestore();
 const future = () => Date.now() + 60 * 60 * 1000;
 
 async function kidMakesCode(code = "ABC234") {
@@ -159,4 +160,12 @@ test("the screens' list queries are allowed", async () => {
   await assertSucceeds(getDocs(query(collection(as("mom"), "sessions"), where("playerId", "==", "kid"))));
   await assertSucceeds(getDocs(query(collection(as("mom"), "blocks"), where("playerId", "==", "kid"))));
   await assertFails(getDocs(query(collection(as("stranger"), "sessions"), where("playerId", "==", "kid"))));
+});
+
+test("ATTACK: unverified email can't see or upload swings, or make codes", async () => {
+  await assertFails(getDoc(doc(unverified("kid"), "sessions/s1")));
+  await assertFails(setDoc(doc(unverified("kid"), "sessions/s2"), { playerId: "kid", status: "analyzed", createdAt: 1 }));
+  await assertFails(setDoc(doc(unverified("kid"), "linkCodes/QQQ777"), { playerId: "kid", expiresAt: future() }));
+  // …but sign-up itself still works before verifying
+  await assertSucceeds(setDoc(doc(unverified("fresh"), "users/fresh"), { uid: "fresh", displayName: "F", role: "player", createdAt: 1 }));
 });

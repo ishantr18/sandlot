@@ -6,6 +6,7 @@
 // coaches submit credentials the admin checks before they see any swing.
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile,
@@ -71,10 +72,20 @@ export default function AuthPage() {
     setInfo("");
     try {
       if (mode === "reset") {
-        // Firebase emails a reset link. Same message whether or not the
-        // account exists, so the form can't be used to probe for emails.
-        await sendPasswordResetEmail(auth, email.trim()).catch(() => {});
-        setInfo("If that email has an account, a reset link is on its way. Check spam too.");
+        // Firebase answers the same way whether or not the account exists, so
+        // showing errors can't be used to probe for emails. Real problems
+        // (typo'd address, too many tries) are shown.
+        try {
+          await sendPasswordResetEmail(auth, email.trim(), { url: `${window.location.origin}/auth` });
+          setInfo(
+            `Sent to ${email.trim()} — if it has an account. It comes from noreply@sandlot-cac-2026.firebaseapp.com and often lands in Spam or Promotions. It can take a few minutes.`,
+          );
+        } catch (err) {
+          const code = (err as { code?: string }).code ?? "";
+          if (code.includes("user-not-found"))
+            setInfo(`Sent to ${email.trim()} — if it has an account. Check Spam too.`);
+          else setError(friendly(code));
+        }
         setBusy(false);
         return;
       }
@@ -117,6 +128,9 @@ export default function AuthPage() {
           await cred.user.delete().catch(() => {});
           throw err;
         }
+        // Prove the email is real. Until the link is clicked, the app shows
+        // only the "check your email" screen and the database refuses swings.
+        await sendEmailVerification(cred.user, { url: `${window.location.origin}/` }).catch(() => {});
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }

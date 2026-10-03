@@ -54,6 +54,7 @@ For the full plain-English explanation of the app and its AI, read **PROJECT-EXP
 - **Parents** link with a **family code** from the player's Home screen (6 characters,
   works once, expires in 24 h). Knowing a kid's email isn't enough anymore.
 - **Forgot password** emails a reset link.
+- **New accounts verify their email** (a link, emailed at sign-up) before they can see or upload any swing.
 - Test logins are in `TEST-ACCOUNTS.local.md` on the Mac (never uploaded anywhere).
 
 ## The "real mobile app" question
@@ -108,6 +109,47 @@ open. (Before Oct 3 the live site hadn't been deployed for 37 days, because push
 
 **Testing on a phone:** localhost only works on the Mac. Deploy, open the live link on the
 phone, tap Share → **Add to Home Screen**, and test record → blur → analysis.
+
+## Testing guide: is everything working?
+
+**Accounts** (passwords in `TEST-ACCOUNTS.local.md` on the Mac). Gmail ignores anything
+after a **+**, so `tcemathclub+parenttest@gmail.com` lands in the tcemathclub inbox but is a
+separate app account.
+
+| Role | Email | Notes |
+|---|---|---|
+| Player | `tcemathclub@gmail.com` | |
+| Parent | `shan.ramalingham.ai@gmail.com` | Already linked to TCE |
+| Coach | `ishant.ram.ai@gmail.com` | Pre-approved test coach |
+| Admin | `ishant.ram@gmail.com` | Ish's own password. Approves coaches |
+| New parent | `tcemathclub+parenttest@gmail.com` | Tests family codes from scratch |
+| New coach | `tcemathclub+coachtest@gmail.com` | Tests apply → approve from scratch |
+
+**First time each account signs in after Oct 3:** it must **verify its email**. The app
+shows "Check your email". Tap **Resend**, click the link in that inbox (check Spam), then
+tap **I've clicked the link**.
+
+**Step 1: click through (~10 min, laptop is fine).** Sign out between accounts with the ⇥ icon (bottom right).
+1. **Player:** Home → Family code → **Make a family code**. Write it down.
+2. **New parent:** Create account → Parent → enter the code. Verify the email. Family
+   should show TCE's swings.
+3. **Player:** "Linked parents" lists the new parent. Tap **Remove**; it should ask "are you
+   sure?" first.
+4. **New coach:** Create account → Coach → fill in team, credential and number. Verify the
+   email. It should say **Certification pending**, with no swings visible.
+5. **Admin:** Home → **🛡️ Admin** → approve the new coach. Also try Reject / Revoke.
+6. **New coach:** the Review tab now opens.
+7. **Forgot password:** Sign in → Forgot password? → an email arrives within a few
+   minutes (**check Spam**; it's from `noreply@sandlot-cac-2026.firebaseapp.com`).
+
+**Step 2: real phone (~10 min).** Open the live link on the phone → Share → **Add to Home
+Screen**. As **Player**, record a swing and let it blur, analyze and upload. Then as
+**Coach**, comment and assign a drill. Then as **Parent**, check that the comment shows up.
+
+**Step 3: calibration filming.** No account needed: run clips through **/lab**, which never
+uploads. Name each file after its flaw (e.g. `lunge-1.mov`) and save it to `test-clips/`.
+
+If something looks wrong: screenshot it and note which account and which step.
 
 ## Money spent so far
 

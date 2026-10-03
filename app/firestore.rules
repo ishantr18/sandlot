@@ -9,6 +9,11 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.uid in ['39qqWC1J7LciK4wUTPd3wzwYJXw2'];
     }
+    // Clicked the verification link we emailed at sign-up. Required for
+    // everything that touches swings — a fake email gets you nothing.
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
     function me() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -49,7 +54,7 @@ service cloud.firestore {
     // A player makes a short-lived code; a parent types it in to link.
     // Nobody can LIST codes; fetching one requires already knowing it.
     match /linkCodes/{code} {
-      allow create: if request.auth != null
+      allow create: if verified()
         && me().role == 'player'
         && request.resource.data.keys().hasOnly(['playerId', 'playerName', 'expiresAt'])
         && request.resource.data.playerId == request.auth.uid
@@ -108,9 +113,9 @@ service cloud.firestore {
     // Players create/modify their own; readable by owner, certified coaches
     // (review queue), and a linked parent.
     match /sessions/{id} {
-      allow create: if request.auth != null
+      allow create: if verified()
         && request.resource.data.playerId == request.auth.uid;
-      allow read: if request.auth != null && (
+      allow read: if verified() && (
         resource.data.playerId == request.auth.uid
         || isCertMentor()
         || isGuardianOf(resource.data.playerId)
@@ -125,7 +130,7 @@ service cloud.firestore {
     // participant may read; screens filter by session.
     // No DMs exist anywhere by design — comments attach to sessions only.
     match /comments/{id} {
-      allow create: if isCertMentor()
+      allow create: if verified() && isCertMentor()
         && request.resource.data.mentorId == request.auth.uid;
       allow read: if request.auth != null;
     }
@@ -133,7 +138,7 @@ service cloud.firestore {
     // Drill assignments: certified coaches create; player (or their
     // parent) reads; player can update status (mark done).
     match /assignments/{id} {
-      allow create: if isCertMentor()
+      allow create: if verified() && isCertMentor()
         && request.resource.data.assignedBy == request.auth.uid;
       allow read: if request.auth != null && (
         resource.data.playerId == request.auth.uid

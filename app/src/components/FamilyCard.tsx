@@ -12,6 +12,7 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [confirming, setConfirming] = useState<string | null>(null); // link id awaiting "are you sure"
 
   useEffect(() => {
     (async () => {
@@ -62,20 +63,41 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
       {links.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-semibold text-muted-foreground">Linked parents</p>
-          {links.map((l) => (
-            <div key={l.id} className="flex items-center justify-between text-sm">
-              <span>{l.guardianName ?? "Parent"}</span>
-              <button
-                onClick={async () => {
-                  await unlink(l.id).catch(() => setError("Couldn't remove — try again."));
-                  setReloadKey((k) => k + 1);
-                }}
-                className="text-xs text-muted-foreground underline"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+          {links.map((l) =>
+            confirming === l.id ? (
+              <div key={l.id} className="rounded-xl bg-secondary p-3 text-sm">
+                <p className="mb-2">
+                  Remove <span className="font-semibold">{l.guardianName ?? "this parent"}</span>?
+                  They&apos;ll stop seeing your swings and coach comments.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      await unlink(l.id).catch(() => setError("Couldn't remove — try again."));
+                      setConfirming(null);
+                      setReloadKey((k) => k + 1);
+                    }}
+                    className="flex-1 rounded-full bg-destructive py-1.5 text-xs font-semibold text-white"
+                  >
+                    Yes, remove
+                  </button>
+                  <button
+                    onClick={() => setConfirming(null)}
+                    className="flex-1 rounded-full border border-border py-1.5 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div key={l.id} className="flex items-center justify-between text-sm">
+                <span>{l.guardianName ?? "Parent"}</span>
+                <button onClick={() => setConfirming(l.id)} className="text-xs text-muted-foreground underline">
+                  Remove
+                </button>
+              </div>
+            ),
+          )}
         </div>
       )}
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
