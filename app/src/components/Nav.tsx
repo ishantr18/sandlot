@@ -2,10 +2,12 @@
 
 // Floating pill dock — tabs depend on WHO you are.
 // Player: full training loop. Coach: review work. Parent: the window.
-import { Dumbbell, House, TrendingUp, Users, Video, ClipboardList } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { ClipboardList, Dumbbell, House, LogOut, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { auth } from "@/lib/firebase";
 
 const TABS = {
   player: [
@@ -27,7 +29,8 @@ const TABS = {
 
 export default function Nav() {
   const pathname = usePathname();
-  const { profile } = useAuth();
+  const router = useRouter();
+  const { user, profile } = useAuth();
   const tabs = TABS[profile?.role ?? "player"] ?? TABS.player;
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur">
@@ -38,7 +41,7 @@ export default function Nav() {
           <Link
             key={t.href}
             href={t.href}
-            className={`flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 rounded-full px-4 py-3 text-sm sm:px-6 font-medium transition-colors ${
               active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -47,6 +50,20 @@ export default function Nav() {
           </Link>
         );
       })}
+      {/* Every role can sign out from anywhere — matters on shared family phones */}
+      {user && (
+        <button
+          onClick={async () => {
+            await signOut(auth);
+            router.push("/");
+          }}
+          aria-label="Sign out"
+          className="flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="hidden sm:inline">Sign out</span>
+        </button>
+      )}
     </nav>
   );
 }
