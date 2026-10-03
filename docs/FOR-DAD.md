@@ -94,7 +94,7 @@ the top of `swingMetrics.ts`. Changing a number there changes when the app flags
 
 Vercel isn't connected to GitHub, so step 3 is always separate. That's on purpose until
 after submission: a half-finished push can't accidentally replace the version judges might
-open. (Before Oct 3 the live site hadn't been deployed for 37 days for exactly this reason.)
+open. (Before Oct 3 the live site hadn't been deployed for 37 days, because pushing alone never deploys.)
 
 **Testing on a phone:** localhost only works on the Mac. Deploy, open the live link on the
 phone, tap Share → **Add to Home Screen**, and test record → blur → analysis.
