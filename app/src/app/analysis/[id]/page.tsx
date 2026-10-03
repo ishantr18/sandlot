@@ -75,9 +75,9 @@ export default function AnalysisSessionPage() {
         if (!snap.exists()) return setError("Session not found.");
         const data = snap.data() as SessionDoc;
         const isOwner = data.playerId === user.uid;
-        const isMentor = profile?.role === "mentor";
+        const isMentor = profile?.role === "mentor" && !!profile.verifiedMentor;
         const isGuardian = (profile?.guardianOf ?? []).includes(data.playerId);
-        if (!isOwner && !isMentor && !isGuardian)
+        if (!isOwner && !isMentor && !isGuardian && !profile?.isAdmin)
           return setError("You don't have access to this session.");
         setSession(data);
         // load coach comments (visible to player, guardian, and mentors alike)
@@ -87,10 +87,14 @@ export default function AnalysisSessionPage() {
         const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
         cs.sort((a, b) => a.timestampSec - b.timestampSec);
         setComments(cs);
-        const bsnap = await getDocs(
-          query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
-        );
-        setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
+        // Blocks hide a coach's comments from the player's side. Coaches don't
+        // need them (and the rules don't let a coach list a player's blocks).
+        if (!isMentor) {
+          const bsnap = await getDocs(
+            query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
+          );
+          setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
+        }
         framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
         const res = await fetch(
           `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,

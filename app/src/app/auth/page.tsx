@@ -2,22 +2,19 @@
 
 // Sign in / create account — with role selection.
 // Players own swings; coaches review them; parents watch over their kid.
+// Parents link with a FAMILY CODE from the player's app (not an email), and
+// coaches submit credentials the admin checks before they see any swing.
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  query,
-  setDoc,
-  where,
-} from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { CREDENTIALS, linkWithCode, submitCoachApplication } from "@/lib/family";
 import { auth, db } from "@/lib/firebase";
 
 function friendly(code: string): string {
@@ -26,6 +23,7 @@ function friendly(code: string): string {
     return "Email or password doesn't match an account.";
   if (code.includes("weak-password")) return "Password needs at least 6 characters.";
   if (code.includes("invalid-email")) return "That doesn't look like an email address.";
+  if (code.includes("too-many-requests")) return "Too many tries — wait a minute and try again.";
   return "Something went wrong — try again.";
 }
 
@@ -35,9 +33,12 @@ const ROLES = [
   { id: "guardian", label: "👨‍👩‍👧 Parent", blurb: "I watch over a player" },
 ] as const;
 
+const FIELD = "w-full rounded-2xl border-0 bg-card p-3";
+
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const { refresh } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [role, setRole] = useState<"player" | "mentor" | "guardian">("player");
 
   // Arrive pre-set from the welcome screen (?mode=signup&role=mentor)
@@ -54,48 +55,64 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [childEmail, setChildEmail] = useState("");
+  const [familyCode, setFamilyCode] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [credential, setCredential] = useState<string>(CREDENTIALS[0]);
+  const [credentialId, setCredentialId] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setInfo("");
     try {
+      if (mode === "reset") {
+        // Firebase emails a reset link. Same message whether or not the
+        // account exists, so the form can't be used to probe for emails.
+        await sendPasswordResetEmail(auth, email.trim()).catch(() => {});
+        setInfo("If that email has an account, a reset link is on its way. Check spam too.");
+        setBusy(false);
+        return;
+      }
       if (mode === "signup") {
-        // Create the login first (profile reads require auth), then verify;
-        // ANY later failure deletes the login again — no orphans, ever.
+        // Create the login, then the profile, then the role step. ANY later
+        // failure deletes the login again — no orphans, ever.
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         try {
-          let guardianOf: string[] = [];
-          if (role === "guardian") {
-            const snap = await getDocs(
-              query(
-                collection(db, "users"),
-                where("email", "==", childEmail.trim().toLowerCase()),
-                limit(1),
-              ),
-            );
-            if (snap.empty) {
-              await cred.user.delete().catch(() => {});
-              setError(
-                "No player account found with that email — double-check it, or have your player create their account first.",
-              );
-              setBusy(false);
-              return;
-            }
-            guardianOf = [snap.docs[0].id];
-          }
           await updateProfile(cred.user, { displayName: name });
           await setDoc(doc(db, "users", cred.user.uid), {
             uid: cred.user.uid,
             displayName: name,
-            email: email.trim().toLowerCase(),
             role,
-            ...(guardianOf.length ? { guardianOf } : {}),
             createdAt: Date.now(),
           });
+          if (role === "guardian") {
+            const res = await linkWithCode(cred.user.uid, name, familyCode);
+            if (res !== "ok") {
+              await cred.user.delete().catch(() => {});
+              setError(
+                res === "expired"
+                  ? "That family code has expired — ask your player to make a new one (Home → Family code)."
+                  : "That family code doesn't match. Check it on your player's Home screen (Family code) and try again.",
+              );
+              setBusy(false);
+              return;
+            }
+          }
+          if (role === "mentor") {
+            await submitCoachApplication({
+              uid: cred.user.uid,
+              displayName: name,
+              organization: organization.trim(),
+              credential,
+              credentialId: credentialId.trim(),
+              note: note.trim(),
+            });
+          }
         } catch (err) {
           await cred.user.delete().catch(() => {});
           throw err;
@@ -103,6 +120,7 @@ export default function AuthPage() {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
+      await refresh();
       router.push("/");
     } catch (err) {
       setError(friendly((err as { code?: string }).code ?? ""));
@@ -110,14 +128,19 @@ export default function AuthPage() {
     }
   }
 
+  const title =
+    mode === "signin" ? "Sign in" : mode === "reset" ? "Reset password" : "Create your account";
+  const subtitle =
+    mode === "signin"
+      ? "Welcome back to Diamond Drive."
+      : mode === "reset"
+        ? "We'll email you a link to choose a new password."
+        : "Free, forever. That's the point.";
+
   return (
     <main className="mx-auto max-w-md p-6 pb-28">
-      <h1 className="mb-1 text-4xl font-bold tracking-tight">
-        {mode === "signin" ? "Sign in" : "Create your account"}
-      </h1>
-      <p className="mb-6 text-sm text-muted-foreground">
-        {mode === "signin" ? "Welcome back to Diamond Drive." : "Free, forever. That's the point."}
-      </p>
+      <h1 className="mb-1 text-4xl font-bold tracking-tight">{title}</h1>
+      <p className="mb-6 text-sm text-muted-foreground">{subtitle}</p>
 
       <form onSubmit={submit} className="space-y-3">
         {mode === "signup" && (
@@ -142,17 +165,62 @@ export default function AuthPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               required
-              className="w-full rounded-2xl border-0 bg-card p-3"
+              className={FIELD}
             />
             {role === "guardian" && (
-              <input
-                type="email"
-                value={childEmail}
-                onChange={(e) => setChildEmail(e.target.value)}
-                placeholder="Your player's account email"
-                required
-                className="w-full rounded-2xl border-0 bg-card p-3"
-              />
+              <div>
+                <input
+                  value={familyCode}
+                  onChange={(e) => setFamilyCode(e.target.value.toUpperCase())}
+                  placeholder="Family code (6 letters/numbers)"
+                  required
+                  maxLength={8}
+                  autoCapitalize="characters"
+                  className={`${FIELD} font-mono tracking-widest`}
+                />
+                <p className="mt-1 px-1 text-xs text-muted-foreground">
+                  Your player makes this on their Home screen → Family code. It
+                  proves you have their OK, and it works once.
+                </p>
+              </div>
+            )}
+            {role === "mentor" && (
+              <div className="space-y-3 rounded-2xl bg-card/50 p-3">
+                <p className="text-xs text-muted-foreground">
+                  Coaches are checked by a real person before they can see any
+                  swing. Tell us how to verify you.
+                </p>
+                <input
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="Team, league, or school"
+                  required
+                  className={FIELD}
+                />
+                <select
+                  value={credential}
+                  onChange={(e) => setCredential(e.target.value)}
+                  className={FIELD}
+                >
+                  {CREDENTIALS.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  value={credentialId}
+                  onChange={(e) => setCredentialId(e.target.value)}
+                  placeholder="Certificate or member number"
+                  required
+                  className={FIELD}
+                />
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Anything else that helps us verify you (optional)"
+                  rows={2}
+                  className={FIELD}
+                />
+              </div>
             )}
           </>
         )}
@@ -162,35 +230,59 @@ export default function AuthPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           required
-          className="w-full rounded-2xl border-0 bg-card p-3"
+          className={FIELD}
         />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password (6+ characters)"
-          required
-          minLength={6}
-          className="w-full rounded-2xl border-0 bg-card p-3"
-        />
+        {mode !== "reset" && (
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password (6+ characters)"
+            required
+            minLength={6}
+            className={FIELD}
+          />
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
+        {info && <p className="text-sm text-primary">{info}</p>}
         <button
           type="submit"
           disabled={busy}
           className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
         >
-          {busy ? "One sec…" : mode === "signin" ? "Sign in" : "Create account"}
+          {busy
+            ? "One sec…"
+            : mode === "signin"
+              ? "Sign in"
+              : mode === "reset"
+                ? "Email me a reset link"
+                : role === "mentor"
+                  ? "Apply as a coach"
+                  : "Create account"}
         </button>
       </form>
 
+      {mode === "signin" && (
+        <button
+          onClick={() => {
+            setMode("reset");
+            setError("");
+            setInfo("");
+          }}
+          className="mt-4 w-full text-center text-sm text-muted-foreground"
+        >
+          Forgot password?
+        </button>
+      )}
       <button
         onClick={() => {
-          setMode(mode === "signin" ? "signup" : "signin");
+          setMode(mode === "signup" ? "signin" : mode === "reset" ? "signin" : "signup");
           setError("");
+          setInfo("");
         }}
-        className="mt-4 w-full text-center text-sm text-primary"
+        className="mt-3 w-full text-center text-sm text-primary"
       >
-        {mode === "signin" ? "New here? Create an account" : "Have an account? Sign in"}
+        {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
       </button>
     </main>
   );

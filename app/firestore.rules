@@ -2,32 +2,111 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---- Who is asking? ------------------------------------------------
+    // The ADMIN approves coaches. Written into the rules (not a database
+    // field) so no one can grant it to themselves. ishant.ram@gmail.com.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid in ['39qqWC1J7LciK4wUTPd3wzwYJXw2'];
+    }
     function me() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     function isMentor() {
       return request.auth != null && me().role == 'mentor';
     }
-    // CERTIFIED coach: role granted at signup, verification granted by a HUMAN
-    // (org/admin flips verifiedMentor). Uncertified coaches see nothing.
+    // CERTIFIED coach: the admin approved their application. The approval
+    // lives in coachApplications, which a coach can never mark approved.
+    // (v1 kept a `verifiedMentor` flag on the coach's OWN profile — which
+    // the coach could set themselves. Closed Oct 3.)
     function isCertMentor() {
-      return isMentor() && me().verifiedMentor == true;
+      let app = /databases/$(database)/documents/coachApplications/$(request.auth.uid);
+      return isMentor() && exists(app) && get(app).data.status == 'approved';
     }
+    // Linked parent: a guardianLinks doc exists, which can only be created
+    // with a family code from the player's own account. (v1 trusted a
+    // `guardianOf` list on the parent's OWN profile — closed Oct 3.)
     function isGuardianOf(pid) {
       return request.auth != null
-        && me().role == 'guardian'
-        && pid in me().get('guardianOf', []);
+        && exists(/databases/$(database)/documents/guardianLinks/$(request.auth.uid + '_' + pid));
     }
 
-    // Profiles: anyone signed-in can read (needed for guardian linking &
-    // coach names); only you can write yours.
+    // ---- Profiles: PRIVATE ---------------------------------------------
+    // Only you (and the admin) can read your profile — coaches can't look
+    // up a player's name or email, so anonymity holds at the data level.
+    // Role is chosen once at signup; permissions never live here.
     match /users/{uid} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.role in ['player', 'mentor', 'guardian'];
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
     }
 
-    // Sessions: players create/modify their own; readable by owner,
-    // mentors (review queue), and the player's linked guardian.
+    // ---- Family codes ----------------------------------------------------
+    // A player makes a short-lived code; a parent types it in to link.
+    // Nobody can LIST codes; fetching one requires already knowing it.
+    match /linkCodes/{code} {
+      allow create: if request.auth != null
+        && me().role == 'player'
+        && request.resource.data.keys().hasOnly(['playerId', 'playerName', 'expiresAt'])
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.expiresAt <= request.time.toMillis() + 24 * 60 * 60 * 1000;
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && resource.data.playerId == request.auth.uid;
+      // Player cancels their own code, or the parent uses it up in the same
+      // batch that creates the link (one code = one link).
+      allow delete: if request.auth != null && (
+        resource.data.playerId == request.auth.uid
+        || getAfter(/databases/$(database)/documents/guardianLinks/$(request.auth.uid + '_' + resource.data.playerId)).data.code == code
+      );
+    }
+
+    match /guardianLinks/{linkId} {
+      allow create: if request.auth != null && (
+        isAdmin() || (
+          me().role == 'guardian'
+          && linkId == request.auth.uid + '_' + request.resource.data.playerId
+          && request.resource.data.guardianId == request.auth.uid
+          && get(/databases/$(database)/documents/linkCodes/$(request.resource.data.code)).data.playerId == request.resource.data.playerId
+          && get(/databases/$(database)/documents/linkCodes/$(request.resource.data.code)).data.expiresAt > request.time.toMillis()
+        )
+      );
+      allow read: if request.auth != null && (
+        resource.data.guardianId == request.auth.uid
+        || resource.data.playerId == request.auth.uid
+        || isAdmin()
+      );
+      // Either side can unlink.
+      allow delete: if request.auth != null && (
+        resource.data.guardianId == request.auth.uid
+        || resource.data.playerId == request.auth.uid
+        || isAdmin()
+      );
+    }
+
+    // ---- Coach applications ----------------------------------------------
+    // A coach submits credentials; only the admin can approve or reject.
+    match /coachApplications/{uid} {
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+      allow create: if request.auth != null && request.auth.uid == uid
+        && isMentor()
+        && request.resource.data.status == 'pending';
+      // Applicant may edit and resubmit (always back to pending); the
+      // decision fields belong to the admin alone.
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == uid
+        && request.resource.data.status == 'pending'
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['reviewedAt', 'reviewedBy', 'reviewNote'])
+      );
+    }
+
+    // ---- Sessions ----------------------------------------------------------
+    // Players create/modify their own; readable by owner, certified coaches
+    // (review queue), and a linked parent.
     match /sessions/{id} {
       allow create: if request.auth != null
         && request.resource.data.playerId == request.auth.uid;
@@ -35,13 +114,15 @@ service cloud.firestore {
         resource.data.playerId == request.auth.uid
         || isCertMentor()
         || isGuardianOf(resource.data.playerId)
+        || isAdmin()
       );
       allow update, delete: if request.auth != null
         && resource.data.playerId == request.auth.uid;
     }
 
-    // Coach comments: ONLY mentors write, as themselves; readable by any
-    // signed-in participant (player/guardian views filter by session).
+    // Coach comments: ONLY certified coaches write, as themselves. Comments
+    // carry no player identity (just a session id), so any signed-in
+    // participant may read; screens filter by session.
     // No DMs exist anywhere by design — comments attach to sessions only.
     match /comments/{id} {
       allow create: if isCertMentor()
@@ -49,22 +130,21 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
 
-    // Drill assignments: mentors create; player (or their guardian) reads;
-    // player can update status (mark done).
+    // Drill assignments: certified coaches create; player (or their
+    // parent) reads; player can update status (mark done).
     match /assignments/{id} {
       allow create: if isCertMentor()
         && request.resource.data.assignedBy == request.auth.uid;
       allow read: if request.auth != null && (
         resource.data.playerId == request.auth.uid
-        || isMentor()
+        || isCertMentor()
         || isGuardianOf(resource.data.playerId)
       );
       allow update: if request.auth != null
         && resource.data.playerId == request.auth.uid;
     }
 
-    // Blocks: player/guardian block a coach, or a coach hides a player.
-    // Creator must be a participant; both sides can read their own blocks.
+    // Blocks: player/parent block a coach, or a coach hides a player.
     match /blocks/{id} {
       allow create: if request.auth != null
         && request.resource.data.byId == request.auth.uid
@@ -81,12 +161,11 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.byId == request.auth.uid;
     }
 
-    // Reports: anyone signed-in can file one about a participant; NOBODY can
-    // read them in-app — review happens in the admin console only.
+    // Reports: anyone signed-in can file one; only the admin can read them.
     match /reports/{id} {
       allow create: if request.auth != null
         && request.resource.data.byId == request.auth.uid;
-      allow read: if false;
+      allow read: if isAdmin();
     }
   }
 }

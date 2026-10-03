@@ -46,6 +46,16 @@ For the full plain-English explanation of the app and its AI, read **PROJECT-EXP
 5. **Feedback on the pitch:** watch the 3-minute walkthrough once and tell us where you
    got lost. The judges aren't engineers either.
 
+## How accounts work now (Oct 3)
+
+- **Coaches** apply with a checkable credential (e.g. SafeSport certificate number). Ish
+  approves them on the **Admin** page, which only his account can open. Until then they
+  see nothing.
+- **Parents** link with a **family code** from the player's Home screen (6 characters,
+  works once, expires in 24 h). Knowing a kid's email isn't enough anymore.
+- **Forgot password** emails a reset link.
+- Test logins are in `TEST-ACCOUNTS.local.md` on the Mac (never uploaded anywhere).
+
 ## The "real mobile app" question
 
 It **already installs like an app** (Add to Home Screen → own icon, full screen). Putting

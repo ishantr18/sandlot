@@ -19,6 +19,11 @@
 - [ ] ✍️ Mini-pilot: go (start by Oct 1) or skip
 - [ ] ✍️ Parked decision: "underutilized skills" reframe — yes/no before filming the video
 
+## Done Oct 3
+- [x] 🤖 Deployed (live site had been 37 days stale)
+- [x] 🤖 Sign-in security: admin-approved coaches, family codes, private profiles, forgot password, 18 rule tests
+- [ ] ✍️ Sign in as ishant.ram@gmail.com → Home → Admin, and check it works (you're the admin)
+
 ## Week of Oct 5
 - [ ] 🤖 Prep the pristine demo account (4+ sessions for a chart line); `+coach` and `+parent` logins ready
 - [ ] 🎥 Film the demo video (DEMO-SCRIPT.md); edit; upload public

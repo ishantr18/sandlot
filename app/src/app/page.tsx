@@ -7,6 +7,7 @@ import { Dumbbell, Flame, Play, TrendingUp, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import FamilyCard from "@/components/FamilyCard";
 import { db } from "@/lib/firebase";
 
 interface SessionRow {
@@ -145,6 +146,11 @@ export default function Home() {
         <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">
           {firstName}
         </h1>
+        {profile?.isAdmin && (
+          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary lg:max-w-md">
+            🛡️ Admin: approve coaches →
+          </Link>
+        )}
         <Link
           href={isCoach ? "/coach" : "/family"}
           className="block rounded-2xl bg-card p-6 transition-colors hover:bg-secondary lg:max-w-md"
@@ -168,6 +174,11 @@ export default function Home() {
       <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">
         {firstName}
       </h1>
+      {profile?.isAdmin && (
+          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary lg:max-w-md">
+            🛡️ Admin: approve coaches →
+          </Link>
+        )}
 
       <div className="lg:grid lg:grid-cols-5 lg:gap-8">
         {/* Left: stats + actions */}
@@ -267,6 +278,7 @@ export default function Home() {
               </div>
             ))}
           </section>
+          {user && <FamilyCard playerId={user.uid} playerName={user.displayName ?? "Player"} />}
         </div>
       </div>
     </main>

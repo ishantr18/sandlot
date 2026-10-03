@@ -3,7 +3,7 @@
 // Coach review queue — the certified-coach open pool.
 //
 // Trust model (user-designed, Aug 22):
-// - Only CERTIFIED coaches (verifiedMentor flag, granted by a human) see anything
+// - Only CERTIFIED coaches (application approved by the admin) see anything
 // - Players are ANONYMOUS to coaches (number, pixelated video, no name);
 //   coaches are fully identified to players and parents
 // - EQUITY QUEUE: swings with the fewest coach reviews come first, so
@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { db } from "@/lib/firebase";
 import { anonPlayer } from "@/lib/anon";
+import CoachApplicationStatus from "@/components/CoachApplicationStatus";
 
 interface QueueRow {
   id: string;
@@ -85,19 +86,7 @@ export default function CoachPage() {
 
   // Certification gate — uncertified coaches see nothing but this
   if (profile?.role === "mentor" && !profile.verifiedMentor) {
-    return (
-      <main className="mx-auto max-w-md p-6 pb-28">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight">Almost there</h1>
-        <div className="rounded-2xl bg-card p-6">
-          <p className="mb-2 text-lg font-semibold">🧢 Certification pending</p>
-          <p className="text-sm text-muted-foreground">
-            Coach accounts are verified by a real person before they can see any
-            player videos — that&apos;s a promise we make to families. You&apos;ll
-            get access once your organization confirms you.
-          </p>
-        </div>
-      </main>
-    );
+    return <CoachApplicationStatus />;
   }
 
   return (

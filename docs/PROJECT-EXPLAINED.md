@@ -177,13 +177,26 @@ project. That's the part judges care about.
 
 ### C. The people layer (coaches and parents)
 - **Three account types:** Player, Coach, Parent.
-- **Coaches see swings, never identities.** Players appear as codes like "Player #7F3K."
+- **Coaches must be certified by a real person.** A coach applies with their league or
+  school and a credential the admin can check (SafeSport certificate, USA Baseball, Little
+  League background check, school coaching certificate). Until the admin approves them on
+  the Admin page, they see **nothing**. The admin can revoke access any time.
+- **Parents link with a family code, not an email.** The player taps "Make a family code"
+  on their Home screen, and the parent types the 6-character code in. The code works once
+  and expires in 24 hours. Having it proves the kid said yes. The player sees who's linked
+  and can remove a parent.
+- **Coaches see swings, never identities.** Players appear as codes like "Player #7F3K." Since
+  Oct 3 this is enforced in the database too: a coach can't look up any player's name or
+  email.
 - **No private messages anywhere.** Coaches can leave comments tied to a moment in the video
   and assign drills. There's no chat.
 - **Equity queue:** coaches get the *least-reviewed* swings first, so no kid gets ignored.
 - **Parents see every comment** and every drill on their child's account.
-- **Block and report** tools, with the rules enforced by the database itself (Firestore
-  security rules) rather than just hidden buttons.
+- **Block and report** tools. Reports go only to the admin.
+- **Forgot password** sends a reset email.
+- **Rules tested automatically:** 18 tests (`npm run test:rules`) act out the honest paths and
+  the attacks: a coach approving themselves, a stranger linking to a kid, a coach looking up
+  a player's name. Every attack fails.
 
 ### D. Everything else
 - Record inside the app with a 3-2-1 countdown, or upload a clip.
