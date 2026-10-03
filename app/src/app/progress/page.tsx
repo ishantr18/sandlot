@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import ProgressCharts from "@/components/ProgressCharts";
 import { auth, db } from "@/lib/firebase";
+import { playbackUrl } from "@/lib/video";
 import type { SwingMetrics } from "@/lib/swingMetrics";
 
 interface SessionRow {
@@ -43,12 +44,8 @@ export default function ProgressPage() {
   }, [user, reloadKey]);
 
   async function play(session: SessionRow) {
-    const res = await fetch(
-      `/api/video?pathname=${encodeURIComponent(session.videoPathname)}`,
-    );
-    if (!res.ok) return;
-    const { url } = (await res.json()) as { url: string };
-    setPlaying({ id: session.id, url });
+    const url = await playbackUrl(session.id);
+    if (url) setPlaying({ id: session.id, url });
   }
 
   if (profile?.role === "mentor" || profile?.role === "guardian") {

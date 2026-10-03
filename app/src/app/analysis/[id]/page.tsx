@@ -21,6 +21,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { db } from "@/lib/firebase";
+import { playbackUrl } from "@/lib/video";
 import type { PoseFrame } from "@/lib/poseExtract";
 import { DISABLED_METRICS, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
 
@@ -96,13 +97,9 @@ export default function AnalysisSessionPage() {
           setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
         }
         framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
-        const res = await fetch(
-          `/api/video?pathname=${encodeURIComponent(data.videoPathname)}`,
-        );
-        if (res.ok) {
-          const { url } = (await res.json()) as { url: string };
-          setVideoUrl(url);
-        } else setError("Couldn't load the video (link may have expired — reload).");
+        const url = await playbackUrl(id);
+        if (url) setVideoUrl(url);
+        else setError("Couldn't load the video (link may have expired — reload).");
       } catch {
         setError("Couldn't load this swing — check your connection and try again.");
         setLoadFailed(true);

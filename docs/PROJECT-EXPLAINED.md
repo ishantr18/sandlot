@@ -194,6 +194,10 @@ project. That's the part judges care about.
 - **Parents see every comment** and every drill on their child's account.
 - **Block and report** tools. Reports go only to the admin.
 - **Forgot password** sends a reset email.
+- **Videos are locked to the right people.** Uploading requires being signed in. To watch a
+  video, the server asks the database *as you*, so the same rules decide (player, linked
+  parent, certified coach or admin). Everyone else gets "not allowed." Swing records no
+  longer carry the player's name.
 - **Rules tested automatically:** 18 tests (`npm run test:rules`) act out the honest paths and
   the attacks: a coach approving themselves, a stranger linking to a kid, a coach looking up
   a player's name. Every attack fails.

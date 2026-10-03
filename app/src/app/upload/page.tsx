@@ -96,6 +96,13 @@ export default function UploadPage() {
 
   async function handleUploadClick() {
     if (!file) return;
+    if (!user) {
+      // Uploads need an account: the server only issues upload tokens to
+      // signed-in users, and every swing belongs to a player.
+      setErrorMsg("Sign in to upload your swing.");
+      setStage("error");
+      return;
+    }
     try {
       // 1) Run the swing engine ON-DEVICE against the blurred file
       setStage("analyzing");
@@ -116,33 +123,24 @@ export default function UploadPage() {
       const blob = await upload(`videos/${file.name}`, file, {
         access: "private",
         handleUploadUrl: "/api/upload",
+        // Proves who's uploading — the server refuses anyone not signed in
+        clientPayload: await user.getIdToken(),
         onUploadProgress: ({ percentage }) => setProgress(percentage),
       });
 
-      // 3) Save the session: video path + landmark series + metrics + findings
-      if (user) {
-        const doc = await addDoc(collection(db, "sessions"), {
-          playerId: user.uid,
-          playerName: user.displayName ?? "",
-          videoPathname: blob.pathname,
-          createdAt: Date.now(),
-          status: "analyzed",
-          metrics: analysis.metrics,
-          findings: analysis.findings,
-          landmarks: JSON.stringify(frames),
-        });
-        router.push(`/analysis/${doc.id}`);
-        return;
-      }
-
-      // Signed-out fallback: just prove the round trip
-      const res = await fetch(
-        `/api/video?pathname=${encodeURIComponent(blob.pathname)}`,
-      );
-      if (!res.ok) throw new Error("Could not get playback URL");
-      const { url } = (await res.json()) as { url: string };
-      setPlaybackUrl(url);
-      setStage("done");
+      // 3) Save the session: video path + landmark series + metrics + findings.
+      // No name on the record — certified coaches read sessions, and players
+      // are anonymous to them.
+      const sessionDoc = await addDoc(collection(db, "sessions"), {
+        playerId: user.uid,
+        videoPathname: blob.pathname,
+        createdAt: Date.now(),
+        status: "analyzed",
+        metrics: analysis.metrics,
+        findings: analysis.findings,
+        landmarks: JSON.stringify(frames),
+      });
+      router.push(`/analysis/${sessionDoc.id}`);
     } catch (err) {
       setErrorMsg((err as Error).message);
       setStage("error");

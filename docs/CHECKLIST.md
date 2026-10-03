@@ -22,6 +22,7 @@
 ## Done Oct 3
 - [x] 🤖 Deployed (live site had been 37 days stale)
 - [x] 🤖 Sign-in security: admin-approved coaches, family codes, private profiles, forgot password, 18 rule tests
+- [x] 🤖 Video routes: upload needs sign-in; playback checked against the database rules (10 live checks pass)
 - [ ] ✍️ Sign in as ishant.ram@gmail.com → Home → Admin, and check it works (you're the admin)
 
 ## Week of Oct 5
