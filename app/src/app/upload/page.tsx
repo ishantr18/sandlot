@@ -53,6 +53,16 @@ export default function UploadPage() {
         setProgress(f * 100);
       });
       setAuditCount(auditFacesFound);
+      if (auditFacesFound > 0) {
+        // A face was still detectable after two passes (the second with
+        // bigger boxes). The privacy promise is "verified or it doesn't
+        // upload" — so it doesn't upload.
+        setErrorMsg(
+          "We couldn't make sure every face is hidden in this clip — usually another person close to the camera. Film again with only you in the frame. Nothing was uploaded.",
+        );
+        setStage("error");
+        return;
+      }
       setFile(blurred);
       setPreviewUrl(URL.createObjectURL(blurred));
       setStage("ready");
@@ -225,7 +235,7 @@ export default function UploadPage() {
           <p className="p-3 text-sm font-semibold text-primary">
             {auditCount === 0
               ? "🕵️ Anonymity verified — 0 faces detectable in this video. Only this version can upload:"
-              : "🔒 Faces pixelated on your device — double-check the preview before uploading:"}
+              : "⚠️ Faces pixelated on your device, but this device couldn't double-check the result — look over the preview before uploading:"}
           </p>
           <video src={previewUrl} controls playsInline className="w-full" />
           <button
