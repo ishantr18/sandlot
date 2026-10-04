@@ -47,7 +47,7 @@ export interface BlurResult {
 }
 
 const SCAN_FPS = 10; // frames examined per second of video
-const AUDIT_FPS = 4; // output frames re-checked per second
+const AUDIT_FPS = 2; // output frames re-checked per second
 const HOLD_SEC = 0.25; // boxes cover this far before/after their sighting
 const PIXEL_BLOCKS = 8;
 const MAX_PEOPLE = 5; // bystanders count: coach, parent, catcher, teammates
@@ -161,7 +161,7 @@ function headBoxFromPose(lms: Lm[], W: number, H: number): Box {
 // so a face that is 20 px in the full frame gets several times more pixels.
 function tiles(W: number, H: number): { x: number; y: number; w: number; h: number }[] {
   const out = [];
-  for (const n of [2, 3]) {
+  for (const n of [2, 3]) { // 2×2 + 3×3: the 3×3 tiles are what catch small background faces (tested)
     const tw = (W / n) * 1.3, th = (H / n) * 1.3; // 30% overlap so no face is cut in half
     for (let i = 0; i < n; i++)
       for (let j = 0; j < n; j++)
@@ -181,6 +181,7 @@ function detectFaces(
   video: HTMLVideoElement,
   tile: HTMLCanvasElement,
   minScore = 0,
+  farOnTiles = true,
 ): Box[] {
   const W = video.videoWidth, H = video.videoHeight;
   const out: Box[] = [];
@@ -199,7 +200,9 @@ function detectFaces(
     tile.width = Math.round(r.w);
     tile.height = Math.round(r.h);
     ctx.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, tile.width, tile.height);
-    for (const det of [m.near, m.far]) {
+    // The full-range model on tiles is the costliest step but finds the most
+    // background faces (crowds, dugouts) — the scan runs it every other frame.
+    for (const det of farOnTiles ? [m.near, m.far] : [m.near]) {
       if (!det) continue;
       for (const d of det.detect(tile).detections)
         if ((d.categories[0]?.score ?? 1) >= minScore)
@@ -225,7 +228,7 @@ async function scanFaces(
   for (let i = 0; i <= n; i++) {
     const t = Math.min(duration, i / SCAN_FPS);
     await seekTo(video, t);
-    const boxes = detectFaces(m, video, tile);
+    const boxes = detectFaces(m, video, tile, 0, i % 2 === 0);
     for (const lms of m.pose.detect(video).landmarks) boxes.push(headBoxFromPose(lms, W, H));
     if (boxes.length) track.push({ t, boxes });
     onFraction(i / n);
