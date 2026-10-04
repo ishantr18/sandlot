@@ -13,7 +13,7 @@ certified volunteer coaches.
 **One minute:** Baseball training costs $3–10K/year, so kids without money get
 less feedback, not less talent. Diamond Drive closes that gap: a kid films a
 swing on any phone; the app pixelates their face on-device before anything
-uploads, runs computer vision to measure six swing mechanics, explains the
+uploads, runs computer vision to measure seven swing mechanics, explains the
 problems in plain English, and assigns free drills. Certified volunteer coaches
 review anonymous swings — sorted so the least-coached kids come first — and
 every word they write is visible to parents. No downloads, no app store, no

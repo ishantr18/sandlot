@@ -43,4 +43,4 @@
 - Every kid deserves a coach
 - Next: league pilot, bat tracking
 
-**Don't claim:** upload blocked when it can't verify (not live yet) · a pilot · "7 metrics" (it's 6)
+**Don't claim:** upload blocked when it can't verify (not live yet) · a pilot · "6 metrics" (it's 7 now: hip turn added)

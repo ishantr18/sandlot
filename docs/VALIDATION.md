@@ -80,3 +80,41 @@ wrists to motion blur in a no-bat swing).
   not in the submission.
 - 28 distinct swings is a small sample. Treat the percentages as a direction, not a
   guarantee.
+
+---
+
+## Update — Oct 3: engine v5 (3D rotation) and face blur v2
+
+### Swing engine v5
+BlazePose also *infers* depth for every point. Seen from above (sideways vs depth), the hip
+line's angle is the hips' real turn — the 2D line angle we used before is noise from the
+side, which is why separation was switched off and the old sequence gap read 0–534 ms.
+
+| Coach's label | v4 | **v5** |
+|---|---|---|
+| Lunge caught | 7 / 12 | **10 / 12** (12/12 analyzed) |
+| "Lack of rotation" caught | — | **4 / 4** via the new **hip turn** metric (8–25° vs 46–71° on most good swings) |
+| No stride · soft knee · back-side collapse | 3/3 · 4/4 · 1/1 | 3/3 · 4/4 · 1/1 |
+| Good swings, no major false alarm | 6 / 10 | 4 / 10 |
+
+- **Hips-before-shoulders** is now measured in 3D with a sub-frame peak fit, and only on
+  clips filmed at ≥45 fps (30 fps frames are as far apart as the gap itself). It reads near
+  0 ms on our clips, so its warnings are capped at "minor" until the calibration filming
+  (no-hips ×2, at 60 fps) validates it.
+- **Still weak:** head drift (lunge) — lunge and good swings overlap (2–23% vs 2–65%), so
+  no threshold separates them on this data; knee readings overlap too. Not tuned to these
+  labels on purpose (adult softball, "corrected" swings) — the calibration filming is the fix.
+- Separation stays off (3D separation reads near 0°).
+
+### Face blur v2 (independent judge: OpenCV YuNet, a different model)
+| Test clip | Faces left uncovered, v1 → **v2** |
+|---|---|
+| Batting practice (dugout players) | 213 → **30** |
+| Fan crowd | 462 → **21** |
+| MLB broadcast crowds | 1,947 / 3,502 / 633 → **1,111 / 1,647 / 236** |
+| Coach demo · player turned away | 26 → **0** · 11 → **0** |
+
+Fixes: frame-stepped scan, zoomed 2×2 + 3×3 tiles, full-range face model, heads of up to 5
+people incl. turned away, output length check (2/13 v1 outputs were 0.28 s yet "verified"),
+2 fps self-check that ignores already-pixelated areas, and **upload blocked if a face
+survives both passes**. Remaining gap: dense stadium crowds. Tools: `test-clips/blur/`.
