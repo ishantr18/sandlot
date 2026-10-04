@@ -166,6 +166,7 @@ export default function AnalysisSessionPage() {
   const tiles = m
     ? [
         { label: "Hips→shoulders gap", value: m.sequenceGapMs, unit: "ms" },
+        { label: "Hip turn", value: m.hipTurnDeg, unit: "°" },
         { label: "Hip–shoulder sep", value: m.hipShoulderSepDeg, unit: "°", key: "hipShoulderSepDeg" },
         { label: "Swing tempo", value: m.tempoSec, unit: "s" },
         { label: "Head drift (after plant)", value: m.headDriftPct, unit: "%" },

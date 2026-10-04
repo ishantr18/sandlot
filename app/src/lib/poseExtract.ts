@@ -32,7 +32,16 @@ export interface Lm {
 export interface PoseFrame {
   t: number; // seconds into the clip
   lm: Lm[]; // 33 landmarks (MediaPipe pose topology)
+  // 3D "world" coordinates in meters (hip-centered; x sideways, y down,
+  // z depth) for the 4 points rotation needs, in this order:
+  // L shoulder, R shoulder, L hip, R hip — 12 numbers. A single camera can't
+  // see depth directly; BlazePose INFERS it from body shape, which is enough
+  // to tell how far the hips and shoulders have turned. Absent on old swings.
+  w?: number[];
 }
+
+// Indices into the 33 landmarks whose 3D position we keep (see PoseFrame.w)
+export const WORLD_POINTS = [11, 12, 23, 24];
 
 let posePromise: Promise<PoseLandmarker> | null = null;
 function getPose() {
@@ -121,9 +130,11 @@ async function samplePass(
     const result = pose.detectForVideo(video, nextTs());
     const lms = result.landmarks[0];
     if (!lms) continue;
+    const world = result.worldLandmarks?.[0];
     sink.set(key, {
       t: r4(actual),
       lm: lms.map((l) => ({ x: r4(l.x), y: r4(l.y), v: r2(l.visibility ?? 1) })),
+      ...(world ? { w: WORLD_POINTS.flatMap((i) => [r4(world[i].x), r4(world[i].y), r4(world[i].z)]) } : {}),
     });
   }
 }

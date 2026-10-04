@@ -22,7 +22,8 @@ const L_ANKLE = 27, R_ANKLE = 28;
 
 export interface SwingMetrics {
   // The flagship: kinematic sequence
-  sequenceGapMs: number; // hip-rotation peak → shoulder-rotation peak (+ = hips first ✓)
+  sequenceGapMs: number | null; // hip-rotation peak → shoulder-rotation peak, 3D (+ = hips first ✓); null below ~45 fps or without depth
+  hipTurnDeg: number | null; // how far the hips rotate through the swing, 3D (v5)
   hipShoulderSepDeg: number; // peak line-angle difference pre-contact (proxy)
   tempoSec: number; // launch → peak hand speed
   // Nullable metrics: null means "this clip could not support the
@@ -61,7 +62,8 @@ export const T = {
   launchFrac: 0.15, // launch = hands back under 15% of peak speed
   strideSearch: 1.0, // seconds before contact to look for the front-foot step
   minStepSpeed: 0.6, // body-heights/sec — front ankle slower than this = no stride
-  seq: { good: 25, ok: 0 }, // ms hip-peak leads shoulder-peak
+  seq: { good: 15, ok: -15, minFps: 45 }, // ms hip-peak leads shoulder-peak (3D, sub-frame)
+  hipTurn: { good: 40, minor: 28, maxPlausible: 150 }, // degrees of hip rotation through the swing (3D)
   sep: { good: 22, minor: 14 }, // degrees (2D proxy)
   tempo: { fastest: 0.1, slowest: 0.6, maxSearch: 0.8 }, // seconds (0.5s was a real swing — widened)
   headDrift: { good: 6, minor: 12 }, // % of body height AFTER plant
@@ -152,13 +154,43 @@ function rateSeries(
     return dt > 0 ? delta(frames[j], frames[k]) / dt : 0;
   });
 }
-// |angular speed| series (deg/sec) of the line between two landmarks
-function rotationSpeed(frames: PoseFrame[], ia: number, ib: number) {
-  return rateSeries(frames, (a, b) =>
-    Math.abs(
-      signedAngleDelta(lineAngle(b.lm[ia], b.lm[ib]), lineAngle(a.lm[ia], a.lm[ib])),
-    ),
-  );
+// ---- 3D rotation (v5) ------------------------------------------------------
+// From the side the two hips (and the two shoulders) overlap on screen, so
+// the angle of the line between them in 2D is mostly noise — that's why
+// separation was switched off, and the old sequence gap read 0–534 ms
+// (real hitters: ~30–80 ms). BlazePose also infers each point's DEPTH. Seen
+// from ABOVE (sideways x vs depth z), the hip line's angle is the hips' real
+// turn. Offsets into PoseFrame.w: L sh 0, R sh 3, L hip 6, R hip 9.
+const W_SH = [0, 3], W_HIP = [6, 9];
+const MAX_TURN_RATE = 1500; // °/s — beyond any human hip or shoulder turn
+function turnSeries(frames: PoseFrame[], [a, b]: number[]): number[] | null {
+  if (frames.some((f) => !f.w)) return null;
+  const raw = frames.map((f) => deg(Math.atan2(f.w![b + 2] - f.w![a + 2], f.w![b] - f.w![a])));
+  // Depth is inferred, and BlazePose sometimes flips its front/back guess
+  // for a frame — a fake half-turn. Elite hips peak near ~900°/s, so a step
+  // faster than MAX_TURN_RATE is a glitch: hold the last good angle.
+  const out = [raw[0]];
+  let ref = raw[0];
+  for (let i = 1; i < raw.length; i++) {
+    const step = signedAngleDelta(raw[i], ref);
+    const dt = Math.max(1e-3, frames[i].t - frames[i - 1].t);
+    if (Math.abs(step) / dt <= MAX_TURN_RATE) {
+      out.push(out[i - 1] + step);
+      ref = raw[i];
+    } else out.push(out[i - 1]);
+  }
+  return out; // unwrapped, so a 200° turn reads 200, not -160
+}
+// Peak time between samples: fit a parabola through the peak frame and its
+// two neighbors. At 30 fps frames are 33 ms apart — as big as the gap being
+// measured — so the frame of the peak alone can only say 0, 33 or 67 ms.
+function refinedPeakTime(frames: PoseFrame[], v: number[], i: number): number {
+  if (i <= 0 || i >= v.length - 1) return frames[i].t;
+  const a = v[i - 1], b = v[i], c = v[i + 1];
+  const den = a - 2 * b + c;
+  const off = den === 0 ? 0 : Math.max(-0.5, Math.min(0.5, (0.5 * (a - c)) / den));
+  const dt = off < 0 ? frames[i].t - frames[i - 1].t : frames[i + 1].t - frames[i].t;
+  return frames[i].t + off * dt;
 }
 
 // Left/right pairs in MediaPipe's 33-point topology (eyes, ears, mouth,
@@ -192,7 +224,11 @@ export function fixSideSwaps(frames: PoseFrame[]): PoseFrame[] {
         (s, i) => s + Math.hypot(lm[i].x - prev.lm[i].x, lm[i].y - prev.lm[i].y),
         0,
       );
-    out.push(drift(swapped) < drift(f.lm) * 0.6 ? { t: f.t, lm: swapped } : f);
+    if (drift(swapped) < drift(f.lm) * 0.6) {
+      // 3D points are stored L sh, R sh, L hip, R hip — swap the pairs too
+      const w = f.w && [...f.w.slice(3, 6), ...f.w.slice(0, 3), ...f.w.slice(9, 12), ...f.w.slice(6, 9)];
+      out.push({ t: f.t, lm: swapped, ...(w ? { w } : {}) });
+    } else out.push(f);
   }
   return out;
 }
@@ -221,6 +257,19 @@ export function denoise(frames: PoseFrame[], half = DENOISE_HALF_WINDOW): PoseFr
         }
         return { x: x / n, y: y / n, v: f.lm[k].v };
       }),
+      ...(f.w
+        ? {
+            w: f.w.map((_, k) => {
+              let sum = 0, cnt = 0;
+              for (let j = lo; j <= hi; j++)
+                if (frames[j].w) {
+                  sum += frames[j].w![k];
+                  cnt++;
+                }
+              return sum / Math.max(1, cnt);
+            }),
+          }
+        : {}),
     };
   });
 }
@@ -359,13 +408,15 @@ export function analyzeSwing(rawFrames: PoseFrame[]): SwingAnalysis {
   for (let i = best.from; i <= best.to; i++) if (handSpeed[i] > handSpeed[peakI]) peakI = i;
   const peakSpeed = handSpeed[peakI];
   // Launch: walk back from the peak until the hands were nearly still.
+  // A single noisy frame can dip under the threshold mid-swing; v4 stopped
+  // there, timed the swing as 2 frames and rejected a good clip (Side_good1).
+  // Keep walking back across dips of up to LAUNCH_GAP seconds.
+  const LAUNCH_GAP = 0.035;
   let startI = peakI;
-  while (
-    startI > 0 &&
-    handSpeed[startI - 1] > peakSpeed * T.launchFrac &&
-    frames[peakI].t - frames[startI - 1].t < T.tempo.maxSearch
-  )
-    startI--;
+  for (let k = peakI - 1; k >= 0 && frames[peakI].t - frames[k].t < T.tempo.maxSearch; k--) {
+    if (handSpeed[k] > peakSpeed * T.launchFrac) startI = k;
+    else if (frames[startI].t - frames[k].t > LAUNCH_GAP) break;
+  }
   const winStart = Math.max(0, startI - 4);
 
   // Degenerate-clip guards: never issue confident coaching on a swing the
@@ -437,19 +488,52 @@ export function analyzeSwing(rawFrames: PoseFrame[]): SwingAnalysis {
   }
 
   // ---- Metric: kinematic sequence (hip peak vs shoulder peak) ----
-  const hipRot = rotationSpeed(frames, L_HIP, R_HIP);
-  const shoulderRot = rotationSpeed(frames, L_SHOULDER, R_SHOULDER);
+  // Measured in 3D (see turnSeries); clips without depth (swings saved before
+  // v5) report null rather than the 2D number we now know is noise.
+  const hipTurn = turnSeries(frames, W_HIP);
+  const shTurn = turnSeries(frames, W_SH);
   const peakIn = (series: number[]) => {
     let best = winStart;
     for (let i = winStart; i <= Math.min(frames.length - 1, peakI + 2); i++)
       if (series[i] > series[best]) best = i;
     return best;
   };
-  const hipPeakI = peakIn(hipRot);
-  const shoulderPeakI = peakIn(shoulderRot);
-  const sequenceGapMs = Math.round(
-    (frames[shoulderPeakI].t - frames[hipPeakI].t) * 1000,
-  );
+  // Effective sample rate across the swing: a 30–60 ms gap can't be measured
+  // from frames 33 ms apart, even with the parabola — below ~45 fps we say
+  // "film at 60 fps" instead of printing a number.
+  const swingFps = (peakI - winStart) / Math.max(1e-6, frames[peakI].t - frames[winStart].t);
+  let sequenceGapMs: number | null = null;
+  if (hipTurn && shTurn && swingFps >= T.seq.minFps) {
+    const vel = (turn: number[]) =>
+      turn.map((_, i) => {
+        let j = i, k = i;
+        while (j > 0 && frames[i].t - frames[j].t < RATE_HALF) j--;
+        while (k < frames.length - 1 && frames[k].t - frames[i].t < RATE_HALF) k++;
+        const dt = frames[k].t - frames[j].t;
+        return dt > 0 ? Math.abs(turn[k] - turn[j]) / dt : 0;
+      });
+    const hv = vel(hipTurn), sv = vel(shTurn);
+    sequenceGapMs = Math.round(
+      (refinedPeakTime(frames, sv, peakIn(sv)) - refinedPeakTime(frames, hv, peakIn(hv))) * 1000,
+    );
+  }
+
+  // ---- Metric: hip turn (v5, 3D) ----
+  // How far the hips rotate through the swing. Validated on coach-labelled
+  // web swings (docs/VALIDATION.md): every "lack of rotation" swing turned
+  // 10–24°, clean swings 45–82°.
+  let hipTurnDeg: number | null = null;
+  if (hipTurn) {
+    let lo = Infinity, hi = -Infinity;
+    const from = Math.max(0, frames.findIndex((f) => f.t >= frames[startI].t - 0.25));
+    const to = Math.min(frames.length - 1, peakI + 3);
+    for (let i = from; i <= to; i++) {
+      lo = Math.min(lo, hipTurn[i]);
+      hi = Math.max(hi, hipTurn[i]);
+    }
+    // More than ~150° isn't a swing turn — it's the depth estimate failing.
+    hipTurnDeg = hi - lo <= T.hipTurn.maxPlausible ? hi - lo : null;
+  }
 
   // ---- Metric: hip–shoulder separation (peak, pre-contact) ----
   let sepPeak = 0;
@@ -509,6 +593,7 @@ export function analyzeSwing(rawFrames: PoseFrame[]): SwingAnalysis {
 
   const metrics: SwingMetrics = {
     sequenceGapMs,
+    hipTurnDeg: hipTurnDeg === null ? null : Math.round(hipTurnDeg),
     hipShoulderSepDeg: Math.round(sepPeak),
     tempoSec: Math.round(tempo * 100) / 100,
     headDriftPct: drift === null ? null : Math.round(drift * 100),
@@ -536,26 +621,46 @@ function buildFindings(m: SwingMetrics): Finding[] {
     drillIds: string[] = [],
   ) => out.push({ metric, severity, message, drillIds });
 
-  // 1. Kinematic sequence — the flagship
-  if (m.sequenceGapMs >= T.seq.good) {
+  // 1. Kinematic sequence — the flagship (3D; null = clip can't support it)
+  if (m.sequenceGapMs === null) {
+    // reported once, at the end
+  } else if (m.sequenceGapMs >= T.seq.good) {
     add(
       "sequenceGapMs",
       "good",
       `Textbook sequence — your hips fire ${m.sequenceGapMs}ms before your shoulders. That's how power travels up the chain.`,
     );
-  } else if (m.sequenceGapMs >= T.seq.ok) {
+  } else {
+    // Capped at "minor" until our own labeled 60 fps swings (calibration
+    // filming: no-hips ×2) confirm the 3D measurement — the web set had none.
     add(
       "sequenceGapMs",
       "minor",
-      `Hips and shoulders are rotating almost together (${m.sequenceGapMs}ms gap). Let the hips START the swing — the shoulders should be reacting, not leading.`,
+      m.sequenceGapMs >= T.seq.ok
+        ? `Hips and shoulders are rotating almost together (${m.sequenceGapMs}ms gap). Let the hips START the swing — the shoulders should be reacting, not leading.`
+        : `Your shoulders may be starting before your hips (${-m.sequenceGapMs}ms). Try leading with the hips — the shoulders should be reacting, not leading.`,
       ["hip-fire-tee", "step-back"],
+    );
+  }
+
+  // 1b. Hip turn (3D)
+  if (m.hipTurnDeg === null) {
+    // reported at the end
+  } else if (m.hipTurnDeg >= T.hipTurn.good) {
+    add("hipTurnDeg", "good", `Strong hip turn (${m.hipTurnDeg}°) — your lower half is driving the swing.`);
+  } else if (m.hipTurnDeg >= T.hipTurn.minor) {
+    add(
+      "hipTurnDeg",
+      "minor",
+      `Your hips turn ${m.hipTurnDeg}° — some rotation, but there's more power in finishing with your belt buckle facing the pitcher.`,
+      ["hip-fire-tee", "separation-stretch"],
     );
   } else {
     add(
-      "sequenceGapMs",
+      "hipTurnDeg",
       "major",
-      `Your shoulders are firing BEFORE your hips (${m.sequenceGapMs}ms) — that's an arm swing. Biggest power unlock available: hips first, always.`,
-      ["hip-fire-tee", "step-back"],
+      `Your hips only turn ${m.hipTurnDeg}° — the swing is mostly arms. Rotate the hips through until your belt buckle faces the pitcher.`,
+      ["hip-fire-tee", "step-back", "separation-stretch"],
     );
   }
 
@@ -702,18 +807,23 @@ function buildFindings(m: SwingMetrics): Finding[] {
   // What this clip could NOT support. One honest note beats silently missing
   // tiles — and it tells the player exactly how to film a clip that gets the
   // full read next time.
-  if (m.coverage === "upper-body" || m.shoulderTiltDeg === null) {
-    const missing = [
+  {
+    const feet = [
       m.headDriftPct === null && "head drift after foot plant",
       m.stridePct === null && "stride",
       m.kneeBraceDeg === null && "front-knee brace",
       m.shoulderTiltDeg === null && "shoulder tilt",
     ].filter(Boolean) as string[];
-    if (missing.length) {
+    const notes: string[] = [];
+    if (feet.length) notes.push(`${feet.join(", ")} — your feet need to be in frame for those`);
+    if (m.sequenceGapMs === null)
+      notes.push("hips-before-shoulders timing — film in 60 fps (slow-mo or 60 fps camera setting) to measure it");
+    if (m.hipTurnDeg === null) notes.push("hip turn — this clip has no depth data (re-upload to measure it)");
+    if (notes.length) {
       add(
         "quality",
         "minor",
-        `Measured what this framing supports. Couldn't measure ${missing.join(", ")} — your feet need to be in frame for those. Everything above is still a real read on your swing.`,
+        `Measured what this clip supports. Couldn't measure: ${notes.join("; ")}. Everything above is still a real read on your swing.`,
       );
     }
   }
