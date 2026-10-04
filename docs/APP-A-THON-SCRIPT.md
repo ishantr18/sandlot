@@ -43,4 +43,4 @@
 - Every kid deserves a coach
 - Next: league pilot, bat tracking
 
-**Don't claim:** upload blocked when it can't verify (not live yet) · a pilot · "6 metrics" (it's 7 now: hip turn added)
+**Don't claim:** a pilot. **Now true (Oct 3):** upload is blocked if a face survives the blur; 7 metrics incl. 3D hip turn
