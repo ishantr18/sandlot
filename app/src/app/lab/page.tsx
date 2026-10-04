@@ -4,6 +4,7 @@
 // Drop test clips in, see raw metrics + verdicts side by side.
 // Used to calibrate thresholds in lib/swingMetrics.ts against test-clips/.
 import { useState } from "react";
+import { blurVideo } from "@/lib/faceblur";
 import { extractPose, type PoseFrame } from "@/lib/poseExtract";
 import { analyzeSwing, type SwingAnalysis } from "@/lib/swingMetrics";
 
@@ -12,7 +13,25 @@ import { analyzeSwing, type SwingAnalysis } from "@/lib/swingMetrics";
 type LabWindow = Window & { __lab?: { name: string; frames: PoseFrame[]; result: SwingAnalysis }[] };
 
 // Dense whole-clip scan for the runner's swing segmenter (dev only)
+// + the face-blur validation hook: runs the REAL blur pipeline and hands back
+// the pixelation boxes and the output video (base64) to the runner.
 if (typeof window !== "undefined") {
+  (window as Window & { __blur?: unknown }).__blur = async (file: File) => {
+    // Seconds spent in each stage (scan / render / verify), for tuning speed
+    const times: Record<string, number> = {};
+    let last = performance.now(), stage = "";
+    const r = await blurVideo(file, (s) => {
+      const now = performance.now();
+      if (stage) times[stage] = (times[stage] ?? 0) + (now - last) / 1000;
+      stage = s;
+      last = now;
+    });
+    if (stage) times[stage] = (times[stage] ?? 0) + (performance.now() - last) / 1000;
+    const bytes = new Uint8Array(await r.file.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { audit: r.auditFacesFound, debug: { ...r.debug, times }, type: r.file.type, out: btoa(bin) };
+  };
   (window as Window & { __scan?: unknown }).__scan = (file: File) =>
     extractPose(file, undefined, { coarseFps: 15, maxScanSeconds: 600, maxCoarseFrames: 9000 });
 }
