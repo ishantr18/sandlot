@@ -36,14 +36,22 @@ carpenter uses a power drill: we don't build the tool, we build the house with i
 | What goes in | One video frame | One video frame |
 | What comes out | A box around each face, plus a confidence score | **33 body points**, each with a position and a confidence score |
 | Used for | Finding faces so we can **destroy** them (privacy) | Tracking the body so we can **measure** the swing (coaching) |
-| Our settings | `minDetectionConfidence: 0.3`: deliberately jumpy, because hiding a non-face is harmless and missing a real face isn't | `numPoses: 1` (one hitter), "lite" version (the fastest of Google's three sizes, so it runs on cheap phones) |
+| Our settings | `minDetectionConfidence: 0.3`: deliberately jumpy, because hiding a non-face is harmless and missing a real face isn't | "full" version on a zoomed crop of the player for the swing (tested: 3× steadier than lite on the whole frame, same speed) |
 | Analogy | A security guard who spots faces in a crowd | Motion-capture dots on a player, without the suit |
 
-**Why "lite"?** Google ships BlazePose in three sizes: lite (5.5 MB), full (9 MB) and heavy
+**Which size? (updated Oct 9)** Google ships BlazePose in three sizes: lite (5.5 MB), full (9 MB) and heavy
 (29 MB). Bigger is slightly more precise but slower and a bigger download. Diamond Drive is
 built for kids with old or cheap phones, so it uses lite. (On Sep 27 we tested the full
 model on our clips. It did not fix the problems in the "What the AI gets wrong" table below, so the extra size
 wasn't worth it.)
+
+### A third model: YuNet (the independent checker)
+
+After the app hides the faces, it checks its own output with **YuNet**, a face detector from
+OpenCV (MIT license) built by different researchers with a different design from Google's
+BlazeFace. If BlazeFace has a blind spot, YuNet probably doesn't share it. It runs on the
+phone through ONNX Runtime Web. If either model still sees a face, **the upload is blocked**.
+Tested with a fourth model (SCRFD) as the judge: no clip with a visible face got through.
 
 ### The 33 body points
 

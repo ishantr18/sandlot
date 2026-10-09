@@ -118,3 +118,28 @@ Fixes: frame-stepped scan, zoomed 2×2 + 3×3 tiles, full-range face model, head
 people incl. turned away, output length check (2/13 v1 outputs were 0.28 s yet "verified"),
 2 fps self-check that ignores already-pixelated areas, and **upload blocked if a face
 survives both passes**. Remaining gap: dense stadium crowds. Tools: `test-clips/blur/`.
+
+---
+
+## Update — Oct 9: crop-and-zoom pose, independent face check
+
+### Pose extraction: model size × crop-and-zoom (41 clips, `test-clips/web/exp/compare.mts`)
+| Setting | Jitter (lower = steadier) | Swing timed right | Good swings, no false alarm | Time/clip |
+|---|---|---|---|---|
+| Lite, full frame (was live) | 10.3‰ | 16 / 29 | 4 / 10 | 4.3 s |
+| Lite + crop | 2.9‰ | 13 / 26 | 3 / 6 | 4.0 s |
+| **Full + crop (now live)** | **3.2‰** | **21 / 29** | **6 / 10** | 4.6 s |
+| Heavy + crop | 2.5‰ | 16 / 28 | 4 / 7 | 31.8 s |
+
+Crop-and-zoom: after the coarse pass finds the player, the 60 fps swing pass runs on a crop
+around them scaled to ≥640 px tall — about 3× steadier points. The heavy model was 7×
+slower for no accuracy gain. Quality-gate ideas tested and **not** added: "more than one
+swing" rejected 3 good clips; "lost the player during the swing" never triggered.
+
+### Face blur: independent self-check
+The app's final check now also runs **YuNet** (OpenCV, MIT license) through ONNX Runtime
+Web — a different network from the BlazeFace models that find the faces. Judged by a
+**third** model, **SCRFD** (InsightFace), on the 13 clips:
+- Every clip the app lets upload has **0 visible faces** (both own clips + 5 single-player clips).
+- Every clip with a visible face is **blocked** (batting practice, fan crowd, 3 broadcasts).
+- 2 false blocks (coach demo, netting) — the safe direction.
