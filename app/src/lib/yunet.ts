@@ -4,7 +4,10 @@
 // self-audit uses THIS model, so a blind spot BlazeFace has doesn't also
 // hide the leak from the check. Decoding matches OpenCV's FaceDetectorYN
 // exactly (verified box-for-box in test-clips/blur, Oct 9).
-import * as ort from "onnxruntime-web/wasm"; // plain WebAssembly build (no WebGPU) — matches /public/ort
+// Loaded on first use, in the browser only: the runtime touches browser APIs
+// as soon as it is imported, which breaks server-side page builds.
+type Ort = typeof import("onnxruntime-web/wasm"); // plain WebAssembly build — matches /public/ort
+let ortMod: Ort | null = null;
 
 export interface FaceBox {
   x: number;
@@ -14,12 +17,15 @@ export interface FaceBox {
   score: number;
 }
 
-let session: Promise<ort.InferenceSession> | null = null;
+let session: Promise<import("onnxruntime-web/wasm").InferenceSession> | null = null;
 function getSession() {
   if (!session) {
-    ort.env.wasm.wasmPaths = "/ort/"; // runtime files served from our own domain
-    ort.env.wasm.numThreads = 1; // works without cross-origin isolation
-    session = ort.InferenceSession.create("/models/yunet.onnx", { executionProviders: ["wasm"] });
+    session = (async () => {
+      ortMod = await import("onnxruntime-web/wasm");
+      ortMod.env.wasm.wasmPaths = "/ort/"; // runtime files served from our own domain
+      ortMod.env.wasm.numThreads = 1; // works without cross-origin isolation
+      return ortMod.InferenceSession.create("/models/yunet.onnx", { executionProviders: ["wasm"] });
+    })();
   }
   return session;
 }
@@ -54,7 +60,7 @@ export async function yunetDetect(
     data[plane + i] = px[i * 4 + 1];
     data[2 * plane + i] = px[i * 4];
   }
-  const out = await s.run({ input: new ort.Tensor("float32", data, [1, 3, SIZE, SIZE]) });
+  const out = await s.run({ input: new ortMod!.Tensor("float32", data, [1, 3, SIZE, SIZE]) });
   const boxes: FaceBox[] = [];
   for (const st of [8, 16, 32]) {
     const cols = SIZE / st;
