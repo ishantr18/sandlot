@@ -43,19 +43,48 @@ export interface PoseFrame {
 // Indices into the 33 landmarks whose 3D position we keep (see PoseFrame.w)
 export const WORLD_POINTS = [11, 12, 23, 24];
 
-let posePromise: Promise<PoseLandmarker> | null = null;
-function getPose() {
-  if (!posePromise) {
-    posePromise = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
-      return PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: "/mediapipe/pose_landmarker_lite.task" },
-        runningMode: "VIDEO",
-        numPoses: 1,
-      });
-    })();
+export type PoseModel = "lite" | "full" | "heavy";
+const posePromises: Partial<Record<PoseModel, Promise<PoseLandmarker>>> = {};
+function getPose(model: PoseModel) {
+  return (posePromises[model] ??= (async () => {
+    const fileset = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
+    return PoseLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: `/mediapipe/pose_landmarker_${model}.task` },
+      runningMode: "VIDEO",
+      numPoses: 1,
+    });
+  })());
+}
+
+// Crop-and-zoom: the region of the frame (0..1 coords) that holds the player.
+interface Roi {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+// Where the player is during the swing, from the coarse pass: every point the
+// model saw, padded generously (the arms and bat reach out during the swing).
+function playerRoi(frames: PoseFrame[], from: number, to: number): Roi | null {
+  let x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+  for (const f of frames) {
+    if (f.t < from || f.t > to) continue;
+    for (const l of f.lm) {
+      if (l.v < 0.3) continue;
+      x0 = Math.min(x0, l.x); x1 = Math.max(x1, l.x);
+      y0 = Math.min(y0, l.y); y1 = Math.max(y1, l.y);
+    }
   }
-  return posePromise;
+  if (x1 <= x0 || y1 <= y0) return null;
+  const pw = (x1 - x0) * 0.35, ph = (y1 - y0) * 0.2;
+  const roi = {
+    x: Math.max(0, x0 - pw),
+    y: Math.max(0, y0 - ph),
+    w: Math.min(1, x1 + pw) - Math.max(0, x0 - pw),
+    h: Math.min(1, y1 + ph) - Math.max(0, y0 - ph),
+  };
+  // Already most of the frame → cropping gains nothing
+  return roi.w * roi.h > 0.7 ? null : roi;
 }
 
 // MediaPipe requires strictly increasing timestamps across detectForVideo
@@ -77,6 +106,12 @@ const POST_ROLL = 0.8; // and after (extension + finish)
 const MAX_COARSE_FRAMES = 240; // long clips scan at a lower rate rather than blow the budget
 const MAX_FRAMES = 460; // hard cap on the stored series (Firestore 1MB doc limit)
 const SEEK_TIMEOUT_MS = 2500; // a stalled seek must not hang the upload
+// Chosen Oct 9 on 41 clips (test-clips/web/exp/compare.mts):
+//   lite, no crop  — jitter 10.3‰, swing timed right 16/29
+//   full + crop    — jitter  3.2‰, timed right 21/29, same speed (4.6 s/clip)
+//   heavy + crop   — jitter  2.5‰, but 7× slower and no more accurate
+const DEFAULT_MODEL: PoseModel = "full";
+const DEFAULT_CROP = true;
 
 // Landmark indices used only for locating the swing (the engine owns the rest)
 const L_SHOULDER = 11, R_SHOULDER = 12, L_HIP = 23, R_HIP = 24;
@@ -120,16 +155,35 @@ async function samplePass(
   times: number[],
   sink: Map<number, PoseFrame>,
   onStep?: (done: number, total: number) => void,
+  roi: Roi | null = null,
 ) {
+  // With a crop, the model sees only the player's region, scaled so the
+  // player fills its input — more pixels per joint, steadier points.
+  const canvas = roi ? document.createElement("canvas") : null;
+  if (canvas && roi) {
+    const scale = Math.max(1, 640 / (roi.h * video.videoHeight)); // at least 640 px tall
+    canvas.width = Math.round(roi.w * video.videoWidth * scale);
+    canvas.height = Math.round(roi.h * video.videoHeight * scale);
+  }
   for (let i = 0; i < times.length; i++) {
     const actual = await seekAndGrab(video, times[i]);
     onStep?.(i + 1, times.length);
     if (actual === null) break; // seeking unsupported or stalled — keep what we have
     const key = Math.round(actual * 1000);
     if (sink.has(key)) continue; // same decoded frame as the last seek
-    const result = pose.detectForVideo(video, nextTs());
-    const lms = result.landmarks[0];
-    if (!lms) continue;
+    if (canvas && roi)
+      canvas.getContext("2d")!.drawImage(
+        video,
+        roi.x * video.videoWidth, roi.y * video.videoHeight,
+        roi.w * video.videoWidth, roi.h * video.videoHeight,
+        0, 0, canvas.width, canvas.height,
+      );
+    const result = pose.detectForVideo(canvas ?? video, nextTs());
+    const raw = result.landmarks[0];
+    if (!raw) continue;
+    // Map crop coordinates back to the whole frame (world/3D points are in
+    // meters and don't depend on the crop)
+    const lms = roi ? raw.map((l) => ({ ...l, x: roi.x + l.x * roi.w, y: roi.y + l.y * roi.h })) : raw;
     const world = result.worldLandmarks?.[0];
     sink.set(key, {
       t: r4(actual),
@@ -182,6 +236,8 @@ export interface ScanOptions {
   coarseFps?: number;
   maxScanSeconds?: number;
   maxCoarseFrames?: number;
+  poseModel?: PoseModel; // validation: compare model sizes
+  crop?: boolean; // validation: crop-and-zoom on the swing pass
 }
 
 export async function extractPose(
@@ -189,7 +245,8 @@ export async function extractPose(
   onProgress?: (f: number) => void,
   opts: ScanOptions = {},
 ): Promise<PoseFrame[]> {
-  const pose = await getPose();
+  const pose = await getPose(opts.poseModel ?? DEFAULT_MODEL);
+  const crop = opts.crop ?? DEFAULT_CROP;
 
   const video = document.createElement("video") as RVFCVideo;
   video.src = URL.createObjectURL(file);
@@ -236,8 +293,16 @@ export async function extractPose(
     const to = Math.min(scanEnd, center + POST_ROLL);
     const fineTimes: number[] = [];
     for (let t = from; t <= to; t += 1 / FINE_FPS) fineTimes.push(r4(t));
-    await samplePass(video, pose, fineTimes, sink, (done, total) =>
-      onProgress?.(0.45 + (done / total) * 0.55),
+    const roi = crop ? playerRoi(coarse, from, to) : null;
+    // Cropped and uncropped points must not mix inside the measured window
+    if (roi) for (const [k, f] of sink) if (f.t >= from && f.t <= to) sink.delete(k);
+    await samplePass(
+      video,
+      pose,
+      fineTimes,
+      sink,
+      (done, total) => onProgress?.(0.45 + (done / total) * 0.55),
+      roi,
     );
 
     onProgress?.(1);

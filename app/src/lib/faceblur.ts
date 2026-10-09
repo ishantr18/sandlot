@@ -25,6 +25,7 @@ import {
   PoseLandmarker,
 } from "@mediapipe/tasks-vision";
 import { formatSupportMatrix, pickMimeType } from "@/lib/videoFormat";
+import { yunetDetect } from "@/lib/yunet";
 
 interface Box {
   x: number;
@@ -385,7 +386,16 @@ async function auditOutput(
       // Only the face models: a pixelated head still LOOKS like a person to
       // the pose model, which is fine — what matters is no detectable face.
       const hidden = boxesAt(track, t, scale);
-      found += detectFaces(m, video, tile, AUDIT_MIN_SCORE).filter((f) => coveredFraction(f, hidden) < 0.7).length;
+      // Two different networks check: BlazeFace (the family that found the
+      // faces) AND YuNet (OpenCV, independent) on the full frame + 2×2 tiles.
+      // A face either one sees outside the pixelated areas is a leak.
+      const W = video.videoWidth, H = video.videoHeight;
+      const yunet: Box[] = [];
+      for (const r of [{ x: 0, y: 0, w: W, h: H }, ...tiles(W, H).slice(0, 4)])
+        for (const b of await yunetDetect(video, r.x, r.y, r.w, r.h, AUDIT_MIN_SCORE)) yunet.push(b);
+      found += [...detectFaces(m, video, tile, AUDIT_MIN_SCORE), ...yunet].filter(
+        (f) => coveredFraction(f, hidden) < 0.7,
+      ).length;
       onFraction((i + 1) / samples);
     }
     return found;
@@ -418,7 +428,8 @@ export async function blurVideo(
       let found: number;
       try {
         found = await auditOutput(out, duration, track, scale, (f) => onProgress("verify", f));
-      } catch {
+      } catch (e) {
+        console.error("[faceblur] self-check failed:", e);
         found = -1; // output unreadable on this device → "unverified", not "verified"
       }
       return { out, found };

@@ -5,7 +5,7 @@
 // Used to calibrate thresholds in lib/swingMetrics.ts against test-clips/.
 import { useState } from "react";
 import { blurVideo } from "@/lib/faceblur";
-import { extractPose, type PoseFrame } from "@/lib/poseExtract";
+import { extractPose, type PoseFrame, type ScanOptions } from "@/lib/poseExtract";
 import { analyzeSwing, type SwingAnalysis } from "@/lib/swingMetrics";
 
 // Headless validation runner reads results (incl. the raw landmark series,
@@ -16,6 +16,8 @@ type LabWindow = Window & { __lab?: { name: string; frames: PoseFrame[]; result:
 // + the face-blur validation hook: runs the REAL blur pipeline and hands back
 // the pixelation boxes and the output video (base64) to the runner.
 if (typeof window !== "undefined") {
+  (window as Window & { __extract?: unknown }).__extract = (file: File, opts: ScanOptions) =>
+    extractPose(file, undefined, opts);
   (window as Window & { __blur?: unknown }).__blur = async (file: File) => {
     // Seconds spent in each stage (scan / render / verify), for tuning speed
     const times: Record<string, number> = {};
