@@ -211,7 +211,17 @@ project. That's the part judges care about.
   the attacks: a coach approving themselves, a stranger linking to a kid, a coach looking up
   a player's name. Every attack fails.
 
-### D. Everything else
+### D. Athlete growth (Oct 10)
+- **Growth tab** (player) and **Athlete's Growth tab** (parent): five skill bars —
+  **Core** (hip turn), **Hands** (quick, compact swing), **Balance** (no lunging), **Lower
+  Half** (stride + firm front leg), **Posture** (no back-side collapse) — each 0–100%.
+- **Compared only to yourself:** each bar averages the last 3 swings and shows the change
+  since the first 3 ("Core 64% ▲ +18 since the start"). No leaderboards.
+- **Effort bar:** swings this week (goal 3) and drills marked done.
+- **Coach-confirmed:** a certified coach reviewing a swing sees that player's bars and can
+  confirm progress; the bar then shows "✓ Coach-confirmed". Small incentive, not a game.
+
+### E. Everything else
 - Record inside the app with a 3-2-1 countdown, or upload a clip.
 - Skeleton replay drawn over the video, synced as you scrub.
 - **Progress charts** showing each metric over time.
