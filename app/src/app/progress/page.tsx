@@ -1,12 +1,14 @@
 "use client";
 
-// Progress — session history as an Elevate-style list; charts land with metrics.
+// Growth (was Progress) — skill bars vs the player's own start, effort,
+// coach confirmations; then metric trends and session history.
 import { signOut } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import GrowthPanel from "@/components/GrowthPanel";
 import ProgressCharts from "@/components/ProgressCharts";
 import { auth, db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
@@ -51,7 +53,7 @@ export default function ProgressPage() {
   if (profile?.role === "mentor" || profile?.role === "guardian") {
     return (
       <main className="mx-auto max-w-md p-6 pb-28">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight">Progress</h1>
+        <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
           Progress tracks a player&apos;s own swings.{" "}
           <Link href={profile.role === "mentor" ? "/coach" : "/family"} className="text-primary underline">
@@ -65,7 +67,7 @@ export default function ProgressPage() {
   if (!loading && !user) {
     return (
       <main className="mx-auto max-w-md p-6 pb-28">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight">Progress</h1>
+        <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
         <Link
           href="/auth"
           className="block rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground"
@@ -80,7 +82,7 @@ export default function ProgressPage() {
   return (
     <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
       <div className="mb-6 flex items-end justify-between lg:mb-10">
-        <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Progress</h1>
+        <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Growth</h1>
         {user && (
           <button
             onClick={() => signOut(auth)}
@@ -90,6 +92,8 @@ export default function ProgressPage() {
           </button>
         )}
       </div>
+
+      {user && sessions && <GrowthPanel playerId={user.uid} mode="player" sessions={sessions} />}
 
       <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
       <div>

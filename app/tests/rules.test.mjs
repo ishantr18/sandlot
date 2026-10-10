@@ -169,3 +169,20 @@ test("ATTACK: unverified email can't see or upload swings, or make codes", async
   // …but sign-up itself still works before verifying
   await assertSucceeds(setDoc(doc(unverified("fresh"), "users/fresh"), { uid: "fresh", displayName: "F", role: "player", createdAt: 1 }));
 });
+
+test("certified coach confirms a player's progress; player and parent can see it", async () => {
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "coachApplications/coach"), { uid: "coach", status: "approved" }));
+  await kidMakesCode();
+  await linkWith("mom", "ABC234");
+  const c = { playerId: "kid", skill: "core", level: 64, coachId: "coach", coachName: "Coach", createdAt: 1 };
+  await assertSucceeds(setDoc(doc(as("coach"), "progressConfirmations/kid_core"), c));
+  await assertSucceeds(getDocs(query(collection(as("kid"), "progressConfirmations"), where("playerId", "==", "kid"))));
+  await assertSucceeds(getDocs(query(collection(as("mom"), "progressConfirmations"), where("playerId", "==", "kid"))));
+  await assertFails(getDocs(query(collection(as("stranger"), "progressConfirmations"), where("playerId", "==", "kid"))));
+});
+
+test("ATTACK: player or uncertified coach confirms progress", async () => {
+  const c = (by) => ({ playerId: "kid", skill: "core", level: 99, coachId: by, createdAt: 1 });
+  await assertFails(setDoc(doc(as("kid"), "progressConfirmations/kid_core"), c("kid")));
+  await assertFails(setDoc(doc(as("coach"), "progressConfirmations/kid_core"), c("coach"))); // not approved
+});

@@ -14,7 +14,7 @@ const TABS = {
     { href: "/", label: "Home", icon: House },
     { href: "/upload", label: "Upload", icon: Video },
     { href: "/drills", label: "Drills", icon: Dumbbell },
-    { href: "/progress", label: "Progress", icon: TrendingUp },
+    { href: "/progress", label: "Growth", icon: TrendingUp },
   ],
   mentor: [
     { href: "/", label: "Home", icon: House },
@@ -24,6 +24,7 @@ const TABS = {
   guardian: [
     { href: "/", label: "Home", icon: House },
     { href: "/family", label: "Family", icon: Users },
+    { href: "/family/growth", label: "Athlete's Growth", icon: TrendingUp },
   ],
 };
 
@@ -35,7 +36,10 @@ export default function Nav() {
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur">
       {tabs.map((t) => {
-        const active = t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
+        // The most specific matching tab wins (/family/growth isn't also "Family")
+        const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
+        const active =
+          matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href));
         const Icon = t.icon;
         return (
           <Link

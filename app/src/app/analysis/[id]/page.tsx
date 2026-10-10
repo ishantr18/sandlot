@@ -22,6 +22,7 @@ import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
+import GrowthPanel from "@/components/GrowthPanel";
 import type { PoseFrame } from "@/lib/poseExtract";
 import { DISABLED_METRICS, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
 
@@ -387,6 +388,14 @@ export default function AnalysisSessionPage() {
             ))}
             {safetyMsg && <p className="text-xs text-primary">{safetyMsg}</p>}
 
+            {profile?.role === "mentor" && profile.verifiedMentor && session && (
+              <div className="mb-4">
+                <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
+                  {anonPlayer(session.playerId)}&apos;s growth
+                </h2>
+                <GrowthPanel playerId={session.playerId} mode="coach" />
+              </div>
+            )}
             {profile?.role === "mentor" && session && (
               <div className="rounded-2xl bg-card p-4">
                 <p className="mb-2 text-xs text-muted-foreground">

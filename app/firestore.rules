@@ -166,6 +166,22 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.byId == request.auth.uid;
     }
 
+    // Coach-confirmed progress: one doc per player+skill (the latest
+    // confirmation). Only a certified coach writes it, as themselves; the
+    // player, their parent, coaches and the admin can read it.
+    match /progressConfirmations/{id} {
+      allow create, update: if verified() && isCertMentor()
+        && request.resource.data.coachId == request.auth.uid
+        && id == request.resource.data.playerId + '_' + request.resource.data.skill
+        && request.resource.data.skill in ['core', 'hands', 'balance', 'lowerHalf', 'posture'];
+      allow read: if verified() && (
+        resource.data.playerId == request.auth.uid
+        || isGuardianOf(resource.data.playerId)
+        || isCertMentor()
+        || isAdmin()
+      );
+    }
+
     // Reports: anyone signed-in can file one; only the admin can read them.
     match /reports/{id} {
       allow create: if request.auth != null

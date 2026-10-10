@@ -1,7 +1,7 @@
 "use client";
 
 // Drills — coach-assigned drills up top (real, from Firestore), library below.
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { ChevronRight, Dumbbell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -13,6 +13,7 @@ interface AssignmentRow {
   drillId: string;
   mentorName?: string;
   createdAt: number;
+  status?: string;
 }
 
 export default function DrillsPage() {
@@ -92,6 +93,20 @@ export default function DrillsPage() {
                           })}
                         </div>
                       </div>
+                      {/* Effort counts toward the Growth tab */}
+                      {a.status === "done" ? (
+                        <span className="text-xs font-semibold text-primary">✓ Done</span>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            await updateDoc(doc(db, "assignments", a.id), { status: "done", doneAt: Date.now() }).catch(() => {});
+                            setFetched((rows) => rows?.map((r) => (r.id === a.id ? { ...r, status: "done" } : r)) ?? rows);
+                          }}
+                          className="rounded-full border border-border px-3 py-1 text-xs"
+                        >
+                          Mark done
+                        </button>
+                      )}
                     </div>
                     {drill && (
                       <p className="px-4 pb-4 text-xs text-muted-foreground">
