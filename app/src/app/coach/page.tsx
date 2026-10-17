@@ -14,6 +14,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import Notice from "@/components/Notice";
 import { db } from "@/lib/firebase";
 import { anonPlayer } from "@/lib/anon";
 import CoachApplicationStatus from "@/components/CoachApplicationStatus";
@@ -100,25 +101,28 @@ export default function CoachPage() {
 
       {rows === null &&
         (loadError ? (
-          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
-            Couldn&apos;t load the review queue — check your connection and try again.{" "}
-            <button
-              onClick={() => {
-                setLoadError(false);
-                setReloadKey((k) => k + 1);
-              }}
-              className="text-primary underline"
-            >
-              Retry
-            </button>
-          </p>
+          <Notice
+            tone="error"
+            title="Couldn't load the review queue"
+            actions={[
+              {
+                label: "Try again",
+                onClick: () => {
+                  setLoadError(false);
+                  setReloadKey((k) => k + 1);
+                },
+              },
+            ]}
+          >
+            Check your connection, then try again.
+          </Notice>
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ))}
       {rows?.length === 0 && (
-        <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
-          No swings waiting — the queue fills as players upload.
-        </p>
+        <Notice title="No swings waiting">
+          You&apos;re all caught up — the queue fills as players upload, least-coached first.
+        </Notice>
       )}
 
       {rows && rows.length > 0 && (

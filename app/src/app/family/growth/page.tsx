@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import Notice from "@/components/Notice";
 import GrowthPanel from "@/components/GrowthPanel";
 import { linksFor, type Link as FamilyLink } from "@/lib/family";
 
@@ -38,7 +39,11 @@ export default function AthleteGrowthPage() {
       <p className="mb-6 text-sm text-muted-foreground">
         How your athlete is improving — compared only to their own first swings.
       </p>
-      {error && <p className="text-sm text-destructive">Couldn&apos;t load — check your connection.</p>}
+      {error && (
+        <Notice tone="error" title="Couldn't load your athlete's growth">
+          Check your connection, then reload the page.
+        </Notice>
+      )}
       {links === null && !error && <p className="text-sm text-muted-foreground">Loading…</p>}
       {links?.length === 0 && (
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">

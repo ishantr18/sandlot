@@ -9,10 +9,42 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import GrowthPanel from "@/components/GrowthPanel";
-import ProgressCharts from "@/components/ProgressCharts";
+import Notice from "@/components/Notice";
+import ProgressCharts, { type ChartSession } from "@/components/ProgressCharts";
 import { auth, db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
 import type { SwingMetrics } from "@/lib/swingMetrics";
+
+// Illustrative trend for the signed-out preview — a player improving over
+// six swings. Shown faded and labeled "Sample"; never mixed with real data.
+const DAY = 24 * 60 * 60 * 1000;
+const SAMPLE_TREND: ChartSession[] = [
+  [30, 0.24, 14, 9, 145, 22],
+  [34, 0.23, 13, 11, 148, 20],
+  [38, 0.21, 11, 12, 151, 18],
+  [41, 0.21, 10, 14, 154, 16],
+  [47, 0.2, 9, 16, 158, 14],
+  [52, 0.19, 7, 18, 162, 12],
+].map(([hip, tempo, drift, stride, knee, tilt], i) => ({
+  createdAt: Date.UTC(2026, 8, 1) + i * 3 * DAY,
+  metrics: {
+    sequenceGapMs: null,
+    hipTurnDeg: hip,
+    hipShoulderSepDeg: 0,
+    tempoSec: tempo,
+    headDriftPct: drift,
+    stridePct: stride,
+    kneeBraceDeg: knee,
+    shoulderTiltDeg: tilt,
+    peakHandSpeed: 0,
+    swingStart: 0,
+    footPlant: null,
+    swingPeak: 0,
+    trackingQuality: 1,
+    viewRatio: 0.1,
+    coverage: "full" as const,
+  },
+}));
 
 interface SessionRow {
   id: string;
@@ -68,13 +100,28 @@ export default function ProgressPage() {
     return (
       <main className="mx-auto max-w-md p-6 pb-28">
         <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
-        <Link
-          href="/auth"
-          className="block rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground"
+        <Notice
+          title="Your growth lives here"
+          className="mb-4"
+          actions={[
+            { label: "Sign in", href: "/auth?mode=signin" },
+            { label: "Try a sample swing", href: "/sample" },
+          ]}
         >
-          <span className="text-primary underline">Sign in</span> to see your swing
-          history.
-        </Link>
+          Every swing you film adds a point — measured only against your own start.
+        </Notice>
+        {/* A faded preview of what the charts look like with real swings */}
+        <div aria-hidden="true">
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+            Trends
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+              Sample
+            </span>
+          </p>
+          <div className="pointer-events-none opacity-40 select-none">
+            <ProgressCharts sessions={SAMPLE_TREND} />
+          </div>
+        </div>
       </main>
     );
   }
@@ -106,25 +153,34 @@ export default function ProgressPage() {
 
       {sessions === null &&
         (loadError ? (
-          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
-            Couldn&apos;t load your swings — check your connection and try again.{" "}
-            <button
-              onClick={() => {
-                setLoadError(false);
-                setReloadKey((k) => k + 1);
-              }}
-              className="text-primary underline"
-            >
-              Retry
-            </button>
-          </p>
+          <Notice
+            tone="error"
+            title="Couldn't load your swings"
+            actions={[
+              {
+                label: "Try again",
+                onClick: () => {
+                  setLoadError(false);
+                  setReloadKey((k) => k + 1);
+                },
+              },
+            ]}
+          >
+            Check your connection — your swings are safe.
+          </Notice>
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ))}
       {sessions?.length === 0 && (
-        <section className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground">
-          No swings yet — upload one and it&apos;ll appear here.
-        </section>
+        <Notice
+          title="No swings yet"
+          actions={[
+            { label: "Film your first swing", href: "/upload" },
+            { label: "See a sample", href: "/sample" },
+          ]}
+        >
+          Your first swing sets the starting point every bar is measured from.
+        </Notice>
       )}
 
       {sessions && sessions.length > 0 && (

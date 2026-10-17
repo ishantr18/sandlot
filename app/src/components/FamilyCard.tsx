@@ -3,6 +3,7 @@
 // Player's Family card: make a code for a parent, see who's linked, unlink.
 // The code is the consent step — a parent can only link with a code made
 // on THIS account, and it works once, for 24 hours.
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { currentFamilyCode, linksFor, newFamilyCode, unlink, type FamilyCode, type Link } from "@/lib/family";
 
@@ -39,7 +40,9 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
 
   return (
     <section className="mt-6 rounded-2xl bg-card p-4 lg:p-6">
-      <h2 className="mb-1 text-sm font-semibold">👨‍👩‍👧 Family code</h2>
+      <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+        <Users className="h-4 w-4 text-primary" /> Family code
+      </h2>
       <p className="mb-3 text-xs text-muted-foreground">
         Give this to a parent so they can see your swings and every coach comment.
         It works once and expires in 24 hours.

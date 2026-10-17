@@ -9,6 +9,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import Notice from "@/components/Notice";
 import { linksFor, linkWithCode, type Link as FamilyLink } from "@/lib/family";
 import { db } from "@/lib/firebase";
 
@@ -134,18 +135,21 @@ export default function FamilyPage() {
 
       {rows === null &&
         (loadError ? (
-          <p className="rounded-2xl bg-card p-6 text-sm text-destructive">
-            Couldn&apos;t load your player&apos;s activity — check your connection and try again.{" "}
-            <button
-              onClick={() => {
-                setLoadError(false);
-                setReloadKey((k) => k + 1);
-              }}
-              className="text-primary underline"
-            >
-              Retry
-            </button>
-          </p>
+          <Notice
+            tone="error"
+            title="Couldn't load your player's activity"
+            actions={[
+              {
+                label: "Try again",
+                onClick: () => {
+                  setLoadError(false);
+                  setReloadKey((k) => k + 1);
+                },
+              },
+            ]}
+          >
+            Check your connection, then try again.
+          </Notice>
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ))}

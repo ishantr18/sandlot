@@ -4,11 +4,22 @@
 // Phase 2 inserts the on-device face-blur step between "pick" and "upload".
 import { upload } from "@vercel/blob/client";
 import { addDoc, collection } from "firebase/firestore";
-import { FolderOpen, Trash2 } from "lucide-react";
+import {
+  Activity,
+  CheckCircle2,
+  FolderOpen,
+  Lock,
+  ShieldCheck,
+  Target,
+  Trash2,
+  TriangleAlert,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
+import Notice from "@/components/Notice";
 import VideoRecorder from "@/components/VideoRecorder";
 import { useRouter } from "next/navigation";
 import { DRILLS } from "@/lib/drills";
@@ -21,9 +32,9 @@ import { db } from "@/lib/firebase";
 type Stage = "pick" | "blurring" | "ready" | "analyzing" | "uploading" | "done" | "error";
 
 const BLUR_STAGE_LABEL: Record<BlurStage, string> = {
-  scan: "🔍 Scanning every frame for faces and heads…",
-  render: "🔒 Pixelating faces on your device…",
-  verify: "🕵️ Verifying anonymity of the result…",
+  scan: "Scanning every frame for faces and heads…",
+  render: "Pixelating faces on your device…",
+  verify: "Verifying anonymity of the result…",
 };
 
 export default function UploadPage() {
@@ -90,9 +101,9 @@ export default function UploadPage() {
       }
       setErrorMsg(
         isFormat && fromOurRecorder
-          ? `This device's recorder produced an unreadable file (${detail}). That format is now blocked on this device — press 🎥 Record now again and the app will automatically try a different format.`
+          ? `This device's recorder produced an unreadable file (${detail}). That format is now blocked on this device — press Record now again and the app will automatically try a different format.`
           : isFormat
-            ? `This browser can't read that video format (${detail}). If the file came from an iPhone: use 🎥 Record now instead, open this page in Safari, or set the iPhone camera to Most Compatible (Settings → Camera → Formats). Nothing was uploaded.`
+            ? `This browser can't read that video format (${detail}). If the file came from an iPhone: use Record now instead, open this page in Safari, or set the iPhone camera to Most Compatible (Settings → Camera → Formats). Nothing was uploaded.`
             : `Couldn't blur this video (${detail}) — nothing was uploaded.`,
       );
       setFile(null);
@@ -193,14 +204,14 @@ export default function UploadPage() {
           href="/auth"
           className="mb-4 block rounded-2xl bg-card p-4 text-sm text-muted-foreground"
         >
-          👤 <span className="text-primary underline">Sign in</span> so your swings are
+          <User className="mr-1 inline h-4 w-4" /> <span className="text-primary underline">Sign in</span> so your swings are
           saved to your Growth page.
         </Link>
       )}
 
       {drillName && (
         <p className="mb-4 rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary">
-          🎯 Filming again after: {drillName}. Same angle as last time so your Growth compares fairly.
+          <Target className="mr-1 inline h-4 w-4" /> Filming again after: {drillName}. Same angle as last time so your Growth compares fairly.
         </p>
       )}
 
@@ -216,7 +227,7 @@ export default function UploadPage() {
 
       {!playbackUrl && (
         <div className="mb-4 grid grid-cols-2 gap-2">
-          <VideoRecorder onRecorded={acceptFile} />
+          <VideoRecorder onRecorded={acceptFile} onUseLibrary={() => inputRef.current?.click()} />
           <button
             onClick={() => inputRef.current?.click()}
             className="flex h-56 flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary lg:h-72"
@@ -234,7 +245,9 @@ export default function UploadPage() {
       <div>
       {stage === "blurring" && (
         <div className="mb-4 rounded-2xl bg-card p-4">
-          <p className="mb-2 text-sm font-semibold">{BLUR_STAGE_LABEL[blurStage]}</p>
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Lock className="h-4 w-4 text-primary" /> {BLUR_STAGE_LABEL[blurStage]}
+          </p>
           <div className="h-2 w-full overflow-hidden rounded bg-secondary">
             <div
               className="h-full bg-primary transition-all"
@@ -250,9 +263,10 @@ export default function UploadPage() {
       {previewUrl && !playbackUrl && (
         <div className="mb-4 overflow-hidden rounded-2xl bg-card">
           <p className="p-3 text-sm font-semibold text-primary">
+            {auditCount === 0 ? <ShieldCheck className="mr-1 inline h-4 w-4" /> : <TriangleAlert className="mr-1 inline h-4 w-4" />}
             {auditCount === 0
-              ? "🕵️ Anonymity verified — 0 faces detectable in this video. Only this version can upload:"
-              : "⚠️ Faces pixelated on your device, but this device couldn't double-check the result — look over the preview before uploading:"}
+              ? "Anonymity verified — 0 faces detectable in this video. Only this version can upload:"
+              : "Faces pixelated on your device, but this device couldn't double-check the result — look over the preview before uploading:"}
           </p>
           <video src={previewUrl} controls playsInline className="w-full" />
           {/* The next step sits right under the clip it acts on */}
@@ -282,7 +296,7 @@ export default function UploadPage() {
       {playbackUrl && (
         <div className="mb-4 overflow-hidden rounded-2xl bg-card">
           <p className="p-3 text-sm font-semibold text-primary">
-            ✅ Uploaded — playing from private storage via an expiring link:
+            <CheckCircle2 className="mr-1 inline h-4 w-4" /> Uploaded — playing from private storage via an expiring link:
           </p>
           <video src={playbackUrl} controls playsInline className="w-full" />
         </div>
@@ -290,7 +304,9 @@ export default function UploadPage() {
 
       {stage === "analyzing" && (
         <div className="mb-4 rounded-2xl bg-card p-4">
-          <p className="mb-2 text-sm font-semibold">📐 Analyzing your swing on this device…</p>
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Activity className="h-4 w-4 text-primary" /> Analyzing your swing on this device…
+          </p>
           <div className="h-2 w-full overflow-hidden rounded bg-secondary">
             <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
           </div>
@@ -312,7 +328,17 @@ export default function UploadPage() {
       )}
 
       {stage === "error" && (
-        <p className="mb-4 text-sm text-destructive">Upload failed: {errorMsg}</p>
+        <Notice
+          tone="error"
+          title="That swing didn't go through"
+          className="mb-4"
+          actions={[
+            { label: "Pick another video", onClick: () => inputRef.current?.click() },
+            { label: "Try a sample swing", href: "/sample" },
+          ]}
+        >
+          {errorMsg}
+        </Notice>
       )}
 
       </div>

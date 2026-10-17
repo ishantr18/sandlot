@@ -14,7 +14,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { BadgeCheck, ChevronLeft } from "lucide-react";
+import { BadgeCheck, Ban, Check, ChevronLeft, Flag, Plus } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -294,7 +294,7 @@ export default function AnalysisSessionPage() {
                 }}
                 className="underline"
               >
-                ⚑ Report video
+                <Flag className="mr-1 inline h-3.5 w-3.5" />Report video
               </button>
               <button
                 onClick={async () => {
@@ -308,7 +308,7 @@ export default function AnalysisSessionPage() {
                 }}
                 className="underline"
               >
-                🚫 Hide this player
+                <Ban className="mr-1 inline h-3.5 w-3.5" />Hide this player
               </button>
               {safetyMsg && <span className="text-primary">{safetyMsg}</span>}
             </div>
@@ -406,7 +406,7 @@ export default function AnalysisSessionPage() {
                       }}
                       className="underline"
                     >
-                      ⚑ Report
+                      <Flag className="mr-1 inline h-3.5 w-3.5" />Report
                     </button>
                     <button
                       onClick={async () => {
@@ -423,7 +423,7 @@ export default function AnalysisSessionPage() {
                       }}
                       className="underline"
                     >
-                      🚫 Block this coach
+                      <Ban className="mr-1 inline h-3.5 w-3.5" />Block this coach
                     </button>
                   </div>
                 )}
@@ -496,7 +496,8 @@ export default function AnalysisSessionPage() {
                           onClick={() => assignDrill(d.id)}
                           className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
                         >
-                          {assigned.has(d.id) ? "✓" : "＋"} {d.name}
+                          {assigned.has(d.id) ? <Check className="mr-1 inline h-3.5 w-3.5" /> : <Plus className="mr-1 inline h-3.5 w-3.5" />}
+                          {d.name}
                         </button>
                       ))}
                     </div>

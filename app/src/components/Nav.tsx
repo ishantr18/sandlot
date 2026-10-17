@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import { ClipboardList, Dumbbell, House, LogOut, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { auth } from "@/lib/firebase";
 
@@ -31,24 +32,56 @@ const TABS = {
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const tabs = TABS[profile?.role ?? "player"] ?? TABS.player;
-  // The logged-out landing is a pitch + role picker — no app chrome
-  if (!user && pathname === "/") return null;
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  // The most specific matching tab wins (/family/growth isn't also "Family")
+  const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
+  const activeHref = tabs.find(
+    (t) => matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href)),
+  )?.href;
+
+  // Slide the highlight under whichever tab is active (re-measured on resize,
+  // since the active tab's label shows and hides by screen width)
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const measure = () => {
+      const el = nav.querySelector<HTMLElement>('[data-active="true"]');
+      setPill(el ? { left: el.offsetLeft, width: el.offsetWidth } : null);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [activeHref, profile?.role, user, loading, pathname]);
+
+  // No app chrome until we know who's here, nor on the signed-out landing / sample
+  if (loading || (!user && (pathname === "/" || pathname.startsWith("/sample")))) return null;
   return (
-    <nav className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur">
+    <nav
+      ref={navRef}
+      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur"
+    >
+      {pill && (
+        <span
+          aria-hidden="true"
+          className="absolute top-2 bottom-2 rounded-full bg-secondary transition-all duration-200 ease-out"
+          style={{ left: pill.left, width: pill.width }}
+        />
+      )}
       {tabs.map((t) => {
-        // The most specific matching tab wins (/family/growth isn't also "Family")
-        const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
-        const active =
-          matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href));
+        const active = t.href === activeHref;
         const Icon = t.icon;
         return (
           <Link
             key={t.href}
             href={t.href}
-            className={`flex items-center gap-2 rounded-full px-4 py-3 text-sm sm:px-6 font-medium transition-colors ${
-              active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+            data-active={active}
+            className={`relative flex items-center gap-2 rounded-full px-4 py-3 text-sm sm:px-6 font-medium transition-colors ${
+              active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
@@ -64,7 +97,7 @@ export default function Nav() {
             router.push("/");
           }}
           aria-label="Sign out"
-          className="flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+          className="relative flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-6"
         >
           <LogOut className="h-5 w-5" />
           <span className="hidden sm:inline">Sign out</span>

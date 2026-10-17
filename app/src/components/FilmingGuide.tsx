@@ -3,31 +3,40 @@
 // Filming guide — teaches users (kids!) to film clips the pose engine can
 // actually analyze. Bad input = bad analysis, so this is quality control
 // disguised as help. Expanded on first visit, collapsed after.
+import {
+  ChevronDown,
+  Clapperboard,
+  MoveHorizontal,
+  PersonStanding,
+  Smartphone,
+  Sun,
+  Timer,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const RULES = [
   {
-    icon: "↔️",
+    icon: MoveHorizontal,
     title: "Film from the SIDE",
     detail: "Stand where the pitcher would see your side, not your face or back.",
   },
   {
-    icon: "🧍",
+    icon: PersonStanding,
     title: "Whole body in the shot",
     detail: "Head to feet, with a little space around you. Cut-off feet = bad analysis.",
   },
   {
-    icon: "📱",
+    icon: Smartphone,
     title: "Prop the phone, don't hold it",
     detail: "Lean it on a bag or bottle, sideways (landscape). A shaky camera confuses the AI.",
   },
   {
-    icon: "☀️",
+    icon: Sun,
     title: "Light in front, not behind",
     detail: "If you look like a shadow on screen, the AI sees a shadow too.",
   },
   {
-    icon: "⏱️",
+    icon: Timer,
     title: "One swing per clip",
     detail: "5–10 seconds is plenty. Short clips upload fast on any connection.",
   },
@@ -50,14 +59,18 @@ export default function FilmingGuide() {
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between p-3 text-sm font-semibold"
       >
-        <span>🎬 How to film your swing</span>
-        <span className="text-muted-foreground">{open ? "▲" : "▼"}</span>
+        <span className="flex items-center gap-2">
+          <Clapperboard className="h-4 w-4 text-primary" /> How to film your swing
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <ul className="space-y-3 border-t border-border p-3">
           {RULES.map((r) => (
             <li key={r.title} className="flex gap-3">
-              <span className="text-xl">{r.icon}</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                <r.icon className="h-4 w-4 text-primary" />
+              </span>
               <div>
                 <div className="text-sm font-medium">{r.title}</div>
                 <div className="text-xs text-muted-foreground">{r.detail}</div>

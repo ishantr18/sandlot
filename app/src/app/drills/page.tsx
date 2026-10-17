@@ -2,11 +2,13 @@
 
 // Drills — coach-assigned drills up top (real, from Firestore), library below.
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { ChevronRight, Dumbbell, Video } from "lucide-react";
+import { Check, ChevronRight, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { DRILLS } from "@/lib/drills";
+import DrillIcon from "@/components/DrillIcon";
+import Notice from "@/components/Notice";
+import { CATEGORY_LABEL, DRILLS, type DrillCategory } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 
 interface AssignmentRow {
@@ -23,6 +25,9 @@ export default function DrillsPage() {
   // Signed out → nothing assigned (derived, no extra state update needed)
   const assigned = user ? fetched : [];
   const [open, setOpen] = useState<string | null>(null);
+  const [filter, setFilter] = useState<DrillCategory | "all">("all");
+  const categories = Object.keys(CATEGORY_LABEL) as DrillCategory[];
+  const library = filter === "all" ? DRILLS : DRILLS.filter((d) => d.category === filter);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
@@ -52,24 +57,31 @@ export default function DrillsPage() {
             Assigned to you
           </h2>
           {user && !fetched && loadError ? (
-            <section className="mb-6 rounded-2xl bg-card p-6 text-center text-sm text-destructive">
-              Couldn&apos;t load your drills — check your connection and try again.{" "}
-              <button
-                onClick={() => {
-                  setLoadError(false);
-                  setReloadKey((k) => k + 1);
-                }}
-                className="text-primary underline"
-              >
-                Retry
-              </button>
-            </section>
+            <Notice
+              tone="error"
+              title="Couldn't load your drills"
+              className="mb-6"
+              actions={[
+                {
+                  label: "Try again",
+                  onClick: () => {
+                    setLoadError(false);
+                    setReloadKey((k) => k + 1);
+                  },
+                },
+              ]}
+            >
+              Check your connection — the library below still works offline.
+            </Notice>
           ) : (
             (!assigned || assigned.length === 0) && (
-              <section className="mb-6 rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground">
-                Nothing assigned yet — your AI findings and your coach both assign
-                drills here.
-              </section>
+              <Notice
+                title="Nothing assigned yet"
+                className="mb-6"
+                actions={user ? [{ label: "Film a swing", href: "/upload" }] : [{ label: "See a sample swing", href: "/sample" }]}
+              >
+                Your AI findings and your coach both assign drills here.
+              </Notice>
             )
           )}
           {assigned && assigned.length > 0 && (
@@ -79,9 +91,7 @@ export default function DrillsPage() {
                 return (
                   <div key={a.id} className={i > 0 ? "border-t border-border" : ""}>
                     <div className="flex items-center gap-3 p-4">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
-                        <Dumbbell className="h-4 w-4 text-primary" />
-                      </span>
+                      <DrillIcon category={drill?.category} />
                       <div className="flex-1">
                         <div className="text-sm font-medium">
                           {drill?.name ?? a.drillId}
@@ -96,7 +106,9 @@ export default function DrillsPage() {
                       </div>
                       {/* Effort counts toward the Growth tab */}
                       {a.status === "done" ? (
-                        <span className="text-xs font-semibold text-primary">✓ Done</span>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-primary">
+                          <Check className="h-3.5 w-3.5" /> Done
+                        </span>
                       ) : (
                         <button
                           onClick={async () => {
@@ -132,28 +144,49 @@ export default function DrillsPage() {
         )}
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Library</h2>
-          <section className="rounded-2xl bg-card">
-            {DRILLS.map((d, i) => (
+          {/* Filter chips — narrow the library to one body part */}
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(["all", ...categories] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setFilter(c)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  filter === c ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c === "all" ? "All" : CATEGORY_LABEL[c]}
+              </button>
+            ))}
+          </div>
+          <section key={filter} className="dd-enter rounded-2xl bg-card">
+            {library.map((d, i) => (
               <button
                 key={d.id}
                 onClick={() => setOpen(open === d.id ? null : d.id)}
                 className={`block w-full text-left ${i > 0 ? "border-t border-border" : ""}`}
               >
                 <div className="flex items-center gap-3 p-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
-                    <Dumbbell className="h-4 w-4 text-primary" />
-                  </span>
+                  <DrillIcon category={d.category} />
                   <div className="flex-1">
                     <div className="text-sm font-medium">{d.name}</div>
-                    <div className="text-xs text-muted-foreground">{d.target}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {CATEGORY_LABEL[d.category]} · {d.target}
+                    </div>
                   </div>
                   <ChevronRight
                     className={`h-4 w-4 text-muted-foreground transition-transform ${open === d.id ? "rotate-90" : ""}`}
                   />
                 </div>
-                {open === d.id && (
-                  <p className="px-4 pb-4 text-xs text-muted-foreground">{d.description}</p>
-                )}
+                {/* grid-rows 0fr → 1fr animates the open/close height */}
+                <div
+                  className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                    open === d.id ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  }`}
+                >
+                  <p className="overflow-hidden px-4 text-xs text-muted-foreground">
+                    <span className="block pb-4">{d.description}</span>
+                  </p>
+                </div>
               </button>
             ))}
           </section>

@@ -12,6 +12,8 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { ClipboardList, Users, Video } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -29,12 +31,15 @@ function friendly(code: string): string {
 }
 
 const ROLES = [
-  { id: "player", label: "⚾ Player", blurb: "I'm here to train" },
-  { id: "mentor", label: "🧢 Coach", blurb: "I review swings" },
-  { id: "guardian", label: "👨‍👩‍👧 Parent", blurb: "I watch over a player" },
+  { id: "player", label: "Player", icon: Video, blurb: "I'm here to train" },
+  { id: "mentor", label: "Coach", icon: ClipboardList, blurb: "I review swings" },
+  { id: "guardian", label: "Parent", icon: Users, blurb: "I watch over a player" },
 ] as const;
 
-const FIELD = "w-full rounded-2xl border-0 bg-card p-3";
+// Explicit text, placeholder and border colors — on the dark theme a bare
+// field read as black-on-black (judges thought the password box was missing).
+const FIELD =
+  "w-full rounded-2xl border border-input bg-card p-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -169,6 +174,7 @@ export default function AuthPage() {
                     role === r.id ? "bg-primary/15 ring-1 ring-primary" : "bg-card"
                   }`}
                 >
+                  <r.icon className="mx-auto mb-1 h-5 w-5 text-primary" />
                   <div className="text-sm font-semibold">{r.label}</div>
                   <div className="mt-1 text-muted-foreground">{r.blurb}</div>
                 </button>
@@ -298,6 +304,9 @@ export default function AuthPage() {
       >
         {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
       </button>
+      <Link href="/sample" className="mt-6 block text-center text-sm text-muted-foreground underline">
+        Just looking? Try a sample swing — no account needed
+      </Link>
     </main>
   );
 }

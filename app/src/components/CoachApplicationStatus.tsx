@@ -3,7 +3,7 @@
 // What an uncertified coach sees instead of the review queue: where their
 // application stands, the admin's note if it was turned down, and a form to
 // fix and resubmit. No swing is visible until the admin approves.
-import { BadgeCheck, Check, Clock, Lock, X } from "lucide-react";
+import { BadgeCheck, Check, ClipboardList, Clock, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CREDENTIALS, getCoachApplication, submitCoachApplication, type CoachApplication } from "@/lib/family";
@@ -92,7 +92,9 @@ export default function CoachApplicationStatus() {
       <div className="mb-4 rounded-2xl bg-card p-6">
         {app?.status === "rejected" ? (
           <>
-            <p className="mb-2 text-lg font-semibold">🧢 Not approved yet</p>
+            <p className="mb-2 flex items-center gap-2 text-lg font-semibold">
+              <X className="h-5 w-5 text-destructive" /> Not approved yet
+            </p>
             <p className="text-sm text-muted-foreground">
               {app.reviewNote
                 ? `Reviewer's note: ${app.reviewNote}`
@@ -118,7 +120,9 @@ export default function CoachApplicationStatus() {
           </>
         ) : app === null ? (
           <>
-            <p className="mb-2 text-lg font-semibold">🧢 Apply to coach</p>
+            <p className="mb-2 flex items-center gap-2 text-lg font-semibold">
+              <ClipboardList className="h-5 w-5 text-primary" /> Apply to coach
+            </p>
             <p className="text-sm text-muted-foreground">
               Tell us how to verify you. A real person checks every coach before
               they can see any player videos.

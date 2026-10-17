@@ -5,6 +5,8 @@
 // rules ALSO require a verified email (swings, comments, family codes), so
 // this screen is the friendly half — not the lock.
 import { sendEmailVerification, signOut } from "firebase/auth";
+import { Play } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -17,7 +19,9 @@ export default function VerifyEmailGate({ children }: { children: React.ReactNod
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (!user || user.emailVerified || pathname.startsWith("/auth")) return <>{children}</>;
+  // The sample swing needs no account, so it's never behind the gate
+  if (!user || user.emailVerified || pathname.startsWith("/auth") || pathname.startsWith("/sample"))
+    return <>{children}</>;
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28">
@@ -72,6 +76,18 @@ export default function VerifyEmailGate({ children }: { children: React.ReactNod
         </button>
         {msg && <p className="text-primary">{msg}</p>}
       </div>
+      {/* Not a dead end: the product is one tap away while the email is on its way */}
+      <Link
+        href="/sample"
+        className="mt-4 flex items-center gap-3 rounded-2xl bg-primary/15 p-4 text-sm ring-1 ring-primary"
+      >
+        <Play className="h-5 w-5 text-primary" />
+        <span className="flex-1">
+          <span className="block font-semibold text-primary">While you wait: try a sample swing</span>
+          <span className="text-muted-foreground">See a full AI breakdown and a coach tip — no setup.</span>
+        </span>
+        <span className="text-primary">→</span>
+      </Link>
       <button
         onClick={async () => {
           await signOut(auth);

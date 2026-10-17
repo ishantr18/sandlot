@@ -4,15 +4,19 @@
 // getUserMedia = ask permission and get a live camera stream.
 // MediaRecorder = capture that stream into a real video file, all on-device.
 // Flow: open camera → 3-2-1 countdown → record → review → use / retake / discard.
+import { Camera, Check, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import Notice from "@/components/Notice";
 import { pickMimeType } from "@/lib/videoFormat";
 
 type Mode = "idle" | "live" | "countdown" | "recording" | "review";
 
 export default function VideoRecorder({
   onRecorded,
+  onUseLibrary,
 }: {
   onRecorded: (file: File) => void;
+  onUseLibrary?: () => void; // camera failed → offer a saved video instead
 }) {
   const liveRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -166,10 +170,22 @@ export default function VideoRecorder({
           onClick={openCamera}
           className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary lg:h-72"
         >
-          <span className="text-4xl">🎥</span>
+          <Camera className="h-8 w-8 text-primary" />
           <span className="text-muted-foreground">Record now</span>
         </button>
-        {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+        {error && (
+          <Notice
+            tone="error"
+            title="The camera didn't open"
+            className="mt-2"
+            actions={[
+              ...(onUseLibrary ? [{ label: "Use a saved video", onClick: onUseLibrary }] : []),
+              { label: "Try a sample swing", href: "/sample" },
+            ]}
+          >
+            {error}
+          </Notice>
+        )}
       </div>
     );
   }
@@ -192,13 +208,17 @@ export default function VideoRecorder({
             onClick={useRecording}
             className="flex-1 rounded-full bg-primary py-2 text-sm font-semibold text-primary-foreground"
           >
-            ✓ Use this video
+            <Check className="mr-1 inline h-4 w-4" />Use this video
           </button>
           <button onClick={retake} className="rounded-full border border-border px-3 py-2 text-sm">
-            ↻ Retake
+            <RotateCcw className="mr-1 inline h-4 w-4" />Retake
           </button>
-          <button onClick={discardRecording} className="rounded-full border border-border px-3 py-2 text-sm">
-            🗑
+          <button
+            onClick={discardRecording}
+            aria-label="Discard recording"
+            className="rounded-full border border-border px-3 py-2 text-sm"
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
