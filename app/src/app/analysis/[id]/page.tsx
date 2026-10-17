@@ -11,9 +11,10 @@ import {
   getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
-import { ChevronLeft } from "lucide-react";
+import { BadgeCheck, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -30,6 +31,7 @@ interface CommentRow {
   id: string;
   mentorId?: string;
   mentorName?: string;
+  mentorOrg?: string; // team / school the admin verified
   timestampSec: number;
   text: string;
   createdAt: number;
@@ -89,6 +91,9 @@ export default function AnalysisSessionPage() {
         const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
         cs.sort((a, b) => a.timestampSec - b.timestampSec);
         setComments(cs);
+        // The player has now seen this feedback — clears "New feedback" on Home
+        if (isOwner && cs.length > 0)
+          updateDoc(doc(db, "sessions", id), { feedbackSeenAt: Date.now() }).catch(() => {});
         // Blocks hide a coach's comments from the player's side. Coaches don't
         // need them (and the rules don't let a coach list a player's blocks).
         if (!isMentor) {
@@ -342,8 +347,11 @@ export default function AnalysisSessionPage() {
                   <span className="font-mono text-xs text-primary">
                     {c.timestampSec.toFixed(1)}s
                   </span>{" "}
-                  <span className="text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     {c.mentorName ?? "Coach"}
+                    {/* Only admin-approved coaches can comment at all */}
+                    <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
+                    {c.mentorOrg && <span>· {c.mentorOrg}</span>}
                   </span>
                   <p className="mt-1 text-sm">{c.text}</p>
                 </button>
@@ -418,6 +426,7 @@ export default function AnalysisSessionPage() {
                         sessionId: id,
                         mentorId: user.uid,
                         mentorName: user.displayName ?? "Coach",
+                        ...(profile?.coachOrg ? { mentorOrg: profile.coachOrg } : {}),
                         timestampSec,
                         text: newComment.trim(),
                         createdAt: Date.now(),
@@ -426,6 +435,7 @@ export default function AnalysisSessionPage() {
                         [...cs, {
                           id: `local-${Date.now()}`,
                           mentorName: user.displayName ?? "Coach",
+                          mentorOrg: profile?.coachOrg,
                           timestampSec,
                           text: newComment.trim(),
                           createdAt: Date.now(),

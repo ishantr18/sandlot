@@ -6,11 +6,12 @@ import { upload } from "@vercel/blob/client";
 import { addDoc, collection } from "firebase/firestore";
 import { FolderOpen, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FilmingGuide from "@/components/FilmingGuide";
 import VideoRecorder from "@/components/VideoRecorder";
 import { useRouter } from "next/navigation";
+import { DRILLS } from "@/lib/drills";
 import { blurVideo, type BlurStage } from "@/lib/faceblur";
 import { extractPose } from "@/lib/poseExtract";
 import { analyzeSwing } from "@/lib/swingMetrics";
@@ -37,6 +38,16 @@ export default function UploadPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [blurStage, setBlurStage] = useState<BlurStage>("scan");
   const [auditCount, setAuditCount] = useState<number | null>(null);
+  // Arrived from "Film it again" on an assigned drill (?drill=<id>)
+  const [drillName, setDrillName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("drill");
+    const name = DRILLS.find((d) => d.id === id)?.name;
+    // Reading the URL must wait until after hydration (same as /auth)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (name) setDrillName(name);
+  }, []);
 
   // One entry point whether the video was recorded in-browser or picked from disk.
   // Faces are blurred ON-DEVICE here, before anything else can happen — the
@@ -183,8 +194,14 @@ export default function UploadPage() {
           className="mb-4 block rounded-2xl bg-card p-4 text-sm text-muted-foreground"
         >
           👤 <span className="text-primary underline">Sign in</span> so your swings are
-          saved to your Progress page.
+          saved to your Growth page.
         </Link>
+      )}
+
+      {drillName && (
+        <p className="mb-4 rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary">
+          🎯 Filming again after: {drillName}. Same angle as last time so your Growth compares fairly.
+        </p>
       )}
 
       <FilmingGuide />
@@ -238,12 +255,27 @@ export default function UploadPage() {
               : "⚠️ Faces pixelated on your device, but this device couldn't double-check the result — look over the preview before uploading:"}
           </p>
           <video src={previewUrl} controls playsInline className="w-full" />
-          <button
-            onClick={removeVideo}
-            className="flex w-full items-center justify-center gap-2 p-3 text-sm text-destructive"
-          >
-            <Trash2 className="h-4 w-4" /> Remove video
-          </button>
+          {/* The next step sits right under the clip it acts on */}
+          <div className="flex items-center gap-2 p-3">
+            <button
+              onClick={handleUploadClick}
+              disabled={stage !== "ready"}
+              className="flex-1 rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
+            >
+              {stage === "analyzing"
+                ? "Analyzing…"
+                : stage === "uploading"
+                  ? "Uploading…"
+                  : "Analyze my swing"}
+            </button>
+            <button
+              onClick={removeVideo}
+              aria-label="Remove video"
+              className="flex items-center gap-2 rounded-full px-4 py-3 text-sm text-destructive"
+            >
+              <Trash2 className="h-4 w-4" /> Remove
+            </button>
+          </div>
         </div>
       )}
 
@@ -283,19 +315,6 @@ export default function UploadPage() {
         <p className="mb-4 text-sm text-destructive">Upload failed: {errorMsg}</p>
       )}
 
-      <button
-        onClick={handleUploadClick}
-        disabled={stage !== "ready"}
-        className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
-      >
-        {stage === "analyzing"
-          ? "Analyzing…"
-          : stage === "uploading"
-            ? "Uploading…"
-            : stage === "done"
-              ? "Done — pick another to re-test"
-              : "Analyze my swing"}
-      </button>
       </div>
       </div>
     </main>

@@ -55,7 +55,7 @@ export default function ProgressPage() {
       <main className="mx-auto max-w-md p-6 pb-28">
         <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
-          Progress tracks a player&apos;s own swings.{" "}
+          Growth tracks a player&apos;s own swings.{" "}
           <Link href={profile.role === "mentor" ? "/coach" : "/family"} className="text-primary underline">
             {profile.role === "mentor" ? "Head to your review queue →" : "See your player's activity →"}
           </Link>

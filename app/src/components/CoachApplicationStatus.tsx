@@ -3,11 +3,54 @@
 // What an uncertified coach sees instead of the review queue: where their
 // application stands, the admin's note if it was turned down, and a form to
 // fix and resubmit. No swing is visible until the admin approves.
+import { BadgeCheck, Check, Clock, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CREDENTIALS, getCoachApplication, submitCoachApplication, type CoachApplication } from "@/lib/family";
 
 const FIELD = "w-full rounded-2xl border-0 bg-secondary p-3 text-sm";
+
+type StepState = "done" | "current" | "waiting" | "blocked" | "locked";
+
+const STEP_ICON = {
+  done: <Check className="h-4 w-4" />,
+  current: <span className="text-xs font-bold">•</span>,
+  waiting: <Clock className="h-4 w-4" />,
+  blocked: <X className="h-4 w-4" />,
+  locked: <Lock className="h-4 w-4" />,
+};
+
+const STEP_STYLE = {
+  done: "bg-primary text-primary-foreground",
+  current: "bg-primary/15 text-primary ring-1 ring-primary",
+  waiting: "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500",
+  blocked: "bg-destructive/15 text-destructive ring-1 ring-destructive",
+  locked: "bg-secondary text-muted-foreground",
+};
+
+// Onboarding at a glance: apply → a person verifies you → review swings
+function Steps({ app }: { app: CoachApplication | null }) {
+  const steps: { label: string; state: StepState }[] = [
+    { label: "Apply", state: app ? "done" : "current" },
+    {
+      label: app?.status === "rejected" ? "Needs changes" : "Verification",
+      state: !app ? "locked" : app.status === "rejected" ? "blocked" : "waiting",
+    },
+    { label: "Review swings", state: "locked" },
+  ];
+  return (
+    <ol className="mb-4 flex items-start justify-between gap-2 rounded-2xl bg-card p-4">
+      {steps.map((st) => (
+        <li key={st.label} className="flex flex-1 flex-col items-center gap-2 text-center">
+          <span className={`flex h-8 w-8 items-center justify-center rounded-full ${STEP_STYLE[st.state]}`}>
+            {STEP_ICON[st.state]}
+          </span>
+          <span className="text-xs text-muted-foreground">{st.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default function CoachApplicationStatus() {
   const { user, refresh } = useAuth();
@@ -39,7 +82,13 @@ export default function CoachApplicationStatus() {
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight">Almost there</h1>
+      <h1 className="mb-2 text-4xl font-bold tracking-tight">Coach setup</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Approved coaches get a{" "}
+        <BadgeCheck className="inline h-4 w-4 text-primary" aria-label="verified" /> next
+        to their name and team on every comment families see.
+      </p>
+      {app !== undefined && <Steps app={app} />}
       <div className="mb-4 rounded-2xl bg-card p-6">
         {app?.status === "rejected" ? (
           <>
@@ -52,7 +101,9 @@ export default function CoachApplicationStatus() {
           </>
         ) : app ? (
           <>
-            <p className="mb-2 text-lg font-semibold">🧢 Certification pending</p>
+            <p className="mb-2 flex items-center gap-2 text-lg font-semibold">
+              <Clock className="h-5 w-5 text-amber-400" /> Being verified
+            </p>
             <p className="text-sm text-muted-foreground">
               A real person checks every coach before they can see any player
               videos — that&apos;s a promise we make to families. Submitted{" "}

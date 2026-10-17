@@ -17,6 +17,7 @@ export interface Profile {
   guardianOf?: string[]; // player uids this parent is linked to (from guardianLinks)
   verifiedMentor?: boolean; // admin approved this coach
   coachStatus?: CoachStatus;
+  coachOrg?: string; // team / league / school from their application
   isAdmin?: boolean;
 }
 
@@ -37,7 +38,13 @@ async function loadProfile(u: User): Promise<Profile> {
     if (base.role === "mentor") {
       const app = await getCoachApplication(u.uid).catch(() => null);
       const coachStatus: CoachStatus = app?.status ?? "none";
-      return { ...base, coachStatus, verifiedMentor: coachStatus === "approved", isAdmin };
+      return {
+        ...base,
+        coachStatus,
+        coachOrg: app?.organization,
+        verifiedMentor: coachStatus === "approved",
+        isAdmin,
+      };
     }
     if (base.role === "guardian") {
       const links = await linksFor("guardianId", u.uid).catch(() => []);

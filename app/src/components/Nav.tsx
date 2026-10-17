@@ -33,6 +33,8 @@ export default function Nav() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const tabs = TABS[profile?.role ?? "player"] ?? TABS.player;
+  // The logged-out landing is a pitch + role picker — no app chrome
+  if (!user && pathname === "/") return null;
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur">
       {tabs.map((t) => {

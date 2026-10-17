@@ -2,7 +2,8 @@
 
 // Drills — coach-assigned drills up top (real, from Firestore), library below.
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { ChevronRight, Dumbbell } from "lucide-react";
+import { ChevronRight, Dumbbell, Video } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { DRILLS } from "@/lib/drills";
@@ -109,10 +110,19 @@ export default function DrillsPage() {
                       )}
                     </div>
                     {drill && (
-                      <p className="px-4 pb-4 text-xs text-muted-foreground">
+                      <p className="px-4 pb-3 text-xs text-muted-foreground">
                         {drill.description}
                       </p>
                     )}
+                    {/* Close the loop: drill → new swing → the coach sees the change */}
+                    <div className="px-4 pb-4">
+                      <Link
+                        href={`/upload?drill=${encodeURIComponent(a.drillId)}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary"
+                      >
+                        <Video className="h-3.5 w-3.5" /> Film it again
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
