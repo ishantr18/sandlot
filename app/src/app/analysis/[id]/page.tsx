@@ -52,6 +52,17 @@ const SEVERITY_STYLE = {
   good: "border-l-4 border-primary",
 } as const;
 
+async function saveAssignment(playerId: string, drillId: string, coachId: string, coachName: string) {
+  await addDoc(collection(db, "assignments"), {
+    playerId,
+    drillId,
+    assignedBy: coachId,
+    mentorName: coachName,
+    status: "assigned",
+    createdAt: Date.now(),
+  });
+}
+
 export default function AnalysisSessionPage() {
   const { id } = useParams<{ id: string }>();
   const { user, profile, loading } = useAuth();
@@ -65,6 +76,7 @@ export default function AnalysisSessionPage() {
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [newComment, setNewComment] = useState("");
   const [drillPick, setDrillPick] = useState("");
+  const [assigned, setAssigned] = useState<Set<string>>(new Set()); // drills assigned this visit
   const [coachMsg, setCoachMsg] = useState("");
   const [blockedCoaches, setBlockedCoaches] = useState<Set<string>>(new Set());
   const [safetyMsg, setSafetyMsg] = useState("");
@@ -167,6 +179,29 @@ export default function AnalysisSessionPage() {
       </main>
     );
   }
+
+  async function assignDrill(drillId: string) {
+    if (!user || !session) return;
+    try {
+      await saveAssignment(session.playerId, drillId, user.uid, user.displayName ?? "Coach");
+      setAssigned((s) => new Set([...s, drillId]));
+      setDrillPick("");
+      setCoachMsg("Drill assigned — it appears on the player's Drills page.");
+    } catch {
+      setCoachMsg("Couldn't assign the drill — check your connection and try again.");
+    }
+  }
+
+  // Drills the AI matched to this swing's findings, deduped, in finding order
+  const suggestedDrills = [
+    ...new Set(
+      (session?.findings ?? [])
+        .filter((f) => !DISABLED_METRICS.has(f.metric))
+        .flatMap((f) => f.drillIds),
+    ),
+  ]
+    .map((did) => DRILLS.find((d) => d.id === did))
+    .filter((d): d is (typeof DRILLS)[number] => !!d);
 
   const m = session?.metrics;
   const tiles = m
@@ -449,13 +484,33 @@ export default function AnalysisSessionPage() {
                     Post comment
                   </button>
                 </div>
+                {/* One tap: the drills the AI already matched to this swing */}
+                {suggestedDrills.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-xs text-muted-foreground">Suggested by the AI for this swing:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedDrills.map((d) => (
+                        <button
+                          key={d.id}
+                          disabled={assigned.has(d.id)}
+                          onClick={() => assignDrill(d.id)}
+                          className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+                        >
+                          {assigned.has(d.id) ? "✓" : "＋"} {d.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="mt-3 flex gap-2">
                   <select
                     value={drillPick}
                     onChange={(e) => setDrillPick(e.target.value)}
                     className="flex-1 rounded-xl border-0 bg-secondary p-2 text-sm"
                   >
-                    <option value="">Assign a drill…</option>
+                    <option value="">
+                      {suggestedDrills.length > 0 ? "Or pick any drill…" : "Assign a drill…"}
+                    </option>
                     {DRILLS.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
@@ -463,19 +518,7 @@ export default function AnalysisSessionPage() {
                     ))}
                   </select>
                   <button
-                    onClick={async () => {
-                      if (!drillPick || !user || !session) return;
-                      await addDoc(collection(db, "assignments"), {
-                        playerId: session.playerId,
-                        drillId: drillPick,
-                        assignedBy: user.uid,
-                        mentorName: user.displayName ?? "Coach",
-                        status: "assigned",
-                        createdAt: Date.now(),
-                      });
-                      setDrillPick("");
-                      setCoachMsg("Drill assigned — it appears on the player's Drills page.");
-                    }}
+                    onClick={() => drillPick && assignDrill(drillPick)}
                     className="rounded-full border border-border px-4 py-2 text-sm"
                   >
                     Assign

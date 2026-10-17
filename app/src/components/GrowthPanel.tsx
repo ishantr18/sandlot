@@ -12,7 +12,9 @@ import { useAuth } from "@/components/AuthProvider";
 import { db } from "@/lib/firebase";
 import {
   computeGrowth,
+  firstVsLatest,
   SKILL_INFO,
+  SKILLS,
   STEADY_BAND,
   swingsThisWeek,
   WEEKLY_SWING_GOAL,
@@ -101,6 +103,9 @@ export default function GrowthPanel({
 
   const growth = computeGrowth(sessions);
   const week = swingsThisWeek(sessions);
+  const compare = firstVsLatest(sessions);
+  const shortDate = (t: number) =>
+    new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const you = mode === "player" ? "your" : mode === "parent" ? "their" : "this player's";
 
   async function confirm(skill: Skill, level: number) {
@@ -193,6 +198,47 @@ export default function GrowthPanel({
           })}
         </div>
       </div>
+
+      {/* First swing vs newest swing — same five skills, one swing each */}
+      {compare && (
+        <div className="rounded-2xl bg-card p-4">
+          <h3 className="text-sm font-semibold">First swing vs latest</h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {you === "your" ? "Your" : you === "their" ? "Their" : "This player's"} very first
+            analyzed swing ({shortDate(compare.first.createdAt)}) next to the newest (
+            {shortDate(compare.latest.createdAt)}).
+          </p>
+          <div className="mb-2 grid grid-cols-[5.5rem_1fr_1fr] gap-x-3 text-xs text-muted-foreground">
+            <span />
+            <span>First</span>
+            <span>Latest</span>
+          </div>
+          <div className="space-y-3">
+            {SKILLS.map((skill) => {
+              const a = compare.first.levels[skill];
+              const b = compare.latest.levels[skill];
+              if (a == null && b == null) return null;
+              return (
+                <div key={skill} className="grid grid-cols-[5.5rem_1fr_1fr] items-center gap-x-3">
+                  <span className="text-sm font-medium">{SKILL_INFO[skill].name}</span>
+                  {[a, b].map((v, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      {v == null ? (
+                        <span className="text-xs text-muted-foreground">not measured</span>
+                      ) : (
+                        <>
+                          <Bar value={v} tone={i === 0 ? "bg-muted-foreground" : "bg-primary"} />
+                          <span className="w-9 shrink-0 text-right font-mono text-xs">{Math.round(v)}%</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

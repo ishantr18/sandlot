@@ -95,6 +95,21 @@ export function computeGrowth(sessions: GrowthSession[]): SkillGrowth[] {
   });
 }
 
+// First analyzed swing vs the newest one, side by side — single swings, not
+// averages, so the player can see the two clips the numbers came from.
+export interface SwingCompare {
+  first: { createdAt: number; levels: Partial<Record<Skill, number>> };
+  latest: { createdAt: number; levels: Partial<Record<Skill, number>> };
+}
+export function firstVsLatest(sessions: GrowthSession[]): SwingCompare | null {
+  const analyzed = sessions
+    .filter((s) => s.status === "analyzed" && s.metrics)
+    .sort((a, b) => a.createdAt - b.createdAt);
+  if (analyzed.length < 2) return null;
+  const pick = (s: GrowthSession) => ({ createdAt: s.createdAt, levels: skillLevels(s.metrics!) });
+  return { first: pick(analyzed[0]), latest: pick(analyzed[analyzed.length - 1]) };
+}
+
 // Effort: always in the kid's control, always moves forward.
 export const WEEKLY_SWING_GOAL = 3;
 export function swingsThisWeek(sessions: GrowthSession[], now = Date.now()): number {
