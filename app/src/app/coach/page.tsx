@@ -91,8 +91,8 @@ export default function CoachPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight lg:text-6xl">Review queue</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <h1 className="mb-2 text-4xl font-bold tracking-tight wide:text-6xl">Review queue</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Sorted so the least-coached players come first. Players are anonymous to
         you; your name and every word you write are visible to them and their
@@ -126,7 +126,7 @@ export default function CoachPage() {
       )}
 
       {rows && rows.length > 0 && (
-        <section className="rounded-2xl bg-card lg:max-w-2xl">
+        <section className="rounded-2xl bg-card wide:max-w-2xl">
           {rows.map((r, i) => (
             <Link
               key={r.id}

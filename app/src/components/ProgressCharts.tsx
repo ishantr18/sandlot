@@ -47,7 +47,7 @@ export default function ProgressCharts({ sessions }: { sessions: ChartSession[] 
   }
 
   return (
-    <section className="mb-6 grid grid-cols-2 gap-2 lg:gap-3">
+    <section className="mb-6 grid grid-cols-2 gap-2 wide:gap-3">
       {SERIES.map(({ key, label, unit }) => {
         // Per-series filtering: an upper-body clip has no stride number, and a
         // gap in the trend line is better than a fake point at zero.

@@ -34,6 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // Look switches — one word each to undo (see globals.css):
+      //   data-layout: "narrow" = phone-width everywhere · "wide" = laptop two-column layouts
+      //   data-text:   "large" = bigger text off the landing · "normal" = original sizes
+      data-layout="narrow"
+      data-text="large"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

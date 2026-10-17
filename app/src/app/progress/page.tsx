@@ -127,9 +127,9 @@ export default function ProgressPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
-      <div className="mb-6 flex items-end justify-between lg:mb-10">
-        <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Growth</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <div className="mb-6 flex items-end justify-between wide:mb-10">
+        <h1 className="text-4xl font-bold tracking-tight wide:text-6xl">Growth</h1>
         {user && (
           <button
             onClick={() => signOut(auth)}
@@ -142,7 +142,7 @@ export default function ProgressPage() {
 
       {user && sessions && <GrowthPanel playerId={user.uid} mode="player" sessions={sessions} />}
 
-      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
       <div>
         <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Trends</h2>
         <ProgressCharts sessions={sessions ?? []} />

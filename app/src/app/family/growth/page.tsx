@@ -34,8 +34,8 @@ export default function AthleteGrowthPage() {
 
   const link = links?.[pick];
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-3xl lg:px-10 lg:pt-12">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight lg:text-6xl">Athlete&apos;s Growth</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-3xl wide:px-10 wide:pt-12">
+      <h1 className="mb-2 text-4xl font-bold tracking-tight wide:text-6xl">Athlete&apos;s Growth</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         How your athlete is improving — compared only to their own first swings.
       </p>

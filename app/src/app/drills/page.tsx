@@ -48,9 +48,9 @@ export default function DrillsPage() {
   }, [user, reloadKey]);
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">Drills</h1>
-      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">Drills</h1>
+      <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
         {profile?.role !== "mentor" && profile?.role !== "guardian" && (
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">

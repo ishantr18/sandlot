@@ -80,7 +80,7 @@ export default function LabPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-6 pb-28 lg:px-10 lg:pt-12">
+    <main className="mx-auto max-w-5xl p-6 pb-28 wide:px-10 wide:pt-12">
       <h1 className="mb-2 text-4xl font-bold tracking-tight">🧪 Lab</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Engine tuning bench — select one or more clips (multi-select works). Raw
@@ -102,7 +102,7 @@ export default function LabPage() {
             </h2>
             {r.result.ok ? (
               <>
-                <div className="grid grid-cols-3 gap-2 text-xs sm:grid-cols-4 lg:grid-cols-6">
+                <div className="grid grid-cols-3 gap-2 text-xs sm:grid-cols-4 wide:grid-cols-6">
                   {Object.entries(r.result.metrics).map(([k, v]) => (
                     <div key={k} className="rounded-lg bg-secondary p-2">
                       <div className="font-mono text-sm font-bold text-primary">{v}</div>

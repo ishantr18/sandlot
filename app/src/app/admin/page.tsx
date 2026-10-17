@@ -117,7 +117,7 @@ export default function AdminPage() {
   const approved = apps?.filter((a) => a.status === "approved") ?? [];
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-3xl lg:px-10 lg:pt-12">
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-3xl wide:px-10 wide:pt-12">
       <h1 className="mb-2 text-4xl font-bold tracking-tight">Admin</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Check each coach&apos;s credential before approving (e.g. look up the

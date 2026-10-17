@@ -39,7 +39,7 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
   }
 
   return (
-    <section className="mt-6 rounded-2xl bg-card p-4 lg:p-6">
+    <section className="mt-6 rounded-2xl bg-card p-4 wide:p-6">
       <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
         <Users className="h-4 w-4 text-primary" /> Family code
       </h2>

@@ -46,7 +46,7 @@ function LinkForm({ onLinked }: { onLinked: () => void }) {
               : "That code doesn't match. Check it on your player's Home screen.",
           );
       }}
-      className="rounded-2xl bg-card p-4 lg:max-w-md"
+      className="rounded-2xl bg-card p-4 wide:max-w-md"
     >
       <p className="mb-2 text-sm font-semibold">Link a player</p>
       <p className="mb-3 text-xs text-muted-foreground">
@@ -125,8 +125,8 @@ export default function FamilyPage() {
   const nameOf = (pid: string) => links?.find((l) => l.playerId === pid)?.playerName ?? "Your player";
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight lg:text-6xl">Family</h1>
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <h1 className="mb-2 text-4xl font-bold tracking-tight wide:text-6xl">Family</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Everything your player does here is visible to you — every swing, every
         coach comment, every assigned drill. Videos are face-anonymized on the
@@ -174,7 +174,7 @@ export default function FamilyPage() {
             </p>
           )}
           {rows && rows.length > 0 && (
-            <section className="mb-6 rounded-2xl bg-card lg:max-w-2xl">
+            <section className="mb-6 rounded-2xl bg-card wide:max-w-2xl">
               {rows.map((r, i) => (
                 <Link
                   key={r.id}
@@ -201,7 +201,7 @@ export default function FamilyPage() {
               ))}
             </section>
           )}
-          <details className="lg:max-w-md">
+          <details className="wide:max-w-md">
             <summary className="mb-2 cursor-pointer text-sm text-primary">+ Link another player</summary>
             <LinkForm
               onLinked={() => {

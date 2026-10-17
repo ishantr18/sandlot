@@ -103,7 +103,7 @@ function ImpactStrip({ impact, isCoach }: { impact: Impact | null; isCoach: bool
     },
   ];
   return (
-    <section className="mb-4 lg:max-w-md">
+    <section className="mb-4 wide:max-w-md">
       <div className="grid grid-cols-3 gap-2">
         {tiles.map((t) => (
           <div key={t.label} className="rounded-2xl bg-card p-4">
@@ -224,7 +224,7 @@ export default function Home() {
       { role: "guardian", icon: Users, label: "Parent", pitch: "See everything your player does — always" },
     ];
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 pb-16 lg:max-w-2xl">
+      <main className="dd-landing mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 pb-16 lg:max-w-2xl">
         <div className="mb-2 flex items-center justify-center gap-3">
           <BrandMark className="h-9 w-9 lg:h-11 lg:w-11" />
           <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
@@ -286,13 +286,13 @@ export default function Home() {
   if (profile?.role === "mentor" || profile?.role === "guardian") {
     const isCoach = profile.role === "mentor";
     return (
-      <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
         <p className="text-sm text-muted-foreground">Welcome back,</p>
-        <h1 className={`text-4xl font-bold tracking-tight lg:text-6xl ${isCoach ? "mb-3" : "mb-6 lg:mb-10"}`}>
+        <h1 className={`text-4xl font-bold tracking-tight wide:text-6xl ${isCoach ? "mb-3" : "mb-6 wide:mb-10"}`}>
           {firstName}
         </h1>
         {isCoach && (
-          <div className="mb-6 lg:mb-10">
+          <div className="mb-6 wide:mb-10">
             {profile.verifiedMentor ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary">
                 <BadgeCheck className="h-4 w-4" /> Approved coach
@@ -311,14 +311,14 @@ export default function Home() {
           </div>
         )}
         {profile?.isAdmin && (
-          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary lg:max-w-md">
+          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary wide:max-w-md">
             <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
           </Link>
         )}
         {(!isCoach || profile.verifiedMentor) && <ImpactStrip impact={impact} isCoach={isCoach} />}
         <Link
           href={isCoach ? "/coach" : "/family"}
-          className="block rounded-2xl bg-card p-6 transition-colors hover:bg-secondary lg:max-w-md"
+          className="block rounded-2xl bg-card p-6 transition-colors hover:bg-secondary wide:max-w-md"
         >
           <div className="mb-1 flex items-center gap-2 text-lg font-semibold">
             {isCoach ? <ClipboardList className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
@@ -341,13 +341,13 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
       <p className="text-sm text-muted-foreground">Welcome back,</p>
-      <h1 className="mb-6 text-4xl font-bold tracking-tight lg:mb-10 lg:text-6xl">
+      <h1 className="mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">
         {firstName}
       </h1>
       {profile?.isAdmin && (
-          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary lg:max-w-md">
+          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary wide:max-w-md">
             <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
           </Link>
         )}
@@ -355,7 +355,7 @@ export default function Home() {
       {unread.length > 0 && (
         <Link
           href={`/analysis/${unread[0].id}`}
-          className="mb-6 flex items-center gap-3 rounded-2xl bg-primary/15 p-4 ring-1 ring-primary lg:max-w-md"
+          className="mb-6 flex items-center gap-3 rounded-2xl bg-primary/15 p-4 ring-1 ring-primary wide:max-w-md"
         >
           <MessageCircle className="h-5 w-5 text-primary" />
           <span className="flex-1 text-sm">
@@ -370,41 +370,41 @@ export default function Home() {
         </Link>
       )}
 
-      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+      <div className="wide:grid wide:grid-cols-5 wide:gap-8">
         {/* Left: stats + actions */}
-        <div className="lg:col-span-3">
-          <div className="mb-6 grid grid-cols-3 gap-2 lg:gap-4">
-            <div className="rounded-2xl bg-card p-4 lg:p-6">
-              <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary lg:text-4xl">
-                <Flame className="h-5 w-5 lg:h-7 lg:w-7" />
+        <div className="wide:col-span-3">
+          <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
+            <div className="rounded-2xl bg-card p-4 wide:p-6">
+              <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary wide:text-4xl">
+                <Flame className="h-5 w-5 wide:h-7 wide:w-7" />
                 {stats ? <CountUp value={stats.streak} /> : "–"}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">day streak</div>
+              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">day streak</div>
             </div>
-            <div className="rounded-2xl bg-card p-4 lg:p-6">
-              <div className="font-mono text-2xl font-bold lg:text-4xl">
+            <div className="rounded-2xl bg-card p-4 wide:p-6">
+              <div className="font-mono text-2xl font-bold wide:text-4xl">
                 {stats ? <CountUp value={stats.thisWeek} /> : "–"}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">this week</div>
+              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">this week</div>
             </div>
-            <div className="rounded-2xl bg-card p-4 lg:p-6">
-              <div className="font-mono text-2xl font-bold lg:text-4xl">
+            <div className="rounded-2xl bg-card p-4 wide:p-6">
+              <div className="font-mono text-2xl font-bold wide:text-4xl">
                 {stats ? <CountUp value={stats.total} /> : "–"}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground lg:text-sm">
+              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">
                 total swings
               </div>
             </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-3 gap-2 lg:gap-4">
+          <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
             {ACTIONS.map((a) => (
               <Link
                 key={a.href}
                 href={a.href}
-                className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium transition-colors hover:bg-secondary lg:p-8 lg:text-sm"
+                className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium transition-colors hover:bg-secondary wide:p-8 wide:text-sm"
               >
-                <a.icon className="h-5 w-5 text-primary lg:h-7 lg:w-7" />
+                <a.icon className="h-5 w-5 text-primary wide:h-7 wide:w-7" />
                 {a.label}
               </Link>
             ))}
@@ -412,8 +412,8 @@ export default function Home() {
         </div>
 
         {/* Right: focus + recent activity */}
-        <div className="lg:col-span-2">
-          <section className="mb-6 rounded-2xl bg-card p-4 lg:p-6">
+        <div className="wide:col-span-2">
+          <section className="mb-6 rounded-2xl bg-card p-4 wide:p-6">
             <h2 className="mb-1 text-sm font-semibold">Today&apos;s focus</h2>
             <p className="text-sm text-muted-foreground">
               {stats?.lastAt
@@ -422,7 +422,7 @@ export default function Home() {
             </p>
           </section>
 
-          <section className="rounded-2xl bg-card lg:min-h-48">
+          <section className="rounded-2xl bg-card wide:min-h-48">
             <div className="flex items-center justify-between p-4 pb-2">
               <h2 className="text-sm font-semibold">Recent swings</h2>
               <Link href="/progress" className="text-xs text-primary">

@@ -219,12 +219,12 @@ export default function AnalysisSessionPage() {
     : [];
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-28 lg:max-w-5xl lg:px-10 lg:pt-12">
-      <div className="mb-6 flex items-center gap-3 lg:mb-10">
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <div className="mb-6 flex items-center gap-3 wide:mb-10">
         <Link href="/progress" className="rounded-full bg-card p-2">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">Analysis</h1>
+        <h1 className="text-4xl font-bold tracking-tight wide:text-6xl">Analysis</h1>
       </div>
 
       {error && (
@@ -248,8 +248,8 @@ export default function AnalysisSessionPage() {
         </p>
       )}
 
-      <div className="lg:grid lg:grid-cols-5 lg:items-start lg:gap-8">
-        <div className="lg:col-span-3">
+      <div className="wide:grid wide:grid-cols-5 wide:items-start wide:gap-8">
+        <div className="wide:col-span-3">
           <section className="relative mb-4 overflow-hidden rounded-2xl bg-card">
             {videoUrl ? (
               <>
@@ -315,8 +315,8 @@ export default function AnalysisSessionPage() {
           )}
         </div>
 
-        <div className="lg:col-span-2">
-          <section className="mb-4 grid grid-cols-2 gap-2 lg:gap-4">
+        <div className="wide:col-span-2">
+          <section className="mb-4 grid grid-cols-2 gap-2 wide:gap-4">
             {tiles.map((t) => (
               <div key={t.label} className="rounded-2xl bg-card p-4">
                 <div className="font-mono text-3xl font-bold text-primary">

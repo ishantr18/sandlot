@@ -4,6 +4,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Layout switch (set data-layout on <html> in layout.tsx) ─────────────
+   wide:  laptop layouts (two columns, up to 5xl) — only when data-layout="wide"
+   desk:  laptop rules for the narrow, phone-shaped layout — only when "narrow"
+   Both start at the old lg breakpoint (64rem), so flipping the attribute
+   restores the wide layouts exactly as they were. */
+@custom-variant wide {
+  @media (width >= 64rem) {
+    &:where([data-layout="wide"] *) {
+      @slot;
+    }
+  }
+}
+@custom-variant desk {
+  @media (width >= 64rem) {
+    &:where([data-layout="narrow"] *) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -198,4 +218,13 @@
   .dd-fill {
     transition: width 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+}
+
+/* ── Text-size switch (set data-text on <html> in layout.tsx) ────────────
+   "large" bumps small/normal/body text one step on every page except the
+   landing (.dd-landing). Tailwind's text-* utilities read these variables. */
+[data-text="large"] main:not(.dd-landing) {
+  --text-xs: 0.8125rem; /* 12 → 13px */
+  --text-sm: 0.9375rem; /* 14 → 15px */
+  --text-base: 1.0625rem; /* 16 → 17px */
 }

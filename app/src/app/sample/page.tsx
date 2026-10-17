@@ -77,12 +77,12 @@ export default function SamplePage() {
   const focusDrill = DRILLS.find((d) => d.id === "balance-beam")!;
 
   return (
-    <main className="mx-auto max-w-md p-6 pb-16 lg:max-w-5xl lg:px-10 lg:pt-12">
+    <main className="mx-auto max-w-md p-6 pb-16 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
       <div className="mb-6 flex items-center gap-3">
         <Link href="/" className="rounded-full bg-card p-2" aria-label="Back">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="flex-1 text-4xl font-bold tracking-tight lg:text-6xl">Sample swing</h1>
+        <h1 className="flex-1 text-4xl font-bold tracking-tight wide:text-6xl">Sample swing</h1>
         <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-400">
           Sample
         </span>
@@ -92,7 +92,7 @@ export default function SamplePage() {
         are illustrative, but the scoring is the app&apos;s real code.
       </p>
 
-      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
         <div>
           {/* The swing, traced */}
           <section className="relative mb-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-[#131c36] via-[#1b2a4a] to-[#0a1f0e]">
