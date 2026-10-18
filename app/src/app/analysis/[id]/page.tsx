@@ -17,7 +17,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { BadgeCheck, Ban, Check, ChevronLeft, Flag, Plus, Star } from "lucide-react";
+import { BadgeCheck, Ban, Check, ChevronLeft, ChevronRight, Flag, Plus, Star } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +25,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
+import { fieldSkinOn } from "@/lib/skin";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
 import DrillPicker from "@/components/DrillPicker";
@@ -274,16 +275,12 @@ export default function AnalysisSessionPage() {
       ].filter((t) => !(t.key && DISABLED_METRICS.has(t.key)))
     : [];
 
-  return (
-    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
-      <div className="mb-6 flex items-center gap-3 wide:mb-10">
-        <Link href="/progress" className="dd-back rounded-full bg-card p-2">
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="dd-title text-4xl font-bold tracking-tight wide:text-6xl">Analysis</h1>
-      </div>
+  // Coach review screen in the Field skin (switch: FIELD_SKIN_ROLES): same
+  // pieces as below, laid out like the prototype — composer under the video,
+  // AI notes / numbers / growth folded into "Reference", then earlier comments.
+  const coachField = profile?.role === "mentor" && fieldSkinOn(profile.role);
 
-      {error && (
+  const errorEl = error && (
         <p className="mb-4 rounded-2xl bg-card p-4 text-sm text-destructive">
           {error}
           {loadFailed && (
@@ -302,10 +299,10 @@ export default function AnalysisSessionPage() {
             </>
           )}
         </p>
-      )}
+  );
 
-      <div className="wide:grid wide:grid-cols-5 wide:items-start wide:gap-8">
-        <div className="wide:col-span-3">
+  const videoEl = (
+    <>
           <section className="dd-video relative mb-4 overflow-hidden rounded-2xl bg-card">
             {videoUrl ? (
               <>
@@ -334,7 +331,10 @@ export default function AnalysisSessionPage() {
             ▶ Play or scrub — the green skeleton is the AI&apos;s view of the body,
             computed on-device.
           </p>
-          {profile?.role === "mentor" && session && user && (
+    </>
+  );
+
+  const safetyRowEl = profile?.role === "mentor" && session && user && (
             <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
               <span className="font-medium">{anonPlayer(session.playerId)}</span>
               <button
@@ -368,10 +368,9 @@ export default function AnalysisSessionPage() {
               </button>
               {safetyMsg && <span className="text-primary">{safetyMsg}</span>}
             </div>
-          )}
-        </div>
+  );
 
-        <div className="wide:col-span-2">
+  const tilesEl = (
           <section className="mb-4 grid grid-cols-2 gap-2 wide:gap-4">
             {tiles.map((t) => (
               <div key={t.label} className="dd-stat rounded-2xl bg-card p-4">
@@ -391,17 +390,18 @@ export default function AnalysisSessionPage() {
               </div>
             ))}
           </section>
+  );
 
-          {!m && session && (
+  const noMetricsEl = !m && session && (
             <section className="mb-4 rounded-2xl bg-card p-4 text-sm text-muted-foreground">
               This swing has the video only — it was uploaded before AI analysis
               existed (or was analyzed on an older version). New uploads get the
               full breakdown automatically.
             </section>
-          )}
-          <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
-          <div className="space-y-2">
-            {session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
+  );
+
+  const findings = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)) ?? [];
+  const findingsEl = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
               <section key={i} className={`dd-finding rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
                 <p className="text-sm">{f.message}</p>
                 {f.drillIds.length > 0 && (
@@ -413,22 +413,23 @@ export default function AnalysisSessionPage() {
                   </p>
                 )}
               </section>
-            ))}
-          </div>
+            ));
 
-          <h2 className="dd-label mb-2 mt-6 text-sm font-semibold text-muted-foreground">
-            Coach comments
-          </h2>
-          <div className="space-y-2">
-            {comments.length === 0 && (
+  const noCommentsEl = comments.length === 0 && (
               <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground">
                 No coach comments yet.
               </p>
-            )}
-            {comments
+  );
+
+  const commentEls = comments
               .filter((c) => !c.mentorId || !blockedCoaches.has(c.mentorId))
               .map((c) => (
-              <div key={c.id} className="dd-comment rounded-2xl bg-card p-4">
+              <div
+                key={c.id}
+                className={`dd-comment rounded-2xl bg-card p-4${
+                  coachField && (c.mentorId === user?.uid || c.id.startsWith("local-")) ? " dd-mine" : ""
+                }`}
+              >
                 <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   {/* Tapping the name/date jumps the video to where the coach paused;
@@ -527,20 +528,23 @@ export default function AnalysisSessionPage() {
                   </div>
                 )}
               </div>
-            ))}
-            {safetyMsg && <p className="text-xs text-primary">{safetyMsg}</p>}
+            ));
 
-            {profile?.role === "mentor" && profile.verifiedMentor && session && (
+  const safetyMsgEl = safetyMsg && <p className="text-xs text-primary">{safetyMsg}</p>;
+
+  const growthEl = profile?.role === "mentor" && profile.verifiedMentor && session && (
               <div className="mb-4">
                 <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">
                   {anonPlayer(session.playerId)}&apos;s growth
                 </h2>
                 <GrowthPanel playerId={session.playerId} mode="coach" />
               </div>
-            )}
-            {profile?.role === "mentor" && session && (
-              <div className="rounded-2xl bg-card p-4">
-                <p className="mb-2 text-xs text-muted-foreground">
+  );
+
+  const composerEl = profile?.role === "mentor" && session && (
+              <div className={`rounded-2xl bg-card p-4${coachField ? " dd-composer" : ""}`}>
+                {coachField && <p className="dd-composer-k">Your review</p>}
+                <p className={`mb-2 text-xs text-muted-foreground${coachField ? " dd-hide" : ""}`}>
                   Comment lands at the video&apos;s current time — pause where you want it.
                   Visible to the player and their parent.
                 </p>
@@ -548,7 +552,7 @@ export default function AnalysisSessionPage() {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="At this moment — watch your back elbow…"
-                  className="mb-2 w-full rounded-xl border-0 bg-secondary p-3 text-sm"
+                  className={`mb-2 w-full rounded-xl border-0 bg-secondary p-3 text-sm${coachField ? " dd-composer-input" : ""}`}
                   rows={2}
                 />
                 <div className="flex gap-2">
@@ -593,7 +597,7 @@ export default function AnalysisSessionPage() {
                           key={d.id}
                           disabled={assigned.has(d.id)}
                           onClick={() => assignDrill(d.id)}
-                          className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+                          className={`rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50${coachField ? " dd-suggest" : ""}`}
                         >
                           {assigned.has(d.id) ? <Check className="mr-1 inline h-3.5 w-3.5" /> : <Plus className="mr-1 inline h-3.5 w-3.5" />}
                           {d.name}
@@ -607,8 +611,129 @@ export default function AnalysisSessionPage() {
                   <DrillPicker onPick={assignDrill} assigned={assigned} />
                 </div>
                 {coachMsg && <p className="mt-2 text-xs text-primary">{coachMsg}</p>}
+                {coachField && (
+                  <p className="dd-fineprint">
+                    Your comment lands at the video&apos;s current time — scrub, pause where you want it. Visible
+                    to the player and their parent.
+                  </p>
+                )}
               </div>
+  );
+
+  if (coachField) {
+    const measured = [
+      m?.sequenceGapMs != null && `hips ${m.sequenceGapMs}ms`,
+      m?.tempoSec != null && `tempo ${m.tempoSec}s`,
+    ].filter(Boolean);
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl">
+        <Link href="/" className="dd-back inline-flex items-center gap-0.5 text-sm">
+          <ChevronLeft className="h-4 w-4" /> On Deck
+        </Link>
+        <h1 className="dd-title dd-review-title mt-3 mb-4">
+          {session ? anonPlayer(session.playerId) : "Review"}
+          {session && (
+            <span className="dd-when">
+              {" "}
+              · {new Date(session.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+          )}
+        </h1>
+        {errorEl}
+        {videoEl}
+        {safetyRowEl}
+        {composerEl}
+
+        {session && (
+          <>
+            <p className="dd-label mb-0">Reference</p>
+            <details className="dd-ref">
+              <summary>
+                <span>
+                  <b>AI notes</b> · {findings.length} finding{findings.length === 1 ? "" : "s"}
+                </span>
+                <ChevronRight className="dd-chev h-4 w-4" />
+              </summary>
+              <div className="dd-refbody space-y-2">
+                {noMetricsEl}
+                {findingsEl}
+                {findings.length === 0 && m && <p className="text-sm text-muted-foreground">No AI notes on this swing.</p>}
+              </div>
+            </details>
+            {m && (
+              <details className="dd-ref">
+                <summary>
+                  <span>
+                    <b>Measured</b>
+                    {measured.length > 0 && <> · {measured.join(" · ")}</>}
+                  </span>
+                  <ChevronRight className="dd-chev h-4 w-4" />
+                </summary>
+                <div className="dd-refbody">{tilesEl}</div>
+              </details>
             )}
+            {profile?.verifiedMentor && (
+              <details className="dd-ref">
+                <summary>
+                  <span>
+                    <b>{anonPlayer(session.playerId)}&apos;s growth</b> · effort &amp; skills
+                  </span>
+                  <ChevronRight className="dd-chev h-4 w-4" />
+                </summary>
+                <div className="dd-refbody">
+                  <GrowthPanel playerId={session.playerId} mode="coach" />
+                </div>
+              </details>
+            )}
+          </>
+        )}
+
+        <p className="dd-label mb-3">Earlier comments</p>
+        <div className="space-y-2">
+          {noCommentsEl}
+          {commentEls}
+          {safetyMsgEl}
+        </div>
+        <Link href="/" className="dd-softbtn">
+          Back to On Deck →
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+      <div className="mb-6 flex items-center gap-3 wide:mb-10">
+        <Link href="/progress" className="dd-back rounded-full bg-card p-2">
+          <ChevronLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="dd-title text-4xl font-bold tracking-tight wide:text-6xl">Analysis</h1>
+      </div>
+
+      {errorEl}
+
+      <div className="wide:grid wide:grid-cols-5 wide:items-start wide:gap-8">
+        <div className="wide:col-span-3">
+          {videoEl}
+          {safetyRowEl}
+        </div>
+
+        <div className="wide:col-span-2">
+          {tilesEl}
+          {noMetricsEl}
+          <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
+          <div className="space-y-2">{findingsEl}</div>
+
+          <h2 className="dd-label mb-2 mt-6 text-sm font-semibold text-muted-foreground">
+            Coach comments
+          </h2>
+          <div className="space-y-2">
+            {noCommentsEl}
+            {commentEls}
+            {safetyMsgEl}
+
+            {growthEl}
+            {composerEl}
           </div>
         </div>
       </div>

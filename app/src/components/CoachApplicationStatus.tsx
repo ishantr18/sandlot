@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CREDENTIALS, getCoachApplication, submitCoachApplication, type CoachApplication } from "@/lib/family";
 
-const FIELD = "w-full rounded-2xl border-0 bg-secondary p-3 text-sm";
+const FIELD = "dd-field w-full rounded-2xl border-0 bg-secondary p-3 text-sm";
 
 type StepState = "done" | "current" | "waiting" | "blocked" | "locked";
 
@@ -52,7 +52,9 @@ function Steps({ app }: { app: CoachApplication | null }) {
   );
 }
 
-export default function CoachApplicationStatus() {
+// `top`: optional content above the title (the Field-skin On Deck screen puts
+// the admin link there, since this replaces the coach's whole Home)
+export default function CoachApplicationStatus({ top }: { top?: React.ReactNode } = {}) {
   const { user, refresh } = useAuth();
   const [app, setApp] = useState<CoachApplication | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
@@ -82,8 +84,9 @@ export default function CoachApplicationStatus() {
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight">Coach setup</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
+      {top}
+      <h1 className="dd-title mb-2 text-4xl font-bold tracking-tight">Coach setup</h1>
+      <p className="dd-sub mb-6 text-sm text-muted-foreground">
         Approved coaches get a{" "}
         <BadgeCheck className="inline h-4 w-4 text-primary" aria-label="verified" /> next
         to their name and team on every comment families see.

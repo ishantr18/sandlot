@@ -673,4 +673,353 @@ html[data-skin="field"] body::before {
 html[data-skin="field"] body {
   position: relative;
   isolation: isolate;
+/* ── Field skin: coach ─────────────────────────────────────────────────────
+   On Deck (Home + queue), Reviewed, Players, and the review screen
+   (analysis as a coach). Prototype: COACH V2 in diamond-drive-prototype.html. */
+
+/* 4-tab coach bar (On Deck · Reviewed · Players · Drills) + the count badge */
+.dd-tabbar-4 a {
+  padding: 8px 10px;
+  gap: 5px;
+  white-space: nowrap;
+}
+.dd-tabbar .dd-n {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--dd-acc);
+  background: rgba(92, 227, 139, 0.16);
+}
+.dd-tabbar a[data-on="true"] .dd-n {
+  background: rgba(92, 227, 139, 0.25);
+}
+@media (width < 26rem) {
+  /* phones: icon over label so four tabs fit */
+  .dd-tabbar-4 {
+    padding: 8px 4px;
+  }
+  .dd-tabbar-4 a {
+    position: relative;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+    border-radius: 16px;
+  }
+  .dd-tabbar-4 .dd-n {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+}
+
+/* On Deck header */
+html[data-skin="field"] .dd-eyebrow {
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--dd-acc);
+  text-transform: uppercase;
+}
+html[data-skin="field"] .dd-approved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dd-acc);
+  background: var(--dd-acc-dim);
+  border: 1px solid rgba(92, 227, 139, 0.3);
+  padding: 6px 13px;
+  border-radius: 999px;
+}
+html[data-skin="field"] .dd-statband {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+html[data-skin="field"] .dd-statcell {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 14px 6px 12px;
+  border: 1px solid var(--dd-line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)), var(--dd-surface);
+}
+html[data-skin="field"] .dd-statcell b {
+  display: block;
+  font-family: var(--dd-cond);
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--dd-acc);
+}
+html[data-skin="field"] .dd-statcell span {
+  display: block;
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dd-mut);
+}
+html[data-skin="field"] .dd-quiet-note {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dd-mut);
+}
+html[data-skin="field"] .dd-filters {
+  margin-top: 4px;
+}
+
+/* queue rows (.queuerow) + pill tags (.pilltag) */
+html[data-skin="field"] .dd-queuerow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--dd-line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)), var(--dd-surface);
+  color: var(--dd-text);
+  transition: border-color 0.15s, transform 0.08s;
+}
+html[data-skin="field"] .dd-queuerow:hover {
+  border-color: rgba(92, 227, 139, 0.4);
+}
+html[data-skin="field"] .dd-queuerow:active {
+  transform: scale(0.99);
+}
+html[data-skin="field"] .dd-thumb {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--dd-line);
+  background: linear-gradient(150deg, #16211a, #0a0f0b);
+  color: var(--dd-acc);
+}
+html[data-skin="field"] .dd-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+html[data-skin="field"] .dd-fan {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dd-amber);
+}
+html[data-skin="field"] .dd-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--dd-mut);
+}
+html[data-skin="field"] .dd-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  margin-left: auto;
+}
+html[data-skin="field"] .dd-pilltag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--dd-amber);
+  background: rgba(232, 180, 74, 0.1);
+  border: 1px solid rgba(232, 180, 74, 0.3);
+}
+html[data-skin="field"] .dd-pilltag-new {
+  color: var(--dd-acc);
+  background: var(--dd-acc-dim);
+  border-color: rgba(92, 227, 139, 0.3);
+}
+html[data-skin="field"] .dd-pilltag-repeat {
+  color: var(--dd-sub);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--dd-line);
+}
+html[data-skin="field"] .dd-chev {
+  color: var(--dd-mut);
+}
+
+/* Reviewed: past comments (.comment), mine outlined in green */
+html[data-skin="field"] .dd-review-text {
+  margin-top: 5px;
+  font-size: 15.5px;
+  line-height: 1.45;
+}
+html[data-skin="field"] .dd-assigned {
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--dd-acc);
+}
+html[data-skin="field"] .dd-mine {
+  border-color: rgba(92, 227, 139, 0.4);
+}
+
+/* Players: trend line on the right of each roster row */
+html[data-skin="field"] .dd-row .dd-trend {
+  margin-top: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dd-acc);
+  text-align: right;
+}
+
+/* review screen (analysis as a coach) */
+html[data-skin="field"] .dd-review-title {
+  font-size: 28px;
+  line-height: 1.05;
+}
+html[data-skin="field"] .dd-when {
+  font-family: var(--dd-font);
+  font-size: 16px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--dd-mut);
+}
+html[data-skin="field"] .dd-composer {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid rgba(92, 227, 139, 0.35);
+  background: linear-gradient(180deg, rgba(92, 227, 139, 0.06), rgba(92, 227, 139, 0.015)), var(--dd-surface);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35), 0 0 60px rgba(92, 227, 139, 0.08);
+}
+html[data-skin="field"] .dd-composer-k {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--dd-acc);
+  text-transform: uppercase;
+}
+html[data-skin="field"] .dd-composer-input {
+  margin-top: 12px;
+  min-height: 82px;
+  padding: 14px;
+  resize: none;
+  font-size: 15.5px;
+  color: var(--dd-text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--dd-line);
+  border-radius: 14px;
+  outline: none;
+}
+html[data-skin="field"] .dd-composer-input:focus {
+  border-color: rgba(92, 227, 139, 0.55);
+}
+html[data-skin="field"] .dd-composer button.bg-primary {
+  padding-block: 13px;
+  border-radius: 16px;
+  font-size: 15.5px;
+}
+html[data-skin="field"] .dd-suggest {
+  padding: 8px 14px;
+  font-size: 13.5px;
+  color: var(--dd-acc);
+  background: var(--dd-acc-dim);
+  border-color: rgba(92, 227, 139, 0.3);
+}
+html[data-skin="field"] .dd-composer [role="combobox"] {
+  font-size: 14.5px;
+}
+html[data-skin="field"] .dd-composer .bg-secondary:has([role="combobox"]) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--dd-line);
+  border-radius: 14px;
+}
+html[data-skin="field"] .dd-fineprint {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--dd-mut);
+}
+/* Reference: AI notes / Measured / growth fold away (.ref + .refbody) */
+html[data-skin="field"] .dd-ref {
+  margin-top: 12px;
+}
+html[data-skin="field"] .dd-ref > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--dd-sub);
+  border: 1px solid var(--dd-line);
+  border-radius: 16px;
+}
+html[data-skin="field"] .dd-ref > summary::-webkit-details-marker {
+  display: none;
+}
+html[data-skin="field"] .dd-ref > summary b {
+  color: var(--dd-text);
+  font-weight: 600;
+}
+html[data-skin="field"] .dd-ref > summary .dd-chev {
+  flex: 0 0 auto;
+  transition: transform 0.2s;
+}
+html[data-skin="field"] .dd-ref[open] > summary {
+  border-radius: 16px 16px 0 0;
+}
+html[data-skin="field"] .dd-ref[open] > summary .dd-chev {
+  transform: rotate(90deg);
+}
+html[data-skin="field"] .dd-refbody {
+  padding: 14px 14px 16px;
+  background: var(--dd-surface);
+  border: 1px solid var(--dd-line);
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+}
+html[data-skin="field"] .dd-refbody > .grid {
+  margin-bottom: 0;
+}
+html[data-skin="field"] .dd-refbody > section.mb-6 {
+  margin-bottom: 0;
+}
+html[data-skin="field"] .dd-softbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  padding: 15px 22px;
+  border-radius: 16px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--dd-acc);
+  background: linear-gradient(180deg, rgba(92, 227, 139, 0.17), rgba(92, 227, 139, 0.08));
+  border: 1px solid rgba(92, 227, 139, 0.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="field"] .dd-queuerow,
+  html[data-skin="field"] .dd-ref > summary .dd-chev {
+    transition: none;
+  }
 }

@@ -3,12 +3,13 @@
 // Floating pill dock — tabs depend on WHO you are.
 // Player: full training loop. Coach: review work. Parent: the window.
 import { signOut } from "firebase/auth";
-import { ClipboardList, Dumbbell, House, LogOut, TrendingUp, Users, Video } from "lucide-react";
+import { ClipboardList, Crosshair, Dumbbell, History, House, LogOut, TrendingUp, Users, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { HomePlateMark } from "@/components/BrandMark";
+import { useWaitingCount } from "@/lib/coachQueue";
 import { auth } from "@/lib/firebase";
 import { fieldSkinOn } from "@/lib/skin";
 
@@ -33,11 +34,20 @@ const TABS = {
 
 // Field skin tab bars (from the approved prototype) — same pages, new labels/order.
 // Roles without an entry keep the classic dock.
-const FIELD_TABS: Partial<Record<keyof typeof TABS, { href: string; label: string; icon?: typeof House }[]>> = {
+// also: other exact paths that light the tab · badge: "waiting" = On Deck count
+type FieldTab = { href: string; label: string; icon?: typeof House; also?: string[]; badge?: "waiting" };
+const FIELD_TABS: Partial<Record<keyof typeof TABS, FieldTab[]>> = {
   guardian: [
     { href: "/", label: "Home" },
     { href: "/family", label: "My Kids" },
     { href: "/family/growth", label: "Progress" },
+  ],
+  // coach: On Deck is Home + the review queue (/coach shows it too)
+  mentor: [
+    { href: "/", label: "On Deck", icon: Crosshair, also: ["/coach"], badge: "waiting" },
+    { href: "/coach/reviewed", label: "Reviewed", icon: History },
+    { href: "/coach/players", label: "Players", icon: Users },
+    { href: "/drills", label: "Drills", icon: Dumbbell },
   ],
 };
 
@@ -66,19 +76,27 @@ export function FieldTopBar() {
   );
 }
 
-function FieldNav({ tabs, pathname }: { tabs: { href: string; label: string; icon?: typeof House }[]; pathname: string }) {
+function FieldNav({ tabs, pathname }: { tabs: FieldTab[]; pathname: string }) {
+  const { user } = useAuth();
+  const waiting = useWaitingCount(user?.uid);
   const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
-  const activeHref = tabs.find(
-    (t) => matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href)),
-  )?.href;
+  const activeHref =
+    tabs.find((t) => t.also?.includes(pathname))?.href ??
+    tabs.find((t) => matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href)))?.href;
   return (
-    <nav className={`dd-tabbar ${tabs.some((t) => t.icon) ? "" : "dd-tabbar-text"}`}>
+    <nav className={`dd-tabbar ${tabs.some((t) => t.icon) ? "" : "dd-tabbar-text"} ${tabs.length > 3 ? "dd-tabbar-4" : ""}`}>
       {tabs.map((t) => {
         const Icon = t.icon;
+        const n = t.badge === "waiting" ? waiting : null;
         return (
           <Link key={t.href} href={t.href} data-on={t.href === activeHref} aria-current={t.href === activeHref ? "page" : undefined}>
             {Icon && <Icon className="h-[17px] w-[17px]" />}
             {t.label}
+            {n != null && n > 0 && (
+              <span className="dd-n" aria-label={`${n} waiting`}>
+                {n}
+              </span>
+            )}
           </Link>
         );
       })}
