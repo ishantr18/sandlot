@@ -45,9 +45,9 @@ const RULES = [
 
 // Short version (switch: FILM_TIPS) — three tips, a few words each
 const SHORT_RULES = [
-  { icon: MoveHorizontal, title: "Side on", detail: "camera sees your profile" },
+  { icon: MoveHorizontal, title: "Side view", detail: "phone stays still" },
   { icon: PersonStanding, title: "Head to toe", detail: "feet stay in the shot" },
-  { icon: Timer, title: "One swing", detail: "5–10 second clip" },
+  { icon: Timer, title: "One swing per clip", detail: "5–10 second clip" },
 ];
 
 export default function FilmingGuide() {
