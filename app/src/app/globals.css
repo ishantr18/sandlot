@@ -255,6 +255,9 @@ html[data-skin="field"] .dd-only {
 }
 
 html[data-skin="field"] {
+  /* TEXT SIZE KNOB — every Field-skin font size is multiplied by this.
+     1 = the prototype's exact sizes · 1.15 = 15% bigger (current) */
+  --dd-fs: 1.15;
   /* prototype palette */
   --dd-bg: #070907;
   --dd-surface: #131813;
@@ -302,10 +305,10 @@ html[data-skin="field"] body {
 }
 /* prototype type scale (replaces the data-text="large" sizes while on) */
 html[data-skin="field"][data-text] main {
-  --text-xs: 0.8125rem; /* 13px — meta lines */
-  --text-sm: 0.96875rem; /* 15.5px — body copy, rows */
-  --text-base: 1rem;
-  --text-lg: 1.0625rem; /* 17px — card titles */
+  --text-xs: calc(0.8125rem * var(--dd-fs, 1)); /* 13px — meta lines */
+  --text-sm: calc(0.96875rem * var(--dd-fs, 1)); /* 15.5px — body copy, rows */
+  --text-base: calc(1rem * var(--dd-fs, 1));
+  --text-lg: calc(1.0625rem * var(--dd-fs, 1)); /* 17px — card titles */
 }
 html[data-skin="field"] h1,
 html[data-skin="field"] h2.dd-title {
@@ -353,13 +356,13 @@ html[data-skin="field"] :is(button, a).border-border {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--dd-mut);
 }
 .dd-signout {
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   color: var(--dd-mut);
   padding: 4px;
 }
@@ -394,7 +397,7 @@ html[data-skin="field"] :is(button, a).border-border {
   gap: 6px;
   padding: 8px 11px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-sub);
   transition: all 0.15s;
@@ -409,46 +412,46 @@ html[data-skin="field"] :is(button, a).border-border {
 
 /* type */
 html[data-skin="field"] .dd-title {
-  font-size: 42px;
+  font-size: calc(42px * var(--dd-fs, 1));
   line-height: 1;
   letter-spacing: 0.01em;
   font-weight: 600;
   text-transform: uppercase;
 }
 html[data-skin="field"] .dd-name {
-  font-size: 44px;
+  font-size: calc(44px * var(--dd-fs, 1));
   line-height: 1.05;
   letter-spacing: -0.02em;
   font-weight: 700;
 }
 html[data-skin="field"] .dd-hello {
   margin-top: 16px;
-  font-size: 15px;
+  font-size: calc(15px * var(--dd-fs, 1));
   color: var(--dd-sub);
 }
 html[data-skin="field"] .dd-sub {
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-sub);
 }
 html[data-skin="field"] .dd-label {
   margin-top: 28px;
   margin-bottom: 0;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--dd-mut);
   text-transform: uppercase;
 }
 html[data-skin="field"] h2.dd-label {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   color: var(--dd-mut);
   margin-bottom: 12px;
 }
 html[data-skin="field"] .dd-promise {
   margin-top: 22px;
   text-align: center;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.65;
   color: var(--dd-mut);
 }
@@ -465,7 +468,7 @@ html[data-skin="field"] .dd-promise {
 }
 .dd-impact .dd-big {
   font-family: var(--dd-cond);
-  font-size: 92px;
+  font-size: calc(92px * var(--dd-fs, 1));
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 0.95;
@@ -473,12 +476,12 @@ html[data-skin="field"] .dd-promise {
 }
 .dd-impact .dd-cap {
   margin-top: 8px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   color: var(--dd-sub);
 }
 .dd-impact .dd-quiet {
   margin-top: 12px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   color: var(--dd-mut);
 }
 
@@ -497,7 +500,7 @@ html[data-skin="field"] .dd-row + .dd-row {
   border-top: 1px solid var(--dd-line);
 }
 html[data-skin="field"] .dd-row .text-sm {
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   font-weight: 400;
 }
 html[data-skin="field"] .dd-row .text-xs {
@@ -520,7 +523,7 @@ html[data-skin="field"] .dd-field {
   border: 1px solid var(--dd-line);
   border-radius: 16px;
   color: var(--dd-text);
-  font-size: 16px;
+  font-size: calc(16px * var(--dd-fs, 1));
   padding: 14px 16px;
   outline: none;
 }
@@ -530,7 +533,7 @@ html[data-skin="field"] .dd-field:focus {
 }
 html[data-skin="field"] summary.text-primary {
   font-weight: 600;
-  font-size: 15px;
+  font-size: calc(15px * var(--dd-fs, 1));
 }
 
 /* bars (skills, effort) */
@@ -549,11 +552,11 @@ html[data-skin="field"] .dd-bar > .bg-muted-foreground {
   background: rgba(92, 227, 139, 0.22);
 }
 html[data-skin="field"] .dd-card-title {
-  font-size: 17px;
+  font-size: calc(17px * var(--dd-fs, 1));
   font-weight: 700;
 }
 html[data-skin="field"] .dd-skill-name {
-  font-size: 16px;
+  font-size: calc(16px * var(--dd-fs, 1));
   font-weight: 700;
 }
 
@@ -580,15 +583,15 @@ html[data-skin="field"] .dd-stat {
   border-radius: 16px;
 }
 html[data-skin="field"] .dd-stat .font-mono {
-  font-size: 25px;
+  font-size: calc(25px * var(--dd-fs, 1));
   line-height: 1;
 }
 html[data-skin="field"] .dd-stat .font-mono .text-lg {
-  font-size: 15px;
+  font-size: calc(15px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-stat > div + div {
   margin-top: 6px;
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--dd-fs, 1));
   letter-spacing: 0.07em;
   text-transform: uppercase;
   line-height: 1.35;
@@ -607,7 +610,7 @@ html[data-skin="field"] .dd-finding.border-yellow-500 {
   background: linear-gradient(180deg, rgba(232, 180, 74, 0.07), rgba(232, 180, 74, 0.015)), var(--dd-surface);
 }
 html[data-skin="field"] .dd-finding > p:first-child {
-  font-size: 16.5px;
+  font-size: calc(16.5px * var(--dd-fs, 1));
   line-height: 1.55;
 }
 /* coach comment: name line + big quote */
@@ -615,13 +618,13 @@ html[data-skin="field"] .dd-comment {
   padding: 20px;
 }
 html[data-skin="field"] .dd-comment .dd-coachline {
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   color: var(--dd-sub);
   gap: 7px;
 }
 html[data-skin="field"] .dd-comment .dd-quote {
   margin-top: 10px;
-  font-size: 19.5px;
+  font-size: calc(19.5px * var(--dd-fs, 1));
   line-height: 1.42;
   letter-spacing: -0.01em;
 }
@@ -632,7 +635,7 @@ html[data-skin="field"] .dd-drillchip {
   margin-top: 14px;
   padding: 10px 16px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: calc(14px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
@@ -712,7 +715,7 @@ html[data-skin="field"] body::after {
   white-space: nowrap;
 }
 .dd-tabbar .dd-n {
-  font-size: 11px;
+  font-size: calc(11px * var(--dd-fs, 1));
   font-weight: 700;
   line-height: 1.3;
   padding: 2px 7px;
@@ -733,7 +736,7 @@ html[data-skin="field"] body::after {
     flex-direction: column;
     gap: 3px;
     padding: 6px 8px;
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--dd-fs, 1));
     border-radius: 16px;
   }
   .dd-tabbar-4 .dd-n {
@@ -741,14 +744,14 @@ html[data-skin="field"] body::after {
     top: 0;
     right: 0;
     padding: 1px 6px;
-    font-size: 10px;
+    font-size: calc(10px * var(--dd-fs, 1));
   }
 }
 
 /* On Deck header */
 html[data-skin="field"] .dd-eyebrow {
   margin-top: 16px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.22em;
   color: var(--dd-acc);
@@ -758,7 +761,7 @@ html[data-skin="field"] .dd-approved {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
@@ -783,7 +786,7 @@ html[data-skin="field"] .dd-statcell {
 html[data-skin="field"] .dd-statcell b {
   display: block;
   font-family: var(--dd-cond);
-  font-size: 25px;
+  font-size: calc(25px * var(--dd-fs, 1));
   font-weight: 600;
   line-height: 1;
   color: var(--dd-acc);
@@ -791,7 +794,7 @@ html[data-skin="field"] .dd-statcell b {
 html[data-skin="field"] .dd-statcell span {
   display: block;
   margin-top: 6px;
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--dd-fs, 1));
   line-height: 1.35;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -799,7 +802,7 @@ html[data-skin="field"] .dd-statcell span {
 }
 html[data-skin="field"] .dd-quiet-note {
   margin-top: 10px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   line-height: 1.5;
   color: var(--dd-mut);
 }
@@ -843,21 +846,21 @@ html[data-skin="field"] .dd-who {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-  font-size: 16px;
+  font-size: calc(16px * var(--dd-fs, 1));
   font-weight: 700;
 }
 html[data-skin="field"] .dd-fan {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-amber);
 }
 html[data-skin="field"] .dd-meta {
   display: block;
   margin-top: 3px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   line-height: 1.45;
   color: var(--dd-mut);
 }
@@ -869,7 +872,7 @@ html[data-skin="field"] .dd-tags {
   margin-left: auto;
 }
 html[data-skin="field"] .dd-pilltag {
-  font-size: 11px;
+  font-size: calc(11px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.06em;
   white-space: nowrap;
@@ -896,12 +899,12 @@ html[data-skin="field"] .dd-chev {
 /* Reviewed: past comments (.comment), mine outlined in green */
 html[data-skin="field"] .dd-review-text {
   margin-top: 5px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   line-height: 1.45;
 }
 html[data-skin="field"] .dd-assigned {
   margin-top: 8px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   color: var(--dd-acc);
 }
 html[data-skin="field"] .dd-mine {
@@ -911,7 +914,7 @@ html[data-skin="field"] .dd-mine {
 /* Players: trend line on the right of each roster row */
 html[data-skin="field"] .dd-row .dd-trend {
   margin-top: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-acc);
   text-align: right;
@@ -919,12 +922,12 @@ html[data-skin="field"] .dd-row .dd-trend {
 
 /* review screen (analysis as a coach) */
 html[data-skin="field"] .dd-review-title {
-  font-size: 28px;
+  font-size: calc(28px * var(--dd-fs, 1));
   line-height: 1.05;
 }
 html[data-skin="field"] .dd-when {
   font-family: var(--dd-font);
-  font-size: 16px;
+  font-size: calc(16px * var(--dd-fs, 1));
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -938,7 +941,7 @@ html[data-skin="field"] .dd-composer {
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35), 0 0 60px rgba(92, 227, 139, 0.08);
 }
 html[data-skin="field"] .dd-composer-k {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--dd-acc);
@@ -949,7 +952,7 @@ html[data-skin="field"] .dd-composer-input {
   min-height: 82px;
   padding: 14px;
   resize: none;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   color: var(--dd-text);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--dd-line);
@@ -962,17 +965,17 @@ html[data-skin="field"] .dd-composer-input:focus {
 html[data-skin="field"] .dd-composer button.bg-primary {
   padding-block: 13px;
   border-radius: 16px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-suggest {
   padding: 8px 14px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
   border-color: rgba(92, 227, 139, 0.3);
 }
 html[data-skin="field"] .dd-composer [role="combobox"] {
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-composer .bg-secondary:has([role="combobox"]) {
   background: rgba(255, 255, 255, 0.05);
@@ -981,7 +984,7 @@ html[data-skin="field"] .dd-composer .bg-secondary:has([role="combobox"]) {
 }
 html[data-skin="field"] .dd-fineprint {
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-mut);
 }
@@ -997,7 +1000,7 @@ html[data-skin="field"] .dd-ref > summary {
   padding: 16px 18px;
   list-style: none;
   cursor: pointer;
-  font-size: 15px;
+  font-size: calc(15px * var(--dd-fs, 1));
   color: var(--dd-sub);
   border: 1px solid var(--dd-line);
   border-radius: 16px;
@@ -1039,7 +1042,7 @@ html[data-skin="field"] .dd-softbtn {
   margin-top: 22px;
   padding: 15px 22px;
   border-radius: 16px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-acc);
   background: linear-gradient(180deg, rgba(92, 227, 139, 0.17), rgba(92, 227, 139, 0.08));
@@ -1102,7 +1105,7 @@ html[data-skin="field"] .dd-loadmark svg {
 
 /* shared pieces */
 html[data-skin="field"] .dd-eyebrow {
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.22em;
   color: var(--dd-acc);
@@ -1110,7 +1113,7 @@ html[data-skin="field"] .dd-eyebrow {
 }
 html[data-skin="field"] .dd-display {
   font-family: var(--dd-cond);
-  font-size: 66px;
+  font-size: calc(66px * var(--dd-fs, 1));
   line-height: 0.95;
   letter-spacing: 0.005em;
   font-weight: 600;
@@ -1118,7 +1121,7 @@ html[data-skin="field"] .dd-display {
 }
 @media (max-width: 560px) {
   html[data-skin="field"] .dd-display {
-    font-size: 54px;
+    font-size: calc(54px * var(--dd-fs, 1));
   }
 }
 html[data-skin="field"] .dd-card {
@@ -1134,7 +1137,7 @@ html[data-skin="field"] .dd-card .dd-coachline {
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   color: var(--dd-sub);
 }
 html[data-skin="field"] .dd-card .dd-coachline b {
@@ -1143,7 +1146,7 @@ html[data-skin="field"] .dd-card .dd-coachline b {
 }
 html[data-skin="field"] .dd-card .dd-quote {
   margin-top: 10px;
-  font-size: 19.5px;
+  font-size: calc(19.5px * var(--dd-fs, 1));
   line-height: 1.42;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
@@ -1155,7 +1158,7 @@ html[data-skin="field"] .dd-drillchip-link {
   margin-top: 14px;
   padding: 10px 16px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: calc(14px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
@@ -1170,7 +1173,7 @@ html[data-skin="field"] .dd-rowitem {
   padding: 16px 2px;
   border-bottom: 1px solid var(--dd-line);
   background: none;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   color: var(--dd-text);
   text-align: left;
 }
@@ -1179,12 +1182,12 @@ html[data-skin="field"] .dd-rowitem:last-child {
 }
 html[data-skin="field"] .dd-meta {
   margin-top: 3px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   color: var(--dd-mut);
 }
 html[data-skin="field"] .dd-chev {
   flex: 0 0 auto;
-  font-size: 19px;
+  font-size: calc(19px * var(--dd-fs, 1));
   line-height: 1;
   color: var(--dd-mut);
 }
@@ -1198,7 +1201,7 @@ html[data-skin="field"] .dd-chipstat {
   white-space: nowrap;
   padding: 6px 13px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
@@ -1207,7 +1210,7 @@ html[data-skin="field"] .dd-chipstat {
 html[data-skin="field"] .dd-note {
   margin-top: 22px;
   text-align: center;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-mut);
 }
@@ -1242,7 +1245,7 @@ html[data-skin="field"] .dd-recordbig {
   animation: dd-ringpulse 3.4s ease-in-out infinite;
 }
 html[data-skin="field"] .dd-recordbig span {
-  font-size: 16px;
+  font-size: calc(16px * var(--dd-fs, 1));
   font-weight: 700;
 }
 @keyframes dd-ringpulse {
@@ -1258,7 +1261,7 @@ html[data-skin="field"] .dd-recordbig span {
 }
 html[data-skin="field"] .dd-quietlink {
   margin-top: 18px;
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   color: var(--dd-mut);
 }
 html[data-skin="field"] .dd-quietlink:hover {
@@ -1280,7 +1283,7 @@ html[data-skin="field"] .dd-stat-b {
 html[data-skin="field"] .dd-stat-b b {
   display: block;
   font-family: var(--dd-cond);
-  font-size: 25px;
+  font-size: calc(25px * var(--dd-fs, 1));
   font-weight: 600;
   line-height: 1;
   color: var(--dd-acc);
@@ -1288,7 +1291,7 @@ html[data-skin="field"] .dd-stat-b b {
 html[data-skin="field"] .dd-stat-b span {
   display: block;
   margin-top: 6px;
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--dd-fs, 1));
   line-height: 1.35;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1312,7 +1315,7 @@ html[data-skin="field"] .dd-seg button {
   flex: 1;
   padding: 11px;
   border-radius: 999px;
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-mut);
   transition: all 0.15s;
@@ -1323,16 +1326,16 @@ html[data-skin="field"] .dd-seg button[data-on="true"] {
   box-shadow: 0 4px 14px rgba(92, 227, 139, 0.3);
 }
 html[data-skin="field"] .dd-fromline {
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   color: var(--dd-sub);
 }
 html[data-skin="field"] .dd-fromline b {
   color: var(--dd-text);
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-desc {
   margin-top: 10px;
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-sub);
 }
@@ -1348,7 +1351,7 @@ html[data-skin="field"] .dd-btn {
   justify-content: center;
   padding: 13px 8px;
   border-radius: 16px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   font-weight: 700;
 }
 html[data-skin="field"] .dd-btn-primary {
@@ -1367,7 +1370,7 @@ html[data-skin="field"] .dd-doneitem {
   gap: 12px;
   padding: 15px 2px;
   border-bottom: 1px solid var(--dd-line);
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-doneitem:last-child {
   border-bottom: 0;
@@ -1386,7 +1389,7 @@ html[data-skin="field"] .dd-check {
 html[data-skin="field"] .dd-minilink {
   flex: 0 0 auto;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
 }
@@ -1399,7 +1402,7 @@ html[data-skin="field"] .dd-chips {
 html[data-skin="field"] .dd-chips button {
   padding: 7px 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-sub);
   background: var(--dd-surface);
@@ -1427,14 +1430,14 @@ html[data-skin="field"] .dd-lib-t {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 16.5px;
+  font-size: calc(16.5px * var(--dd-fs, 1));
   font-weight: 700;
 }
 html[data-skin="field"] .dd-tag {
   white-space: nowrap;
   padding: 5px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: calc(11px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1443,7 +1446,7 @@ html[data-skin="field"] .dd-tag {
 }
 html[data-skin="field"] .dd-lib-d {
   margin-top: 6px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.5;
   color: var(--dd-sub);
 }
@@ -1451,7 +1454,7 @@ html[data-skin="field"] .dd-lib-extra {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--dd-line);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.6;
   color: var(--dd-sub);
 }
@@ -1481,11 +1484,11 @@ html[data-skin="field"] .dd-tip:last-child:nth-child(odd) {
   grid-column: span 2;
 }
 html[data-skin="field"] .dd-tip .text-sm {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--dd-fs, 1));
   font-weight: 700;
 }
 html[data-skin="field"] .dd-tip .text-xs {
-  font-size: 12px;
+  font-size: calc(12px * var(--dd-fs, 1));
   line-height: 1.4;
   color: var(--dd-sub);
 }
@@ -1514,7 +1517,7 @@ html[data-skin="field"] .dd-viewfinder > svg {
 }
 html[data-skin="field"] .dd-vf-hint {
   display: block;
-  font-size: 14px;
+  font-size: calc(14px * var(--dd-fs, 1));
   color: var(--dd-mut);
   text-align: center;
 }
@@ -1525,7 +1528,7 @@ html[data-skin="field"] .dd-vf-cta {
   margin-top: 8px;
   padding: 15px 40px;
   border-radius: 999px;
-  font-size: 17px;
+  font-size: calc(17px * var(--dd-fs, 1));
   font-weight: 700;
   color: var(--dd-ink);
   background: var(--dd-grad);
@@ -1586,7 +1589,7 @@ html[data-skin="field"] .dd-recind {
   left: 50%;
   transform: translateX(-50%);
   gap: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 700;
   color: #ff7a72;
   background: rgba(9, 15, 11, 0.55);
@@ -1610,7 +1613,7 @@ html[data-skin="field"] .dd-librarybtn {
   box-shadow: none;
 }
 html[data-skin="field"] .dd-librarybtn span {
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   font-weight: 400;
   color: var(--dd-mut);
 }
@@ -1650,7 +1653,7 @@ html[data-skin="field"] .dd-privacy {
   border-radius: 16px;
   border: 1px solid var(--dd-line);
   background: var(--dd-surface);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-sub);
 }
@@ -1681,7 +1684,7 @@ html[data-skin="field"] .dd-codebox {
 html[data-skin="field"] .dd-code {
   display: block;
   font-family: var(--dd-cond);
-  font-size: 54px;
+  font-size: calc(54px * var(--dd-fs, 1));
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.3em;
@@ -1696,7 +1699,7 @@ html[data-skin="field"] .dd-newcode {
   border-radius: 999px;
   border: 1px solid rgba(92, 227, 139, 0.4);
   background: rgba(92, 227, 139, 0.04);
-  font-size: 14px;
+  font-size: calc(14px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
   text-decoration: none;
@@ -1705,7 +1708,7 @@ html[data-skin="field"] .dd-newcode {
 /* Growth: session history as hairline rows, charts in field green */
 html[data-skin="field"] .dd-label-flex {
   margin-top: 28px;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--dd-mut);
@@ -1724,7 +1727,7 @@ html[data-skin="field"] .dd-srow > div {
   padding: 14px 2px;
 }
 html[data-skin="field"] .dd-srow .text-sm {
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
   font-weight: 400;
 }
 html[data-skin="field"] .dd-srow .text-xs {
@@ -1759,7 +1762,7 @@ html[data-skin="field"] .dd-chart .recharts-default-tooltip {
 /* swing read-out (player side) */
 html[data-skin="field"] .dd-k {
   margin-bottom: 10px;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dd-fs, 1));
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1773,7 +1776,7 @@ html[data-skin="field"] .dd-finding.border-red-500 .dd-k {
   color: #ff7a72;
 }
 html[data-skin="field"] .dd-finding > .dd-msg {
-  font-size: 16.5px;
+  font-size: calc(16.5px * var(--dd-fs, 1));
   line-height: 1.55;
 }
 html[data-skin="field"] .dd-finding.border-amber-500 {
@@ -1796,7 +1799,7 @@ html[data-skin="field"] .dd-react {
   padding: 6px 13px;
   border: 1px solid var(--dd-line);
   background: rgba(255, 255, 255, 0.03);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-react[data-on="true"] {
   border-color: rgba(92, 227, 139, 0.3);
@@ -1823,7 +1826,7 @@ html[data-skin="field"] .dd-wmark {
 html[data-skin="field"] .dd-wordmark {
   margin-top: 22px;
   font-family: var(--dd-cond);
-  font-size: 46px;
+  font-size: calc(46px * var(--dd-fs, 1));
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.05em;
@@ -1860,18 +1863,18 @@ html[data-skin="field"] .dd-rolecard:hover {
 }
 html[data-skin="field"] .dd-rolerow b {
   display: block;
-  font-size: 17px;
+  font-size: calc(17px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-rs {
   display: block;
   margin-top: 2px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   color: var(--dd-sub);
 }
 html[data-skin="field"] .dd-rolerow .dd-chev,
 html[data-skin="field"] .dd-chevwrap {
   margin-left: auto;
-  font-size: 20px;
+  font-size: calc(20px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-ric {
   display: flex;
@@ -1896,7 +1899,7 @@ html[data-skin="field"] .dd-rolepill {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
   background: var(--dd-acc-dim);
@@ -1914,7 +1917,7 @@ html[data-skin="field"] .dd-verifybox {
 }
 html[data-skin="field"] .dd-verifybox > p {
   padding: 12px 4px 2px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--dd-fs, 1));
   line-height: 1.55;
   color: var(--dd-sub);
 }
@@ -1924,15 +1927,15 @@ html[data-skin="field"] .dd-verifybox .dd-field {
 html[data-skin="field"] .dd-cta {
   margin-top: 8px;
   padding: 17px;
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--dd-fs, 1));
 }
 html[data-skin="field"] .dd-linklike {
-  font-size: 15px;
+  font-size: calc(15px * var(--dd-fs, 1));
   font-weight: 600;
   color: var(--dd-acc);
 }
 html[data-skin="field"] .dd-quietlink-sm {
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   color: var(--dd-mut);
 }
 html[data-skin="field"] .dd-authlinks {
@@ -1941,7 +1944,7 @@ html[data-skin="field"] .dd-authlinks {
   border-color: var(--dd-line);
 }
 html[data-skin="field"] .dd-authlinks a {
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--dd-fs, 1));
   color: var(--dd-sub);
   text-underline-offset: 3px;
 }
