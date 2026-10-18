@@ -673,6 +673,8 @@ html[data-skin="field"] body::before {
 html[data-skin="field"] body {
   position: relative;
   isolation: isolate;
+}
+
 /* ── Field skin: coach ─────────────────────────────────────────────────────
    On Deck (Home + queue), Reviewed, Players, and the review screen
    (analysis as a coach). Prototype: COACH V2 in diamond-drive-prototype.html. */
