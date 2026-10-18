@@ -27,4 +27,9 @@ export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "none";
 // Rolled out one role at a time. Remove a role to give it the old look back;
 // [] = old look everywhere. Styles live in globals.css under [data-skin="field"].
 //   "guardian" = parents · "player" = players · "mentor" = coaches
-export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian", "mentor"];
+export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian", "mentor", "player"];
+
+// Field skin for signed-out screens (sign in / sign up, welcome, sample swing,
+// loading). They have no role yet, so they get their own switch.
+//   true → prototype look · false → old look
+export const FIELD_SKIN_SIGNED_OUT: boolean = true;

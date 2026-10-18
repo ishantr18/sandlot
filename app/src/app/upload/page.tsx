@@ -28,6 +28,7 @@ import { extractPose } from "@/lib/poseExtract";
 import { analyzeSwing } from "@/lib/swingMetrics";
 import { blacklistMime } from "@/lib/videoFormat";
 import { db } from "@/lib/firebase";
+import { fieldSkinFor } from "@/lib/skin";
 
 type Stage = "pick" | "blurring" | "ready" | "analyzing" | "uploading" | "done" | "error";
 
@@ -193,9 +194,14 @@ export default function UploadPage() {
     );
   }
 
+  // Field skin (switches.ts): prototype title; the rest is restyled by dd-* classes
+  const field = fieldSkinFor(!!user, profile?.role);
+
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
-      <h1 className="mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">Upload</h1>
+      <h1 className="dd-title mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">
+        {field ? "Film your swing" : "Upload"}
+      </h1>
       <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
       <div>
 
@@ -226,15 +232,15 @@ export default function UploadPage() {
       />
 
       {!playbackUrl && (
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="dd-film-grid mb-4 grid grid-cols-2 gap-2">
           <VideoRecorder onRecorded={acceptFile} onUseLibrary={() => inputRef.current?.click()} />
           <button
             onClick={() => inputRef.current?.click()}
-            className="flex h-56 flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary wide:h-72"
+            className="dd-librarybtn flex h-56 flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary wide:h-72"
           >
-            <FolderOpen className="h-8 w-8 text-primary" />
+            <FolderOpen className="dd-hide h-8 w-8 text-primary" />
             <span className="px-2 text-muted-foreground">
-              {file ? file.name : "Choose from library"}
+              {file ? file.name : field ? "or choose from your library" : "Choose from library"}
             </span>
           </button>
         </div>
@@ -244,11 +250,14 @@ export default function UploadPage() {
 
       <div>
       {stage === "blurring" && (
-        <div className="mb-4 rounded-2xl bg-card p-4">
+        <div className="dd-processing mb-4 rounded-2xl bg-card p-4">
+          <div className="dd-only">
+            <span className="dd-spin" aria-hidden="true" />
+          </div>
           <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <Lock className="h-4 w-4 text-primary" /> {BLUR_STAGE_LABEL[blurStage]}
+            <Lock className="dd-hide h-4 w-4 text-primary" /> {BLUR_STAGE_LABEL[blurStage]}
           </p>
-          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+          <div className="dd-bar h-2 w-full overflow-hidden rounded bg-secondary">
             <div
               className="h-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
@@ -303,11 +312,14 @@ export default function UploadPage() {
       )}
 
       {stage === "analyzing" && (
-        <div className="mb-4 rounded-2xl bg-card p-4">
+        <div className="dd-processing mb-4 rounded-2xl bg-card p-4">
+          <div className="dd-only">
+            <span className="dd-spin" aria-hidden="true" />
+          </div>
           <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <Activity className="h-4 w-4 text-primary" /> Analyzing your swing on this device…
+            <Activity className="dd-hide h-4 w-4 text-primary" /> Analyzing your swing on this device…
           </p>
-          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+          <div className="dd-bar h-2 w-full overflow-hidden rounded bg-secondary">
             <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -315,7 +327,7 @@ export default function UploadPage() {
 
       {stage === "uploading" && (
         <div className="mb-4">
-          <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+          <div className="dd-bar h-2 w-full overflow-hidden rounded bg-secondary">
             <div
               className="h-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
@@ -342,6 +354,15 @@ export default function UploadPage() {
       )}
 
       </div>
+      </div>
+      {/* Field skin: the prototype's privacy promise under the camera */}
+      <div className="dd-only">
+        <div className="dd-privacy">
+          <Lock className="h-[18px] w-[18px]" />
+          <span>
+            Your face is blurred on <b>your phone</b> before anything uploads. No one ever sees the raw video.
+          </span>
+        </div>
       </div>
     </main>
   );

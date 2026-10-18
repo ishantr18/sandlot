@@ -10,6 +10,7 @@ import DrillIcon from "@/components/DrillIcon";
 import Notice from "@/components/Notice";
 import { CATEGORY_LABEL, DRILLS, type DrillCategory, type DrillVideo } from "@/lib/drills";
 import { db } from "@/lib/firebase";
+import { fieldSkinFor } from "@/lib/skin";
 
 // youtube.com/watch?v=ID → ID (the stored links are all watch URLs)
 const videoId = (url: string) => new URL(url).searchParams.get("v") ?? "";
@@ -93,7 +94,7 @@ interface AssignmentRow {
 }
 
 export default function DrillsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [fetched, setFetched] = useState<AssignmentRow[] | null>(null);
   // Signed out → nothing assigned (derived, no extra state update needed)
   const assigned = user ? fetched : [];
@@ -120,6 +121,177 @@ export default function DrillsPage() {
       }
     })();
   }, [user, reloadKey]);
+
+  // Field skin (switches.ts): the same content split into the prototype's
+  // "My drills" / "Library" segments. Opens on My drills, or on Library when
+  // nothing is assigned. The classic page below is untouched.
+  const [segPick, setSegPick] = useState<"mine" | "lib" | null>(null);
+  if (fieldSkinFor(!!user, profile?.role)) {
+    const isPlayerView = profile?.role !== "mentor" && profile?.role !== "guardian";
+    const seg = !isPlayerView ? "lib" : (segPick ?? (!loading && assigned && assigned.length === 0 ? "lib" : "mine"));
+    const pending = (assigned ?? []).filter((a) => a.status !== "done");
+    const done = (assigned ?? []).filter((a) => a.status === "done");
+    const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl">
+        <h1 className="dd-title">Drills</h1>
+        {isPlayerView && (
+          <div className="dd-seg" role="tablist" aria-label="Drills">
+            <button role="tab" aria-selected={seg === "mine"} data-on={seg === "mine"} onClick={() => setSegPick("mine")}>
+              My drills
+            </button>
+            <button role="tab" aria-selected={seg === "lib"} data-on={seg === "lib"} onClick={() => setSegPick("lib")}>
+              Library
+            </button>
+          </div>
+        )}
+
+        {seg === "mine" && (
+          <div>
+            <p className="dd-label">Do now</p>
+            {user && !fetched && loadError ? (
+              <Notice
+                tone="error"
+                title="Couldn't load your drills"
+                className="mt-3.5"
+                actions={[
+                  {
+                    label: "Try again",
+                    onClick: () => {
+                      setLoadError(false);
+                      setReloadKey((k) => k + 1);
+                    },
+                  },
+                ]}
+              >
+                Check your connection — the library still works offline.
+              </Notice>
+            ) : loading || !assigned ? (
+              <div className="dd-card">
+                <p className="dd-sub">Loading…</p>
+              </div>
+            ) : assigned.length === 0 ? (
+              <Notice
+                title="Nothing assigned yet"
+                className="mt-3.5"
+                actions={user ? [{ label: "Film a swing", href: "/upload" }] : [{ label: "See a sample swing", href: "/sample" }]}
+              >
+                Your AI findings and your coach both assign drills here.
+              </Notice>
+            ) : pending.length === 0 ? (
+              <div className="dd-card">
+                <p className="dd-sub">Nothing assigned right now. Film a swing and your coach will set the next one.</p>
+              </div>
+            ) : (
+              pending.map((a) => {
+                const drill = DRILLS.find((d) => d.id === a.drillId);
+                return (
+                  <div key={a.id} className="dd-card">
+                    <div className="dd-fromline">
+                      <b>{drill?.name ?? a.drillId}</b> · from {a.mentorName ?? "your coach"} · {shortDay(a.createdAt)}
+                    </div>
+                    {drill && <p className="dd-desc">{drill.description}</p>}
+                    {drill && <DrillVideos videos={drill.videos} playing={playing} onPlay={setPlaying} />}
+                    <div className="dd-actions">
+                      <button
+                        onClick={async () => {
+                          await updateDoc(doc(db, "assignments", a.id), { status: "done", doneAt: Date.now() }).catch(() => {});
+                          setFetched((rows) => rows?.map((r) => (r.id === a.id ? { ...r, status: "done" } : r)) ?? rows);
+                        }}
+                        className="dd-btn dd-btn-primary"
+                      >
+                        Mark done
+                      </button>
+                      <Link href={`/upload?drill=${encodeURIComponent(a.drillId)}`} className="dd-btn dd-btn-ghost">
+                        Film it again
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+
+            {done.length > 0 && (
+              <>
+                <p className="dd-label">Finished</p>
+                <div className="mt-1">
+                  {done.map((a) => {
+                    const drill = DRILLS.find((d) => d.id === a.drillId);
+                    return (
+                      <div key={a.id} className="dd-doneitem">
+                        <span className="dd-check" aria-hidden="true">
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          {drill?.name ?? a.drillId}
+                          <div className="dd-meta">
+                            from {a.mentorName ?? "your coach"} · {shortDay(a.createdAt)}
+                          </div>
+                        </div>
+                        <Link href={`/upload?drill=${encodeURIComponent(a.drillId)}`} className="dd-minilink">
+                          Film it again
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            <p className="dd-note">
+              The <b>Library</b> tab holds every drill in the app — a reference catalog, not your assignments.
+            </p>
+          </div>
+        )}
+
+        {seg === "lib" && (
+          <div>
+            <p className="dd-label">{isPlayerView ? "Library · reference only" : "Library"}</p>
+            {/* Filter chips — narrow the library to one body part */}
+            <div className="dd-chips">
+              {(["all", ...categories] as const).map((c) => (
+                <button key={c} onClick={() => setFilter(c)} data-on={filter === c}>
+                  {c === "all" ? "All" : CATEGORY_LABEL[c]}
+                </button>
+              ))}
+            </div>
+            <div key={filter} className="dd-enter">
+              {library.map((d) => (
+                <div key={d.id} className="dd-libitem" data-open={open === d.id}>
+                  <button
+                    onClick={() => {
+                      setOpen(open === d.id ? null : d.id);
+                      setPlaying(null); // closing/switching a drill stops its video
+                    }}
+                    aria-expanded={open === d.id}
+                    className="block w-full text-left"
+                  >
+                    <div className="dd-lib-t">
+                      {d.name}
+                      <span className="dd-tag">{CATEGORY_LABEL[d.category]}</span>
+                    </div>
+                    <div className="dd-lib-d">{d.target}</div>
+                  </button>
+                  {/* grid-rows 0fr → 1fr animates the open/close height */}
+                  <div
+                    className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                      open === d.id ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="dd-lib-extra">
+                        <p>{d.description}</p>
+                        {open === d.id && <DrillVideos videos={d.videos} playing={playing} onPlay={setPlaying} />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">

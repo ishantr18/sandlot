@@ -39,8 +39,8 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
   }
 
   return (
-    <section className="mt-6 rounded-2xl bg-card p-4 wide:p-6">
-      <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+    <section className="dd-family mt-6 rounded-2xl bg-card p-4 wide:p-6">
+      <h2 className="dd-card-title mb-1 flex items-center gap-2 text-sm font-semibold">
         <Users className="h-4 w-4 text-primary" /> Family code
       </h2>
       <p className="mb-3 text-xs text-muted-foreground">
@@ -48,9 +48,9 @@ export default function FamilyCard({ playerId, playerName }: { playerId: string;
         It works once and expires in 24 hours.
       </p>
       {code ? (
-        <div className="mb-3 flex items-center justify-between rounded-xl bg-secondary p-3">
-          <span className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{code.code}</span>
-          <button onClick={makeCode} disabled={busy} className="text-xs text-muted-foreground underline">
+        <div className="dd-codebox mb-3 flex items-center justify-between rounded-xl bg-secondary p-3">
+          <span className="dd-code font-mono text-2xl font-bold tracking-[0.3em] text-primary">{code.code}</span>
+          <button onClick={makeCode} disabled={busy} className="dd-newcode text-xs text-muted-foreground underline">
             New code
           </button>
         </div>

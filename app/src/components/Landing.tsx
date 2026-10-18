@@ -18,7 +18,7 @@ export default function Landing() {
     <main className="dd-landing mx-auto flex min-h-screen max-w-md flex-col justify-center p-6 pb-16 lg:max-w-2xl">
       <div className="mb-2 flex items-center justify-center gap-3">
         <BrandMark className="h-9 w-9 lg:h-11 lg:w-11" />
-        <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
+        <span className="dd-brandtext text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
       </div>
       {/* Hero: the product's magic — a swing, traced by the AI — in motion */}
       <div className="relative mx-auto -mb-2 w-full max-w-xs lg:max-w-sm">
@@ -27,7 +27,7 @@ export default function Landing() {
           AI tracking
         </span>
       </div>
-      <h1 className="mb-3 text-center text-4xl font-bold tracking-tight lg:text-6xl">
+      <h1 className="dd-landing-h1 mb-3 text-center text-4xl font-bold tracking-tight lg:text-6xl">
         Pro-level coaching on <span className="text-primary">any phone.</span>
       </h1>
       <p className="mb-8 text-center text-muted-foreground lg:text-lg">
@@ -39,14 +39,18 @@ export default function Landing() {
           <Link
             key={r.role}
             href={`/auth?mode=signup&role=${r.role}`}
-            className="flex items-center gap-5 rounded-2xl bg-card p-5 transition-colors hover:bg-secondary lg:p-7"
+            className="dd-rolecard flex items-center gap-5 rounded-2xl bg-card p-5 transition-colors hover:bg-secondary lg:p-7"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <span className="dd-ric flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
               <r.icon className="h-6 w-6 text-primary" />
             </span>
             <span>
               <span className="block text-2xl font-bold lg:text-3xl">{r.label}</span>
               <span className="block text-sm text-muted-foreground lg:text-base">{r.pitch}</span>
+            </span>
+            {/* Field skin: the prototype role row's chevron */}
+            <span className="dd-only dd-chevwrap" aria-hidden="true">
+              <span className="dd-chev">›</span>
             </span>
           </Link>
         ))}
@@ -54,7 +58,7 @@ export default function Landing() {
 
       <Link
         href="/sample"
-        className="mt-4 block rounded-full border border-primary/50 py-3 text-center text-sm font-semibold text-primary"
+        className="dd-ghostpill mt-4 block rounded-full border border-primary/50 py-3 text-center text-sm font-semibold text-primary"
       >
         No account? Try a sample swing →
       </Link>

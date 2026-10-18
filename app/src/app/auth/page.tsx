@@ -19,6 +19,7 @@ import { useAuth } from "@/components/AuthProvider";
 import BrandMark from "@/components/BrandMark";
 import { CREDENTIALS, linkWithCode, submitCoachApplication } from "@/lib/family";
 import { sendVerifyEmail } from "@/lib/verifyEmail";
+import { FIELD_SKIN_SIGNED_OUT } from "@/lib/switches";
 import { auth, db } from "@/lib/firebase";
 
 function friendly(code: string): string {
@@ -40,7 +41,7 @@ const ROLES = [
 // Explicit text, placeholder and border colors — on the dark theme a bare
 // field read as black-on-black (judges thought the password box was missing).
 const FIELD =
-  "w-full rounded-2xl border border-input bg-card p-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40";
+  "w-full rounded-2xl border border-input bg-card p-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dd-field"; // dd-field: Field skin look (globals.css)
 
 export default function AuthPage() {
   const router = useRouter();
@@ -53,6 +54,9 @@ export default function AuthPage() {
   }, [loading, user, router]);
   const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [role, setRole] = useState<"player" | "mentor" | "guardian">("player");
+  // Field skin only: sign-up starts on the prototype's "Continue as" role list;
+  // a role from the URL (or a tap on a role card) opens the form for it
+  const [rolePicked, setRolePicked] = useState(false);
 
   // Arrive pre-set from the welcome screen (?mode=signup&role=mentor)
   useEffect(() => {
@@ -63,7 +67,10 @@ export default function AuthPage() {
     // window), so a one-time setState here is intentional.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (m === "signup" || m === "signin") setMode(m);
-    if (r === "player" || r === "mentor" || r === "guardian") setRole(r);
+    if (r === "player" || r === "mentor" || r === "guardian") {
+      setRole(r);
+      setRolePicked(true);
+    }
   }, []);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -165,19 +172,106 @@ export default function AuthPage() {
         ? "We'll email you a link to choose a new password."
         : "Free, forever. That's the point.";
 
+  // Field skin (FIELD_SKIN_SIGNED_OUT): the prototype's sign-in look, and
+  // sign-up opens on its "Continue as" role list
+  const field = FIELD_SKIN_SIGNED_OUT;
+  const authLinks = (
+    <div className="dd-authlinks mt-8 space-y-3 border-t border-border pt-6 text-center text-sm">
+      <Link href="/welcome" className="block text-muted-foreground underline">
+        New to Diamond Drive? See how it works
+      </Link>
+      <Link href="/sample" className="block text-muted-foreground underline">
+        Just looking? Try a sample swing — no account needed
+      </Link>
+    </div>
+  );
+  const wordmark = (
+    <div className="dd-only">
+      <div className="pt-[30px] text-center">
+        <div className="dd-wmark">
+          <BrandMark className="h-[30px] w-[30px]" />
+        </div>
+        <div className="dd-wordmark">DIAMOND DRIVE</div>
+        {mode === "signup" && !rolePicked && (
+          <p className="dd-sub mx-auto mt-3 max-w-[282px]">
+            Film one swing. A real coach&apos;s eyes on it by morning — free, forever.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  if (field && mode === "signup" && !rolePicked) {
+    return (
+      <main className="dd-auth mx-auto max-w-md p-6 pb-28">
+        {wordmark}
+        <p className="dd-label !mt-10 text-center">Continue as</p>
+        {ROLES.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => {
+              setRole(r.id);
+              setRolePicked(true);
+              setError("");
+              setInfo("");
+            }}
+            className="dd-rolerow"
+          >
+            <span className="dd-ric">
+              <r.icon className="h-[22px] w-[22px]" />
+            </span>
+            <span>
+              <b>{r.label}</b>
+              <span className="dd-rs">{r.blurb}</span>
+            </span>
+            <span className="dd-chev" aria-hidden="true">
+              ›
+            </span>
+          </button>
+        ))}
+        <p className="dd-note">
+          Coaches are verified by a real person before they can see any swing. Faces are blurred on the
+          player&apos;s phone before anything uploads.
+        </p>
+        <button
+          onClick={() => {
+            setMode("signin");
+            setError("");
+            setInfo("");
+          }}
+          className="dd-linklike mt-4 w-full text-center text-sm text-primary"
+        >
+          Already have an account? Sign in
+        </button>
+        {authLinks}
+      </main>
+    );
+  }
+
   return (
-    <main className="mx-auto max-w-md p-6 pb-28">
-      <div className="mb-8 flex items-center gap-3 pt-6">
+    <main className="dd-auth mx-auto max-w-md p-6 pb-28">
+      {wordmark}
+      <div className="dd-hide mb-8 flex items-center gap-3 pt-6">
         <BrandMark className="h-9 w-9" />
         <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
       </div>
-      <h1 className="mb-1 text-4xl font-bold tracking-tight">{title}</h1>
-      <p className="mb-6 text-sm text-muted-foreground">{subtitle}</p>
+      <h1 className="dd-title dd-auth-title mb-1 text-4xl font-bold tracking-tight">{title}</h1>
+      <p className="dd-sub mb-6 text-sm text-muted-foreground">{subtitle}</p>
 
       <form onSubmit={submit} className="space-y-3">
         {mode === "signup" && (
           <>
-            <div className="grid grid-cols-3 gap-2">
+            {field && (
+              <button
+                type="button"
+                onClick={() => setRolePicked(false)}
+                className="dd-rolepill"
+              >
+                Signing up as {ROLES.find((r) => r.id === role)?.label} · <span>change</span>
+              </button>
+            )}
+            <div className={field ? "hidden" : "grid grid-cols-3 gap-2"}>
               {ROLES.map((r) => (
                 <button
                   key={r.id}
@@ -218,7 +312,7 @@ export default function AuthPage() {
               </div>
             )}
             {role === "mentor" && (
-              <div className="space-y-3 rounded-2xl bg-card/50 p-3">
+              <div className="dd-verifybox space-y-3 rounded-2xl bg-card/50 p-3">
                 <p className="text-xs text-muted-foreground">
                   Coaches are checked by a real person before they can see any
                   swing. Tell us how to verify you.
@@ -281,7 +375,7 @@ export default function AuthPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
+          className="dd-cta w-full rounded-full bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-40"
         >
           {busy
             ? "One sec…"
@@ -302,7 +396,7 @@ export default function AuthPage() {
             setError("");
             setInfo("");
           }}
-          className="mt-4 w-full text-center text-sm text-muted-foreground"
+          className="dd-quietlink-sm mt-4 w-full text-center text-sm text-muted-foreground"
         >
           Forgot password?
         </button>
@@ -310,21 +404,15 @@ export default function AuthPage() {
       <button
         onClick={() => {
           setMode(mode === "signup" ? "signin" : mode === "reset" ? "signin" : "signup");
+          setRolePicked(false); // Field skin: "Create an account" opens on the role list
           setError("");
           setInfo("");
         }}
-        className="mt-3 w-full text-center text-sm text-primary"
+        className="dd-linklike mt-3 w-full text-center text-sm text-primary"
       >
         {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
       </button>
-      <div className="mt-8 space-y-3 border-t border-border pt-6 text-center text-sm">
-        <Link href="/welcome" className="block text-muted-foreground underline">
-          New to Diamond Drive? See how it works
-        </Link>
-        <Link href="/sample" className="block text-muted-foreground underline">
-          Just looking? Try a sample swing — no account needed
-        </Link>
-      </div>
+      {authLinks}
     </main>
   );
 }

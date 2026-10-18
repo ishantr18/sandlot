@@ -1,17 +1,19 @@
 "use client";
 
-// Puts data-skin="field" on <html> for the roles listed in FIELD_SKIN_ROLES.
+// Puts data-skin="field" on <html> for the roles listed in FIELD_SKIN_ROLES
+// (and for signed-out visitors when FIELD_SKIN_SIGNED_OUT is on).
 // Remembers the last choice so a reload paints the right look immediately
 // (the inline script in layout.tsx reads it before React loads).
 import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { fieldSkinOn } from "@/lib/skin";
+import { fieldSkinFor } from "@/lib/skin";
 
 export default function SkinSwitch() {
   const { user, profile, loading } = useAuth();
   useEffect(() => {
     if (loading) return;
-    const on = !!user && fieldSkinOn(profile?.role);
+    // signed out → FIELD_SKIN_SIGNED_OUT; signed in → FIELD_SKIN_ROLES
+    const on = fieldSkinFor(!!user, profile?.role);
     const html = document.documentElement;
     if (on) html.dataset.skin = "field";
     else delete html.dataset.skin;

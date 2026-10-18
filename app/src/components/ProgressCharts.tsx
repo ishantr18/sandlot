@@ -63,7 +63,7 @@ export default function ProgressCharts({ sessions }: { sessions: ChartSession[] 
         if (data.length < 2) return null;
         const latest = data[data.length - 1].value;
         return (
-          <div key={key} className="rounded-2xl bg-card p-3">
+          <div key={key} className="dd-chart rounded-2xl bg-card p-3">
             <div className="flex items-baseline justify-between">
               <span className="text-xs text-muted-foreground">{label}</span>
               <span className="font-mono text-sm font-bold text-primary">

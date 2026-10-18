@@ -52,7 +52,7 @@ export default function ReactionButton({
   return (
     <div ref={wrap} className="relative inline-block">
       {picker && (
-        <div className="dd-enter absolute bottom-full left-0 z-10 mb-2 flex gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg">
+        <div className="dd-reactpicker dd-enter absolute bottom-full left-0 z-10 mb-2 flex gap-1 rounded-full border border-border bg-card p-1.5 shadow-lg">
           {REACTIONS.map((r) => (
             <button
               key={r.emoji}
@@ -85,7 +85,8 @@ export default function ReactionButton({
         }}
         aria-label={value ? `${label} — tap to remove, hold for more` : "Like — hold for more reactions"}
         style={{ WebkitTouchCallout: "none" }}
-        className={`flex select-none items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold transition-colors ${
+        data-on={!!value}
+        className={`dd-react flex select-none items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold transition-colors ${
           value ? "text-primary" : "text-muted-foreground hover:text-foreground"
         }`}
       >

@@ -54,7 +54,7 @@ export default function FilmingGuide() {
   }, []);
 
   return (
-    <section className="mb-4 rounded-2xl bg-card">
+    <section className="dd-guide mb-4 rounded-2xl bg-card">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between p-3 text-sm font-semibold"
@@ -65,10 +65,10 @@ export default function FilmingGuide() {
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <ul className="space-y-3 border-t border-border p-3">
+        <ul className="dd-tips space-y-3 border-t border-border p-3">
           {RULES.map((r) => (
-            <li key={r.title} className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <li key={r.title} className="dd-tip flex gap-3">
+              <span className="dd-tipdot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
                 <r.icon className="h-4 w-4 text-primary" />
               </span>
               <div>

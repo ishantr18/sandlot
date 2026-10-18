@@ -160,6 +160,7 @@ export default function AnalysisSessionPage() {
     const ctx = canvas.getContext("2d")!;
     const drawer = new DrawingUtils(ctx);
     const frames = framesRef.current;
+    const fieldGreen = document.documentElement.dataset.skin === "field";
 
     const loop = () => {
       const t = video.currentTime;
@@ -180,7 +181,7 @@ export default function AnalysisSessionPage() {
       if (near && Math.abs(near.t - t) < 0.2) {
         const lms = near.lm.map((l) => ({ x: l.x, y: l.y, z: 0, visibility: l.v }));
         drawer.drawConnectors(lms, PoseLandmarker.POSE_CONNECTIONS, {
-          color: "#22c55e",
+          color: fieldGreen ? "#5CE38B" : "#22c55e", // Field skin uses the prototype green
           lineWidth: 3,
         });
         drawer.drawLandmarks(lms, { color: "#ffffff", radius: 3 });
@@ -405,7 +406,13 @@ export default function AnalysisSessionPage() {
   const findings = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)) ?? [];
   const findingsEl = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
               <section key={i} className={`dd-finding rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
-                <p className="text-sm">{f.message}</p>
+                {/* Field skin: the prototype's "The read" kicker on the first read */}
+                {i === 0 && (
+                  <div className="dd-only">
+                    <p className="dd-k">The read</p>
+                  </div>
+                )}
+                <p className="dd-msg text-sm">{f.message}</p>
                 {f.drillIds.length > 0 && (
                   <p className="dd-drillchip mt-2 text-xs text-primary">
                     → Drill:{" "}
@@ -460,7 +467,7 @@ export default function AnalysisSessionPage() {
                     <button
                       onClick={() => toggleFavorite(c.mentorId!)}
                       aria-pressed={favorites.has(c.mentorId)}
-                      className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition-colors ${
+                      className={`dd-fav flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition-colors ${
                         favorites.has(c.mentorId) ? "text-amber-400" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >

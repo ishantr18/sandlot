@@ -25,6 +25,7 @@ import BrandMark from "@/components/BrandMark";
 import CountUp from "@/components/CountUp";
 import FamilyCard from "@/components/FamilyCard";
 import Landing from "@/components/Landing";
+import { FieldCamIcon } from "@/components/Nav";
 import Notice from "@/components/Notice";
 import OnDeck from "@/components/OnDeck";
 import { db } from "@/lib/firebase";
@@ -44,6 +45,7 @@ interface CommentLite {
   sessionId: string;
   mentorId?: string;
   mentorName?: string;
+  text?: string; // already in the doc — only the Field Home's "Up next" card shows it
   createdAt: number;
 }
 
@@ -177,6 +179,7 @@ export default function Home() {
   // Swings with coach feedback the player hasn't opened yet
   const [unread, setUnread] = useState<SessionRow[]>([]);
   const [unreadCoach, setUnreadCoach] = useState<string | null>(null); // who left the newest unread note
+  const [unreadNote, setUnreadNote] = useState<CommentLite | null>(null); // that note itself (Field Home)
   const [nextDrill, setNextDrill] = useState<{ drillId: string; mentorName?: string } | null>(null);
   const [familyOpen, setFamilyOpen] = useState(false);
   const [impact, setImpact] = useState<Impact | null>(null);
@@ -219,6 +222,7 @@ export default function Home() {
           .filter((c) => c.sessionId === unreadRows[0]?.id && (!c.mentorId || !blocked.has(c.mentorId)))
           .sort((a, b) => b.createdAt - a.createdAt)[0];
         setUnreadCoach(newest?.mentorName ?? null);
+        setUnreadNote(newest ?? null); // same comment, for the Field Home's "Up next" card
       } catch {
         setLoadError(true);
       }
@@ -242,7 +246,7 @@ export default function Home() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <BrandMark className="h-12 w-12 animate-pulse" />
+        <span className="dd-loadmark contents"><BrandMark className="h-12 w-12 animate-pulse" /></span>
       </main>
     );
   }
@@ -253,7 +257,7 @@ export default function Home() {
       <Landing />
     ) : (
       <main className="flex min-h-screen items-center justify-center">
-        <BrandMark className="h-12 w-12 animate-pulse" />
+        <span className="dd-loadmark contents"><BrandMark className="h-12 w-12 animate-pulse" /></span>
       </main>
     );
   }
@@ -354,6 +358,159 @@ export default function Home() {
               : "Every swing, coach comment, and assigned drill — nothing on this app is hidden from you."}
           </p>
         </Link>
+      </main>
+    );
+  }
+
+  // Player Home, Field skin (switch: FIELD_SKIN_ROLES) — the prototype's Home
+  // layout over the same data loaded above. Classic / nextUp stay below for
+  // when the skin is off.
+  if (fieldSkinOn(profile?.role)) {
+    const shortDay = (t: number) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const when = (t: number) =>
+      `${shortDay(t)} · ${new Date(t).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    const nextDrillName = nextDrill ? (DRILLS.find((d) => d.id === nextDrill.drillId)?.name ?? "Your assigned drill") : null;
+    const retry = () => {
+      setLoadError(false);
+      setReloadKey((k) => k + 1);
+    };
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl">
+        <p className="dd-eyebrow mt-4">
+          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+        </p>
+        <h1 className="dd-display mt-3">Step up.</h1>
+        <p className="dd-sub mt-3 max-w-[290px]">Film one swing tonight — your coach replies by morning.</p>
+        {profile?.isAdmin && (
+          <Link href="/admin" className="mt-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary">
+            <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
+          </Link>
+        )}
+
+        <div className="dd-filmwrap">
+          <Link href="/upload" className="dd-recordbig" aria-label="Film a swing">
+            <FieldCamIcon className="h-8 w-8" />
+            <span>Film</span>
+          </Link>
+          <Link href="/progress" className="dd-quietlink">
+            or pick from your past swings
+          </Link>
+        </div>
+
+        <div className="dd-statband">
+          <div className="dd-stat-b">
+            <b>{stats ? <CountUp value={stats.total} /> : "–"}</b>
+            <span>swings filmed</span>
+          </div>
+          <div className="dd-stat-b">
+            <b>{stats ? <CountUp value={stats.thisWeek} /> : "–"}</b>
+            <span>this week</span>
+          </div>
+          <div className="dd-stat-b">
+            <b>{stats ? <CountUp value={stats.streak} /> : "–"}</b>
+            <span>day streak</span>
+          </div>
+        </div>
+
+        <div className="dd-divider" />
+
+        <p className="dd-label">Up next</p>
+        {loadError ? (
+          <Notice tone="error" title="Couldn't load your swings" className="mt-3.5" actions={[{ label: "Try again", onClick: retry }]}>
+            Check your connection — your swings are safe.
+          </Notice>
+        ) : !stats ? (
+          <div className="dd-card">
+            <p className="dd-sub">Loading…</p>
+          </div>
+        ) : unread.length > 0 ? (
+          <div className="dd-card">
+            <div className="dd-coachline">
+              <b>{unreadNote?.mentorName ?? unreadCoach ?? "Your coach"}</b>
+              <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
+              <span>· {unreadNote ? when(unreadNote.createdAt) : `on your ${shortDay(unread[0].createdAt)} swing`}</span>
+            </div>
+            <p className="dd-quote">
+              {unreadNote?.text
+                ? `“${unreadNote.text}”`
+                : unread.length === 1
+                  ? `New feedback on your ${shortDay(unread[0].createdAt)} swing.`
+                  : `New feedback on ${unread.length} of your swings.`}
+            </p>
+            <Link href={`/analysis/${unread[0].id}`} className="dd-drillchip-link">
+              {unread.length === 1 ? "Watch it" : "Start with the newest"} <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        ) : nextDrill ? (
+          <div className="dd-card">
+            <div className="dd-coachline">
+              <b>{nextDrill.mentorName ?? "Your coach"}</b>
+              <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
+              <span>· assigned you a drill</span>
+            </div>
+            <p className="dd-quote">Do it, then film it again.</p>
+            <Link href="/drills" className="dd-drillchip-link">
+              Assigned: {nextDrillName} <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        ) : (
+          <div className="dd-card">
+            <p className="dd-sub">
+              {stats.total
+                ? "Nothing waiting on you. Film a swing and your coach will set what's next."
+                : "Film your first swing to get your baseline analysis."}
+            </p>
+          </div>
+        )}
+
+        <p className="dd-label">Swings</p>
+        {!loadError && stats && recent.length === 0 && (
+          <Notice
+            title="No swings yet"
+            className="mt-3.5"
+            actions={[
+              { label: "Film your first swing", href: "/upload" },
+              { label: "See a sample", href: "/sample" },
+            ]}
+          >
+            Your first one sets the starting point everything is measured from.
+          </Notice>
+        )}
+        <div className="mt-1">
+          {recent.slice(0, 2).map((s) => (
+            <Link key={s.id} href={`/analysis/${s.id}`} className="dd-rowitem">
+              <div>
+                {when(s.createdAt)}
+                <div className="dd-meta">{unread.some((u) => u.id === s.id) ? "new feedback" : s.status}</div>
+              </div>
+              {unread.some((u) => u.id === s.id) ? (
+                <span className="dd-chipstat">new</span>
+              ) : (
+                <span className="dd-chev" aria-hidden="true">›</span>
+              )}
+            </Link>
+          ))}
+          {stats && stats.total > 0 && (
+            <Link href="/progress" className="dd-rowitem dd-rowitem-acc">
+              <div>See all {stats.total} swings</div>
+              <span className="dd-chev" aria-hidden="true">›</span>
+            </Link>
+          )}
+        </div>
+
+        <p className="dd-label">Family</p>
+        <button onClick={() => setFamilyOpen((o) => !o)} aria-expanded={familyOpen} className="dd-rowitem">
+          <div>
+            Family code
+            <div className="dd-meta">Let a parent follow along</div>
+          </div>
+          <span className={`dd-chev transition-transform ${familyOpen ? "rotate-90" : ""}`} aria-hidden="true">›</span>
+        </button>
+        {familyOpen && user && (
+          <div className="dd-enter">
+            <FamilyCard playerId={user.uid} playerName={user.displayName ?? "Player"} />
+          </div>
+        )}
       </main>
     );
   }
