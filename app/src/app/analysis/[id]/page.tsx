@@ -6,6 +6,7 @@
 import { DrawingUtils, PoseLandmarker } from "@mediapipe/tasks-vision";
 import {
   addDoc,
+  deleteField,
   collection,
   doc,
   getDoc,
@@ -21,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
+import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
 import GrowthPanel from "@/components/GrowthPanel";
@@ -44,7 +46,19 @@ interface SessionDoc {
   metrics?: SwingMetrics;
   findings?: Finding[];
   landmarks?: string;
+  reactions?: Record<string, string>; // commentId → the player's emoji
 }
+
+// Quick ways a player answers a coach's note — stored on the player's own
+// swing doc (comments themselves can't be edited after a coach posts them)
+const REACTIONS = ["👍", "🔥", "💪", "🙏", "🤔"];
+const REACTION_LABEL: Record<string, string> = {
+  "👍": "Got it",
+  "🔥": "Love it",
+  "💪": "On it",
+  "🙏": "Thanks",
+  "🤔": "Not sure",
+};
 
 const SEVERITY_STYLE = {
   major: "border-l-4 border-red-500",
@@ -101,7 +115,7 @@ export default function AnalysisSessionPage() {
           query(collection(db, "comments"), where("sessionId", "==", id)),
         );
         const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
-        cs.sort((a, b) => a.timestampSec - b.timestampSec);
+        cs.sort((a, b) => a.timestampSec - b.timestampSec || a.createdAt - b.createdAt);
         setComments(cs);
         // The player has now seen this feedback — clears "New feedback" on Home
         if (isOwner && cs.length > 0)
@@ -189,6 +203,27 @@ export default function AnalysisSessionPage() {
       setCoachMsg("Drill assigned — it appears on the player's Drills page.");
     } catch {
       setCoachMsg("Couldn't assign the drill — check your connection and try again.");
+    }
+  }
+
+  // Report / Block under comments — who sees them is a switch (lib/switches.ts)
+  const showSafety =
+    (profile?.role === "guardian" && COACH_SAFETY_BUTTONS !== "none") ||
+    (profile?.role === "player" && COACH_SAFETY_BUTTONS === "everyone");
+
+  async function react(commentId: string, emoji: string | null) {
+    if (!session) return;
+    const before = session.reactions;
+    const next = { ...(before ?? {}) };
+    if (emoji) next[commentId] = emoji;
+    else delete next[commentId];
+    setSession({ ...session, reactions: next }); // show it right away
+    try {
+      await updateDoc(doc(db, "sessions", id), {
+        [`reactions.${commentId}`]: emoji ?? deleteField(),
+      });
+    } catch {
+      setSession({ ...session, reactions: before });
     }
   }
 
@@ -387,10 +422,46 @@ export default function AnalysisSessionPage() {
                     {/* Only admin-approved coaches can comment at all */}
                     <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
                     {c.mentorOrg && <span>· {c.mentorOrg}</span>}
+                    <span>
+                      ·{" "}
+                      {new Date(c.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })},{" "}
+                      {new Date(c.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                    </span>
                   </span>
                   <p className="mt-1 text-sm">{c.text}</p>
                 </button>
-                {profile?.role !== "mentor" && c.mentorId && user && session && (
+                {/* Reactions — the player picks one; coach and parent see it */}
+                {session && !c.id.startsWith("local-") &&
+                  (user?.uid === session.playerId ? (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {REACTIONS.map((e) => {
+                        const picked = session.reactions?.[c.id] === e;
+                        return (
+                          <button
+                            key={e}
+                            onClick={() => react(c.id, picked ? null : e)}
+                            aria-pressed={picked}
+                            aria-label={REACTION_LABEL[e]}
+                            title={REACTION_LABEL[e]}
+                            className={`rounded-full px-2.5 py-1 text-base transition-colors ${
+                              picked ? "bg-primary/20 ring-1 ring-primary" : "bg-secondary hover:bg-secondary/70"
+                            }`}
+                          >
+                            {e}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    session.reactions?.[c.id] && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {profile?.role === "guardian" ? "Your player" : "Player"} reacted{" "}
+                        <span className="text-base">{session.reactions[c.id]}</span>{" "}
+                        {REACTION_LABEL[session.reactions[c.id]] ?? ""}
+                      </p>
+                    )
+                  ))}
+                {showSafety && c.mentorId && user && session && (
                   <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
                     <button
                       onClick={async () => {
@@ -474,7 +545,7 @@ export default function AnalysisSessionPage() {
                           timestampSec,
                           text: newComment.trim(),
                           createdAt: Date.now(),
-                        }].sort((a, b) => a.timestampSec - b.timestampSec),
+                        }].sort((a, b) => a.timestampSec - b.timestampSec || a.createdAt - b.createdAt),
                       );
                       setNewComment("");
                       setCoachMsg("Comment posted.");

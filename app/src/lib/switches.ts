@@ -10,3 +10,9 @@ export const SIGNED_OUT_START: "signin" | "landing" = "signin";
 //   "classic" → stat cards, shortcut tiles, Today's focus, recent swings, family code
 //   "nextUp"  → one "Next up" card, one-line stats, 3 recent swings, family row collapsed
 export const PLAYER_HOME: "classic" | "nextUp" = "classic";
+
+// Who sees "Report" / "Block this coach" under coach comments:
+//   "parents"  → parents only (players just see the feedback + reactions)
+//   "everyone" → players and parents
+//   "none"     → nobody
+export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "parents";
