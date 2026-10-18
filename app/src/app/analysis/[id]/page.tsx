@@ -106,7 +106,7 @@ export default function AnalysisSessionPage() {
           query(collection(db, "comments"), where("sessionId", "==", id)),
         );
         const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
-        cs.sort((a, b) => b.createdAt - a.createdAt) // newest first;
+        cs.sort((a, b) => b.createdAt - a.createdAt); // newest first
         setComments(cs);
         // The player has now seen this feedback — clears "New feedback" on Home
         if (isOwner && cs.length > 0)
@@ -518,7 +518,7 @@ export default function AnalysisSessionPage() {
                           timestampSec,
                           text: newComment.trim(),
                           createdAt: Date.now(),
-                        }].sort((a, b) => b.createdAt - a.createdAt) // newest first,
+                        }].sort((a, b) => b.createdAt - a.createdAt),
                       );
                       setNewComment("");
                       setCoachMsg("Comment posted.");
