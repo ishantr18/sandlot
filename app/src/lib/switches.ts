@@ -15,7 +15,7 @@ export const PLAYER_HOME: "classic" | "nextUp" = "classic";
 //   "parents"  → parents only (players just see the feedback + reactions)
 //   "everyone" → players and parents
 //   "none"     → nobody
-export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "parents";
+export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "none";
 
 // "Field" skin — the approved look from diamond-drive-prototype.html
 // (dark field-green, Barlow type, home-plate logo, prototype tab bars).

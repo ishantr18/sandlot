@@ -372,7 +372,8 @@ html[data-skin="field"] :is(button, a).border-border {
   left: 50%;
   bottom: calc(16px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  width: min(calc(28rem - 36px), calc(100% - 36px));
+  /* same width as the page's content column (page column minus its 24px sides) */
+  width: min(calc(28rem - 48px), calc(100% - 48px));
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -647,6 +648,9 @@ html[data-skin="field"] .dd-drillchip {
 @media (width >= 64rem) {
   [data-layout="narrow"] .dd-topbar {
     max-width: 42rem;
+  }
+  [data-layout="narrow"] .dd-tabbar {
+    width: calc(42rem - 48px);
   }
 }
 html[data-skin="field"] .dd-coachname {
