@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Play,
   ShieldCheck,
+  TrendingUp,
   Users,
   Video,
 } from "lucide-react";
@@ -28,7 +29,7 @@ import Notice from "@/components/Notice";
 import { db } from "@/lib/firebase";
 import { DRILLS } from "@/lib/drills";
 import { linksFor } from "@/lib/family";
-import { SIGNED_OUT_START } from "@/lib/startScreen";
+import { PLAYER_HOME, SIGNED_OUT_START } from "@/lib/switches";
 
 interface SessionRow {
   id: string;
@@ -151,6 +152,13 @@ function computeStats(timestamps: number[]): Stats {
   };
 }
 
+// Shortcut tiles on the classic player Home
+const ACTIONS = [
+  { href: "/upload", label: "Record swing", icon: Video },
+  { href: "/drills", label: "Drills", icon: Dumbbell },
+  { href: "/progress", label: "Growth", icon: TrendingUp },
+];
+
 export default function Home() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
@@ -183,7 +191,7 @@ export default function Home() {
         });
         rows.sort((a, b) => b.createdAt - a.createdAt);
         setStats(computeStats(rows.map((r) => r.createdAt)));
-        setRecent(rows.slice(0, 3));
+        setRecent(rows.slice(0, PLAYER_HOME === "classic" ? 4 : 3));
 
         // New feedback = a comment newer than the last time this swing was opened.
         // Comments from coaches the player blocked don't count.
@@ -303,6 +311,166 @@ export default function Home() {
               : "Every swing, coach comment, and assigned drill — nothing on this app is hidden from you."}
           </p>
         </Link>
+      </main>
+    );
+  }
+
+  // Classic player Home (switch: PLAYER_HOME in src/lib/switches.ts)
+  if (PLAYER_HOME === "classic") {
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
+        <p className="text-sm text-muted-foreground">Welcome back,</p>
+        <h1 className="mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">
+          {firstName}
+        </h1>
+        {profile?.isAdmin && (
+            <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary wide:max-w-md">
+              <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
+            </Link>
+          )}
+
+        {unread.length > 0 && (
+          <Link
+            href={`/analysis/${unread[0].id}`}
+            className="mb-6 flex items-center gap-3 rounded-2xl bg-primary/15 p-4 ring-1 ring-primary wide:max-w-md"
+          >
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <span className="flex-1 text-sm">
+              <span className="block font-semibold text-primary">New coach feedback</span>
+              <span className="text-muted-foreground">
+                {unread.length === 1
+                  ? `On your ${new Date(unread[0].createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} swing — tap to watch.`
+                  : `On ${unread.length} of your swings — tap to start with the newest.`}
+              </span>
+            </span>
+            <span className="text-primary">→</span>
+          </Link>
+        )}
+
+        <div className="wide:grid wide:grid-cols-5 wide:gap-8">
+          {/* Left: stats + actions */}
+          <div className="wide:col-span-3">
+            <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
+              <div className="rounded-2xl bg-card p-4 wide:p-6">
+                <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary wide:text-4xl">
+                  <Flame className="h-5 w-5 wide:h-7 wide:w-7" />
+                  {stats ? <CountUp value={stats.streak} /> : "–"}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground wide:text-sm">day streak</div>
+              </div>
+              <div className="rounded-2xl bg-card p-4 wide:p-6">
+                <div className="font-mono text-2xl font-bold wide:text-4xl">
+                  {stats ? <CountUp value={stats.thisWeek} /> : "–"}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground wide:text-sm">this week</div>
+              </div>
+              <div className="rounded-2xl bg-card p-4 wide:p-6">
+                <div className="font-mono text-2xl font-bold wide:text-4xl">
+                  {stats ? <CountUp value={stats.total} /> : "–"}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground wide:text-sm">
+                  total swings
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
+              {ACTIONS.map((a) => (
+                <Link
+                  key={a.href}
+                  href={a.href}
+                  className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium transition-colors hover:bg-secondary wide:p-8 wide:text-sm"
+                >
+                  <a.icon className="h-5 w-5 text-primary wide:h-7 wide:w-7" />
+                  {a.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: focus + recent activity */}
+          <div className="wide:col-span-2">
+            <section className="mb-6 rounded-2xl bg-card p-4 wide:p-6">
+              <h2 className="mb-1 text-sm font-semibold">Today&apos;s focus</h2>
+              <p className="text-sm text-muted-foreground">
+                {stats?.lastAt
+                  ? `Last swing ${new Date(stats.lastAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}. Film a new one and keep the streak alive.`
+                  : "Film your first swing to get your baseline analysis."}
+              </p>
+            </section>
+
+            <section className="rounded-2xl bg-card wide:min-h-48">
+              <div className="flex items-center justify-between p-4 pb-2">
+                <h2 className="text-sm font-semibold">Recent swings</h2>
+                <Link href="/progress" className="text-xs text-primary">
+                  See all →
+                </Link>
+              </div>
+              {loadError ? (
+                <div className="p-2 pt-0">
+                  <Notice
+                    tone="error"
+                    title="Couldn't load your swings"
+                    actions={[
+                      {
+                        label: "Try again",
+                        onClick: () => {
+                          setLoadError(false);
+                          setReloadKey((k) => k + 1);
+                        },
+                      },
+                    ]}
+                  >
+                    Check your connection — your swings are safe.
+                  </Notice>
+                </div>
+              ) : (
+                stats &&
+                recent.length === 0 && (
+                  <div className="p-2 pt-0">
+                    <Notice
+                      title="No swings yet"
+                      actions={[
+                        { label: "Film your first swing", href: "/upload" },
+                        { label: "See a sample", href: "/sample" },
+                      ]}
+                    >
+                      Your first one sets the starting point everything is measured from.
+                    </Notice>
+                  </div>
+                )
+              )}
+              {recent.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/analysis/${s.id}`}
+                  className="flex items-center gap-3 border-t border-border p-4 py-3 transition-colors hover:bg-secondary"
+                >
+                  <Play className="h-4 w-4 text-primary" />
+                  <div className="flex-1 text-sm">
+                    {new Date(s.createdAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}{" "}
+                    ·{" "}
+                    {new Date(s.createdAt).toLocaleTimeString(undefined, {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                  {unread.some((u) => u.id === s.id) ? (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                      new feedback
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{s.status}</span>
+                  )}
+                </Link>
+              ))}
+            </section>
+            {user && <FamilyCard playerId={user.uid} playerName={user.displayName ?? "Player"} />}
+          </div>
+        </div>
       </main>
     );
   }

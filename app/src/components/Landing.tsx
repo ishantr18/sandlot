@@ -2,7 +2,7 @@
 
 // Welcome screen — swing-trace hero, the three role cards, sample swing.
 // Lives at /welcome; "/" shows it to signed-out visitors only when
-// SIGNED_OUT_START (src/lib/startScreen.ts) is "landing".
+// SIGNED_OUT_START (src/lib/switches.ts) is "landing".
 import { ClipboardList, Lock, Users, Video } from "lucide-react";
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
