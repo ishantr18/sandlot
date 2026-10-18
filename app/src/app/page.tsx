@@ -26,6 +26,7 @@ import CountUp from "@/components/CountUp";
 import FamilyCard from "@/components/FamilyCard";
 import Landing from "@/components/Landing";
 import Notice from "@/components/Notice";
+import OnDeck from "@/components/OnDeck";
 import { db } from "@/lib/firebase";
 import { DRILLS } from "@/lib/drills";
 import { linksFor } from "@/lib/family";
@@ -227,7 +228,8 @@ export default function Home() {
   useEffect(() => {
     if (!user || !profile) return;
     const load =
-      profile.role === "mentor" && profile.verifiedMentor
+      // (Field-skin coaches get On Deck, which counts its own impact)
+      profile.role === "mentor" && profile.verifiedMentor && !fieldSkinOn(profile.role)
         ? coachImpact(user.uid)
         : profile.role === "guardian"
           ? familyImpact(user.uid)
@@ -294,6 +296,9 @@ export default function Home() {
       </main>
     );
   }
+
+  // Coach Home, Field skin: On Deck — Home and the review queue in one screen
+  if (profile?.role === "mentor" && fieldSkinOn(profile.role)) return <OnDeck />;
 
   // Coaches and parents get their own hub — player stats don't apply to them
   if (profile?.role === "mentor" || profile?.role === "guardian") {

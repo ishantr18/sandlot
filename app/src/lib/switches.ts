@@ -22,4 +22,4 @@ export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "none";
 // Rolled out one role at a time. Remove a role to give it the old look back;
 // [] = old look everywhere. Styles live in globals.css under [data-skin="field"].
 //   "guardian" = parents · "player" = players · "mentor" = coaches
-export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian"];
+export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian", "mentor"];
