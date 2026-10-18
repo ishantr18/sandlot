@@ -45,7 +45,7 @@ const RULES = [
 
 // Short version (switch: FILM_TIPS) — three tips, a few words each
 const SHORT_RULES = [
-  { icon: MoveHorizontal, title: "Side view", detail: "phone propped, facing your side" },
+  { icon: MoveHorizontal, title: "Side view", detail: "phone still, facing the side" },
   { icon: PersonStanding, title: "Head to toe", detail: "feet stay in the shot" },
   { icon: Timer, title: "One swing per clip", detail: "at least 5 seconds" },
 ];
