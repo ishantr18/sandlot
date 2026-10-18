@@ -4,12 +4,12 @@
 // ★ Prefer you" tabs. Used by the classic /coach page and the Field-skin
 // On Deck screen. `field` switches the row look (prototype .queuerow with
 // pill tags); the classic look is unchanged.
+import PlayerName from "@/components/PlayerName";
 import { ChevronRight, Play, Star } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Notice from "@/components/Notice";
-import { anonPlayer } from "@/lib/anon";
 import { loadCoachQueue, sortQueue, type CoachQueueData, type QueueRow, type QueueTag } from "@/lib/coachQueue";
 
 // Loads the queue for a certified coach. Retry bumps the key.
@@ -61,7 +61,7 @@ function FieldRow({ r, fan }: { r: QueueRow; fan: boolean }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="dd-who">
-          {anonPlayer(r.playerId)}
+          <PlayerName uid={r.playerId} />
           {fan && (
             <span className="dd-fan">
               <Star className="h-3.5 w-3.5 fill-current" /> prefers you
@@ -153,7 +153,7 @@ export default function CoachQueueList({ data, field = false }: { data: CoachQue
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    {anonPlayer(r.playerId)}
+                    <PlayerName uid={r.playerId} />
                     {fans.has(r.playerId) && (
                       <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
                         <Star className="h-3.5 w-3.5 fill-amber-400" /> prefers you

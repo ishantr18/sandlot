@@ -3,6 +3,7 @@
 // Analysis page — THE screen. Blurred swing video with the AI skeleton
 // overlaid (drawn from the stored landmark series, synced to playback),
 // real metric tiles, and plain-English findings with assigned drills.
+import PlayerName from "@/components/PlayerName";
 import { DrawingUtils, PoseLandmarker } from "@mediapipe/tasks-vision";
 import {
   addDoc,
@@ -22,7 +23,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
 import { fieldSkinOn } from "@/lib/skin";
@@ -339,7 +339,7 @@ export default function AnalysisSessionPage() {
 
   const safetyRowEl = profile?.role === "mentor" && session && user && (
             <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="font-medium">{anonPlayer(session.playerId)}</span>
+              <span className="font-medium"><PlayerName uid={session.playerId} /></span>
               <button
                 onClick={async () => {
                   await addDoc(collection(db, "reports"), {
@@ -544,7 +544,7 @@ export default function AnalysisSessionPage() {
   const growthEl = profile?.role === "mentor" && profile.verifiedMentor && session && (
               <div className="mb-4">
                 <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">
-                  {anonPlayer(session.playerId)}&apos;s growth
+                  <PlayerName uid={session.playerId} />&apos;s growth
                 </h2>
                 <GrowthPanel playerId={session.playerId} mode="coach" />
               </div>
@@ -640,7 +640,7 @@ export default function AnalysisSessionPage() {
           <ChevronLeft className="h-4 w-4" /> On Deck
         </Link>
         <h1 className="dd-title dd-review-title mt-3 mb-4">
-          {session ? anonPlayer(session.playerId) : "Review"}
+          {session ? <PlayerName uid={session.playerId} /> : "Review"}
           {session && (
             <span className="dd-when">
               {" "}
@@ -685,7 +685,7 @@ export default function AnalysisSessionPage() {
               <details className="dd-ref">
                 <summary>
                   <span>
-                    <b>{anonPlayer(session.playerId)}&apos;s growth</b> · effort &amp; skills
+                    <b><PlayerName uid={session.playerId} />&apos;s growth</b> · effort &amp; skills
                   </span>
                   <ChevronRight className="dd-chev h-4 w-4" />
                 </summary>

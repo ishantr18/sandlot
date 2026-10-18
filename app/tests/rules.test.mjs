@@ -224,3 +224,28 @@ test("the named coach, the player and their parent can read a favorite; others c
   await assertFails(getDoc(doc(as("stranger"), "favorites/kid_coach")));
   await assertFails(getDocs(query(collection(as("sneaky"), "favorites"), where("coachId", "==", "coach"))));
 });
+
+// ---- Player first names (the only thing a coach may know) ----
+const approveCoach = async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "coachApplications/coach"), { uid: "coach", status: "approved" });
+  });
+};
+
+test("player publishes a first name; an approved coach can read it", async () => {
+  await approveCoach();
+  await assertSucceeds(setDoc(doc(as("kid"), "playerNames/kid"), { firstName: "Kid" }));
+  await assertSucceeds(getDoc(doc(as("coach"), "playerNames/kid")));
+  await assertSucceeds(getDoc(doc(as("kid"), "playerNames/kid")));
+  await assertSucceeds(deleteDoc(doc(as("kid"), "playerNames/kid")));
+});
+
+test("ATTACK: unapproved coach / parent / stranger reads a name; extra fields; writing someone else's", async () => {
+  await assertSucceeds(setDoc(doc(as("kid"), "playerNames/kid"), { firstName: "Kid" }));
+  await assertFails(getDoc(doc(as("sneaky"), "playerNames/kid")));
+  await assertFails(getDoc(doc(as("stranger"), "playerNames/kid")));
+  await assertFails(setDoc(doc(as("kid"), "playerNames/kid"), { firstName: "Kid", lastName: "Smith" }));
+  await assertFails(setDoc(doc(as("kid"), "playerNames/kid"), { firstName: "" }));
+  await assertFails(setDoc(doc(as("stranger"), "playerNames/kid"), { firstName: "Evil" }));
+  await assertFails(deleteDoc(doc(as("coach"), "playerNames/kid")));
+});

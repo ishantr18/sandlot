@@ -4,11 +4,11 @@
 // recently reviewed first, each trending only against their OWN start.
 // Never a ranking: the order is just "who you reviewed last".
 // Players stay anonymous (player number only). Linked only from the Field tab bar.
+import PlayerName from "@/components/PlayerName";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { CoachGate, HistoryLoadState, shortDate, useReviewHistory } from "@/components/CoachHistory";
 import Notice from "@/components/Notice";
-import { anonPlayer } from "@/lib/anon";
 import { db } from "@/lib/firebase";
 import { computeGrowth, SKILL_INFO, STEADY_BAND, type GrowthSession } from "@/lib/growth";
 
@@ -72,7 +72,7 @@ function PlayersList() {
           {players.map((p, i) => (
             <div key={p.playerId} className={`dd-row flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{anonPlayer(p.playerId)}</div>
+                <div className="text-sm font-medium"><PlayerName uid={p.playerId} /></div>
                 <div className="text-xs text-muted-foreground">
                   {p.swings.size} swing{p.swings.size === 1 ? "" : "s"} reviewed
                   {p.comments > p.swings.size && ` (${p.comments} comments)`} · last {shortDate(p.last)}

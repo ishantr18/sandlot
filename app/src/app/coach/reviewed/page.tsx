@@ -3,10 +3,10 @@
 // Reviewed (Field skin, coach) — every swing this coach has put words on,
 // newest first. Players stay anonymous (player number only). Each card
 // opens the swing. Linked only from the Field tab bar.
+import PlayerName from "@/components/PlayerName";
 import Link from "next/link";
 import { CoachGate, HistoryLoadState, shortDate, useReviewHistory } from "@/components/CoachHistory";
 import Notice from "@/components/Notice";
-import { anonPlayer } from "@/lib/anon";
 import { DRILLS } from "@/lib/drills";
 
 function ReviewedList() {
@@ -32,7 +32,7 @@ function ReviewedList() {
           {reviews.map((r) => (
             <Link key={r.id} href={`/analysis/${r.sessionId}`} className="dd-comment dd-linkcard block rounded-2xl bg-card p-4">
               <span className="dd-coachline block text-xs text-muted-foreground">
-                <b className="dd-coachname font-semibold text-foreground">{anonPlayer(r.playerId)}</b> · {shortDate(r.createdAt)}
+                <b className="dd-coachname font-semibold text-foreground"><PlayerName uid={r.playerId} /></b> · {shortDate(r.createdAt)}
               </span>
               <span className="dd-review-text mt-1 block whitespace-pre-line break-words text-sm">{r.text}</span>
               {r.drillIds.length > 0 && (

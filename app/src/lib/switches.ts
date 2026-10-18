@@ -33,3 +33,10 @@ export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian
 // loading). They have no role yet, so they get their own switch.
 //   true → prototype look · false → old look
 export const FIELD_SKIN_SIGNED_OUT: boolean = true;
+
+// What a coach sees for a player's name:
+//   "firstName" → the player's first name only (no last name, email or photo)
+//   "anon"      → "Player #7F3K" (a stable number, never a name)
+// Players publish just their first name to playerNames/{uid} (see
+// PlayerNamePublisher); switching to "anon" also removes it on their next visit.
+export const COACH_SEES_PLAYER: "firstName" | "anon" = "firstName";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import Nav, { FieldTopBar } from "@/components/Nav";
+import PlayerNamePublisher from "@/components/PlayerNamePublisher";
 import SkinSwitch from "@/components/SkinSwitch";
 import { AuthProvider } from "@/components/AuthProvider";
 import VerifyEmailGate from "@/components/VerifyEmailGate";
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <SkinSwitch />
+          <PlayerNamePublisher />
           <FieldTopBar />
           <VerifyEmailGate>{children}</VerifyEmailGate>
           <Nav />

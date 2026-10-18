@@ -50,6 +50,21 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
     }
 
+    // ---- Player first names ------------------------------------------------
+    // The ONE thing a coach may know about a player: their first name.
+    // Written only by the player, only { firstName }; readable by the player,
+    // approved coaches and the admin. Never last name, email or photo.
+    match /playerNames/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || isCertMentor() || isAdmin());
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['firstName'])
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.firstName.size() <= 30;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     // ---- Family codes ----------------------------------------------------
     // A player makes a short-lived code; a parent types it in to link.
     // Nobody can LIST codes; fetching one requires already knowing it.
