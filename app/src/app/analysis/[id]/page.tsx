@@ -101,7 +101,9 @@ export default function AnalysisSessionPage() {
   const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
   useEffect(() => {
-    if (!user || !id) return;
+    // Wait for the profile too — checking access before the role loads
+    // wrongly showed "You don't have access" on a refresh / direct link
+    if (!user || !id || !profile) return;
     (async () => {
       try {
         const snap = await getDoc(doc(db, "sessions", id));
