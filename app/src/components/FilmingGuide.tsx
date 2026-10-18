@@ -13,6 +13,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { FILM_TIPS } from "@/lib/switches";
 
 const RULES = [
   {
@@ -42,7 +43,15 @@ const RULES = [
   },
 ];
 
+// Short version (switch: FILM_TIPS) — three tips, a few words each
+const SHORT_RULES = [
+  { icon: MoveHorizontal, title: "Side on", detail: "camera sees your profile" },
+  { icon: PersonStanding, title: "Head to toe", detail: "feet stay in the shot" },
+  { icon: Timer, title: "One swing", detail: "5–10 second clip" },
+];
+
 export default function FilmingGuide() {
+  const rules = FILM_TIPS === "short" ? SHORT_RULES : RULES;
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
@@ -65,8 +74,8 @@ export default function FilmingGuide() {
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <ul className="dd-tips space-y-3 border-t border-border p-3">
-          {RULES.map((r) => (
+        <ul className={`dd-tips space-y-3 border-t border-border p-3 ${rules.length === 3 ? "dd-tips-3" : ""}`}>
+          {rules.map((r) => (
             <li key={r.title} className="dd-tip flex gap-3">
               <span className="dd-tipdot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
                 <r.icon className="h-4 w-4 text-primary" />

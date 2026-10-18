@@ -45,3 +45,8 @@ export const COACH_SEES_PLAYER: "firstName" | "anon" = "firstName";
 //   "comments" → number of coach comments (coach: ones you wrote · parent: on your kid's swings)
 //   "dollars"  → "$ coaching given / received free" (≈ $25 per reviewed swing)
 export const IMPACT_STAT: "comments" | "dollars" = "comments";
+
+// "How to film your swing" tips:
+//   "short" → 3 tips, a few words each (prop-the-phone + lighting tips cut)
+//   "full"  → the original 5 tips with full sentences
+export const FILM_TIPS: "short" | "full" = "short";

@@ -1986,3 +1986,11 @@ html[data-skin="field"] .dd-callout {
     animation: none;
   }
 }
+
+/* three short filming tips sit in one row, like the prototype */
+html[data-skin="field"] .dd-tips-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+html[data-skin="field"] .dd-tips-3 > .dd-tip:last-child:nth-child(odd) {
+  grid-column: auto;
+}
