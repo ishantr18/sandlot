@@ -250,13 +250,18 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="dd-auth mx-auto max-w-md p-6 pb-28">
+    // dd-fieldlines: the sign-in start screen is the one page that shows the
+    // field-line backdrop (Field skin), in a phone-width column
+    <main className={`dd-auth mx-auto max-w-md p-6 pb-28 ${mode === "signin" ? "dd-fieldlines" : ""}`}>
       {wordmark}
       <div className="dd-hide mb-8 flex items-center gap-3 pt-6">
         <BrandMark className="h-9 w-9" />
         <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
       </div>
-      <h1 className="dd-title dd-auth-title mb-1 text-4xl font-bold tracking-tight">{title}</h1>
+      {/* Field skin hides the "SIGN IN" heading under the wordmark (dd-hide) */}
+      <h1 className={`dd-title dd-auth-title mb-1 text-4xl font-bold tracking-tight ${mode === "signin" ? "dd-hide" : ""}`}>
+        {title}
+      </h1>
       <p className="dd-sub mb-6 text-sm text-muted-foreground">{subtitle}</p>
 
       <form onSubmit={submit} className="space-y-3">

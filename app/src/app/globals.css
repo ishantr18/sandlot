@@ -1994,3 +1994,19 @@ html[data-skin="field"] .dd-tips-3 {
 html[data-skin="field"] .dd-tips-3 > .dd-tip:last-child:nth-child(odd) {
   grid-column: auto;
 }
+
+/* Field lines only on the sign-in start screen (main.dd-fieldlines), where
+   the column is phone-width so more of the field shows; every other page:
+   no lines. Delete these three rules to show the lines everywhere again. */
+html[data-skin="field"] body::before {
+  display: none;
+}
+html[data-skin="field"] body:has(.dd-fieldlines)::before {
+  display: block;
+}
+html[data-skin="field"] body:has(.dd-fieldlines)::after {
+  width: min(100%, 26rem) !important;
+}
+html[data-skin="field"] .dd-fieldlines .dd-sub {
+  text-align: center;
+}
