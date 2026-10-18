@@ -194,7 +194,7 @@ export default function AuthPage() {
         <div className="dd-wordmark">DIAMOND DRIVE</div>
         {mode === "signup" && !rolePicked && (
           <p className="dd-sub mx-auto mt-3 max-w-[282px]">
-            Film one swing. A real coach&apos;s eyes on it by morning — free, forever.
+            Film one swing. A real coach&apos;s eyes on it by morning.
           </p>
         )}
       </div>
@@ -258,11 +258,12 @@ export default function AuthPage() {
         <BrandMark className="h-9 w-9" />
         <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
       </div>
-      {/* Field skin hides the "SIGN IN" heading under the wordmark (dd-hide) */}
-      <h1 className={`dd-title dd-auth-title mb-1 text-4xl font-bold tracking-tight ${mode === "signin" ? "dd-hide" : ""}`}>
+      {/* Field skin hides the "SIGN IN" / "CREATE YOUR ACCOUNT" heading under the wordmark (dd-hide) */}
+      <h1 className={`dd-title dd-auth-title mb-1 text-4xl font-bold tracking-tight ${mode !== "reset" ? "dd-hide" : ""}`}>
         {title}
       </h1>
-      <p className="dd-sub mb-6 text-sm text-muted-foreground">{subtitle}</p>
+      {/* Field skin drops the "Free, forever" line on sign-up */}
+      <p className={`dd-sub mb-6 text-sm text-muted-foreground ${mode === "signup" ? "dd-hide" : ""}`}>{subtitle}</p>
 
       <form onSubmit={submit} className="space-y-3">
         {mode === "signup" && (
