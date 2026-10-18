@@ -28,6 +28,7 @@ import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
 import DrillPicker from "@/components/DrillPicker";
+import LinkifiedText from "@/components/LinkifiedText";
 import ReactionButton, { reactionLabel } from "@/components/ReactionButton";
 import GrowthPanel from "@/components/GrowthPanel";
 import type { PoseFrame } from "@/lib/poseExtract";
@@ -429,13 +430,15 @@ export default function AnalysisSessionPage() {
               .map((c) => (
               <div key={c.id} className="rounded-2xl bg-card p-4">
                 <div className="flex items-start gap-2">
-                <button
-                  onClick={() => {
-                    if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
-                  }}
-                  className="block min-w-0 flex-1 text-left"
-                >
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  {/* Tapping the name/date jumps the video to where the coach paused;
+                      the comment itself is plain, selectable text with live links */}
+                  <button
+                    onClick={() => {
+                      if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
+                    }}
+                    className="inline-flex flex-wrap items-center gap-1 text-left text-xs text-muted-foreground"
+                  >
                     {c.mentorName ?? "Coach"}
                     {/* Only admin-approved coaches can comment at all */}
                     <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
@@ -445,9 +448,9 @@ export default function AnalysisSessionPage() {
                       {new Date(c.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })},{" "}
                       {new Date(c.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                     </span>
-                  </span>
-                  <p className="mt-1 text-sm">{c.text}</p>
-                </button>
+                  </button>
+                  <LinkifiedText text={c.text} className="mt-1 text-sm" />
+                </div>
                 {/* Favorite this coach — their queue can then filter to you */}
                 {session && c.mentorId && !c.id.startsWith("local-") &&
                   (user?.uid === session.playerId ? (
