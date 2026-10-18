@@ -1,6 +1,11 @@
 // Look-and-feel switches — change one word, rebuild, done.
 // (Width and text-size switches live on <html> in src/app/layout.tsx.)
 
+// Logo while the Field skin is on:
+//   "baseball"  → the existing baseball mark (user's pick)
+//   "homeplate" → the prototype's green home-plate mark
+export const FIELD_LOGO: "baseball" | "homeplate" = "baseball";
+
 // What a signed-out visitor sees at "/":
 //   "signin"  → the sign-in form (the welcome landing stays at /welcome)
 //   "landing" → the welcome landing with the swing animation and role cards

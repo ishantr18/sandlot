@@ -1,6 +1,10 @@
+import { FIELD_LOGO } from "@/lib/switches";
+
 // Diamond Drive mark — a baseball with its two red stitch seams.
-// With the Field skin on, the home-plate mark shows instead (CSS swaps them).
+// With the Field skin on and FIELD_LOGO = "homeplate", the home-plate mark
+// shows instead (CSS swaps them).
 export default function BrandMark({ className = "h-8 w-8" }: { className?: string }) {
+  if (FIELD_LOGO === "baseball") return <BaseballMark className={className} />;
   return (
     <>
       <BaseballMark className={`dd-hide ${className}`} />
@@ -9,8 +13,10 @@ export default function BrandMark({ className = "h-8 w-8" }: { className?: strin
   );
 }
 
-// Field skin mark — home plate in field green (from the approved prototype)
+// Field skin mark — home plate in field green (from the approved prototype).
+// Follows FIELD_LOGO: shows the baseball unless it's set to "homeplate".
 export function HomePlateMark({ className = "h-3 w-3" }: { className?: string }) {
+  if (FIELD_LOGO === "baseball") return <BaseballMark className={className} />;
   return (
     <svg viewBox="0 0 13 13" className={className} aria-hidden="true">
       <path d="M3.2 2.6 H9.8 V6.9 L6.5 10.6 L3.2 6.9 Z" fill="#5CE38B" />
