@@ -9,8 +9,10 @@
 // - EQUITY QUEUE: swings with the fewest coach reviews come first, so
 //   attention flows to whoever has received the least
 // - One-way: coaches give feedback; there is no reply channel
+// - Players can favorite a coach; "Prefer you" filters to those players
+//   (still anonymous — the coach only sees the player number)
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Star } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -29,6 +31,8 @@ interface QueueRow {
 export default function CoachPage() {
   const { user, profile, loading } = useAuth();
   const [rows, setRows] = useState<QueueRow[] | null>(null);
+  const [fans, setFans] = useState<Set<string>>(new Set()); // players who favorited me
+  const [tab, setTab] = useState<"all" | "fans">("all");
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
 
@@ -36,11 +40,13 @@ export default function CoachPage() {
     if (!user || profile?.role !== "mentor" || !profile.verifiedMentor) return;
     (async () => {
       try {
-        const [sessSnap, commentSnap, blockSnap] = await Promise.all([
+        const [sessSnap, commentSnap, blockSnap, favSnap] = await Promise.all([
           getDocs(query(collection(db, "sessions"), where("status", "==", "analyzed"))),
           getDocs(collection(db, "comments")),
           getDocs(query(collection(db, "blocks"), where("coachId", "==", user.uid))),
+          getDocs(query(collection(db, "favorites"), where("coachId", "==", user.uid))),
         ]);
+        setFans(new Set(favSnap.docs.map((d) => d.data().playerId as string)));
 
         // Count existing coach reviews per session (the equity signal)
         const reviewCount = new Map<string, number>();
@@ -69,6 +75,10 @@ export default function CoachPage() {
       }
     })();
   }, [user, profile, reloadKey]);
+
+  // Same equity order in both tabs; "Prefer you" just narrows it
+  const fanRows = rows?.filter((r) => fans.has(r.playerId)) ?? null;
+  const shown = tab === "fans" ? fanRows : rows;
 
   if (!loading && (!user || profile?.role !== "mentor")) {
     return (
@@ -119,22 +129,58 @@ export default function CoachPage() {
         ) : (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ))}
-      {rows?.length === 0 && (
+      {/* Two views of the same equity-sorted queue */}
+      {rows && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {(
+            [
+              ["all", `All swings (${rows.length})`],
+              ["fans", `Prefer you (${fanRows?.length ?? 0})`],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              aria-pressed={tab === key}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                tab === key ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {key === "fans" && <Star className={`h-3.5 w-3.5 ${tab === key ? "fill-current" : "fill-amber-400 text-amber-400"}`} />}
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "all" && rows?.length === 0 && (
         <Notice title="No swings waiting">
           You&apos;re all caught up — the queue fills as players upload, least-coached first.
         </Notice>
       )}
+      {tab === "fans" && fanRows?.length === 0 && (
+        <Notice title="No players have favorited you yet">
+          They can tap ☆ on any of your comments.
+        </Notice>
+      )}
 
-      {rows && rows.length > 0 && (
-        <section className="rounded-2xl bg-card wide:max-w-2xl">
-          {rows.map((r, i) => (
+      {shown && shown.length > 0 && (
+        <section key={tab} className="dd-enter rounded-2xl bg-card wide:max-w-2xl">
+          {shown.map((r, i) => (
             <Link
               key={r.id}
               href={`/analysis/${r.id}`}
               className={`flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}
             >
               <div className="flex-1">
-                <div className="text-sm font-medium">{anonPlayer(r.playerId)}</div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  {anonPlayer(r.playerId)}
+                  {fans.has(r.playerId) && (
+                    <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
+                      <Star className="h-3.5 w-3.5 fill-amber-400" /> prefers you
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(r.createdAt).toLocaleDateString(undefined, {
                     month: "short",

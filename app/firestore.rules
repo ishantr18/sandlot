@@ -169,6 +169,24 @@ service cloud.firestore {
     // Coach-confirmed progress: one doc per player+skill (the latest
     // confirmation). Only a certified coach writes it, as themselves; the
     // player, their parent, coaches and the admin can read it.
+    // Favorite coaches: a player stars a coach whose feedback they like, and
+    // that coach's queue can filter to "players who prefer you". The player
+    // stays anonymous — the coach only learns the (anonymous) player id.
+    // Doc id is playerId_coachId so a player can favorite a coach only once.
+    match /favorites/{id} {
+      allow create: if verified() && me().role == 'player'
+        && request.resource.data.playerId == request.auth.uid
+        && id == request.resource.data.playerId + '_' + request.resource.data.coachId
+        && request.resource.data.keys().hasOnly(['playerId', 'coachId', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.playerId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.playerId == request.auth.uid
+        || resource.data.coachId == request.auth.uid
+        || isGuardianOf(resource.data.playerId)
+        || isAdmin()
+      );
+    }
+
     match /progressConfirmations/{id} {
       allow create, update: if verified() && isCertMentor()
         && request.resource.data.coachId == request.auth.uid

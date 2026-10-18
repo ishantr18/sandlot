@@ -6,16 +6,18 @@
 import { DrawingUtils, PoseLandmarker } from "@mediapipe/tasks-vision";
 import {
   addDoc,
+  deleteDoc,
   deleteField,
   collection,
   doc,
   getDoc,
   getDocs,
   query,
+  setDoc,
   updateDoc,
   where,
 } from "firebase/firestore";
-import { BadgeCheck, Ban, Check, ChevronLeft, Flag, Plus } from "lucide-react";
+import { BadgeCheck, Ban, Check, ChevronLeft, Flag, Plus, Star } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +27,7 @@ import { DRILLS } from "@/lib/drills";
 import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
+import DrillPicker from "@/components/DrillPicker";
 import ReactionButton, { reactionLabel } from "@/components/ReactionButton";
 import GrowthPanel from "@/components/GrowthPanel";
 import type { PoseFrame } from "@/lib/poseExtract";
@@ -57,6 +60,13 @@ const SEVERITY_STYLE = {
   good: "border-l-4 border-primary",
 } as const;
 
+// Favorite coach: doc id playerId_coachId (rules allow only the player to write)
+async function saveFavorite(playerId: string, coachId: string, on: boolean) {
+  const ref = doc(db, "favorites", `${playerId}_${coachId}`);
+  if (on) await setDoc(ref, { playerId, coachId, createdAt: Date.now() });
+  else await deleteDoc(ref);
+}
+
 async function saveAssignment(playerId: string, drillId: string, coachId: string, coachName: string) {
   await addDoc(collection(db, "assignments"), {
     playerId,
@@ -80,10 +90,10 @@ export default function AnalysisSessionPage() {
   const [error, setError] = useState("");
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [drillPick, setDrillPick] = useState("");
   const [assigned, setAssigned] = useState<Set<string>>(new Set()); // drills assigned this visit
   const [coachMsg, setCoachMsg] = useState("");
   const [blockedCoaches, setBlockedCoaches] = useState<Set<string>>(new Set());
+  const [favorites, setFavorites] = useState<Set<string>>(new Set()); // coachIds the player starred
   const [safetyMsg, setSafetyMsg] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
@@ -118,6 +128,11 @@ export default function AnalysisSessionPage() {
             query(collection(db, "blocks"), where("playerId", "==", data.playerId)),
           );
           setBlockedCoaches(new Set(bsnap.docs.map((d) => d.data().coachId as string)));
+          // Coaches this player has favorited (player + parent can read them)
+          const fsnap = await getDocs(
+            query(collection(db, "favorites"), where("playerId", "==", data.playerId)),
+          ).catch(() => null);
+          if (fsnap) setFavorites(new Set(fsnap.docs.map((d) => d.data().coachId as string)));
         }
         framesRef.current = data.landmarks ? (JSON.parse(data.landmarks) as PoseFrame[]) : [];
         const url = await playbackUrl(id);
@@ -190,7 +205,6 @@ export default function AnalysisSessionPage() {
     try {
       await saveAssignment(session.playerId, drillId, user.uid, user.displayName ?? "Coach");
       setAssigned((s) => new Set([...s, drillId]));
-      setDrillPick("");
       setCoachMsg("Drill assigned — it appears on the player's Drills page.");
     } catch {
       setCoachMsg("Couldn't assign the drill — check your connection and try again.");
@@ -201,6 +215,21 @@ export default function AnalysisSessionPage() {
   const showSafety =
     (profile?.role === "guardian" && COACH_SAFETY_BUTTONS !== "none") ||
     (profile?.role === "player" && COACH_SAFETY_BUTTONS === "everyone");
+
+  async function toggleFavorite(coachId: string) {
+    if (!session) return;
+    const before = favorites;
+    const on = !before.has(coachId);
+    const next = new Set(before);
+    if (on) next.add(coachId);
+    else next.delete(coachId);
+    setFavorites(next); // show it right away
+    try {
+      await saveFavorite(session.playerId, coachId, on);
+    } catch {
+      setFavorites(before);
+    }
+  }
 
   async function react(commentId: string, emoji: string | null) {
     if (!session) return;
@@ -399,11 +428,12 @@ export default function AnalysisSessionPage() {
               .filter((c) => !c.mentorId || !blockedCoaches.has(c.mentorId))
               .map((c) => (
               <div key={c.id} className="rounded-2xl bg-card p-4">
+                <div className="flex items-start gap-2">
                 <button
                   onClick={() => {
                     if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
                   }}
-                  className="block w-full text-left"
+                  className="block min-w-0 flex-1 text-left"
                 >
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     {c.mentorName ?? "Coach"}
@@ -418,6 +448,28 @@ export default function AnalysisSessionPage() {
                   </span>
                   <p className="mt-1 text-sm">{c.text}</p>
                 </button>
+                {/* Favorite this coach — their queue can then filter to you */}
+                {session && c.mentorId && !c.id.startsWith("local-") &&
+                  (user?.uid === session.playerId ? (
+                    <button
+                      onClick={() => toggleFavorite(c.mentorId!)}
+                      aria-pressed={favorites.has(c.mentorId)}
+                      className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition-colors ${
+                        favorites.has(c.mentorId) ? "text-amber-400" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Star className={`h-4 w-4 ${favorites.has(c.mentorId) ? "fill-amber-400" : ""}`} />
+                      {favorites.has(c.mentorId) ? "Favorited" : "Favorite"}
+                    </button>
+                  ) : (
+                    profile?.role === "guardian" &&
+                    favorites.has(c.mentorId) && (
+                      <span className="flex shrink-0 items-center gap-1 px-2 py-1 text-xs font-semibold text-amber-400">
+                        <Star className="h-4 w-4 fill-amber-400" /> Favorited
+                      </span>
+                    )
+                  ))}
+                </div>
                 {/* Reactions (comments are stored per swing; reactions on the player's
                     own swing doc) — the player reacts; coach and parent see it */}
                 {session && !c.id.startsWith("local-") &&
@@ -547,27 +599,9 @@ export default function AnalysisSessionPage() {
                     </div>
                   </div>
                 )}
-                <div className="mt-3 flex gap-2">
-                  <select
-                    value={drillPick}
-                    onChange={(e) => setDrillPick(e.target.value)}
-                    className="flex-1 rounded-xl border-0 bg-secondary p-2 text-sm"
-                  >
-                    <option value="">
-                      {suggestedDrills.length > 0 ? "Or pick any drill…" : "Assign a drill…"}
-                    </option>
-                    {DRILLS.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => drillPick && assignDrill(drillPick)}
-                    className="rounded-full border border-border px-4 py-2 text-sm"
-                  >
-                    Assign
-                  </button>
+                {/* Any drill in the library: type to search, pick to assign */}
+                <div className="mt-3">
+                  <DrillPicker onPick={assignDrill} assigned={assigned} />
                 </div>
                 {coachMsg && <p className="mt-2 text-xs text-primary">{coachMsg}</p>}
               </div>

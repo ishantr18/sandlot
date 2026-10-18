@@ -186,3 +186,41 @@ test("ATTACK: player or uncertified coach confirms progress", async () => {
   await assertFails(setDoc(doc(as("kid"), "progressConfirmations/kid_core"), c("kid")));
   await assertFails(setDoc(doc(as("coach"), "progressConfirmations/kid_core"), c("coach"))); // not approved
 });
+
+// ---- Favorite coaches ------------------------------------------------------
+
+const fav = (playerId = "kid", coachId = "coach") => ({ playerId, coachId, createdAt: 1 });
+async function kidFavorites(coachId = "coach") {
+  await assertSucceeds(setDoc(doc(as("kid"), `favorites/kid_${coachId}`), fav("kid", coachId)));
+}
+
+test("player favorites a coach, then un-favorites", async () => {
+  await kidFavorites();
+  await assertSucceeds(deleteDoc(doc(as("kid"), "favorites/kid_coach")));
+});
+
+test("ATTACK: favorite on another player's behalf, wrong id, or extra fields", async () => {
+  await assertFails(setDoc(doc(as("stranger"), "favorites/kid_coach"), fav()));
+  await assertFails(setDoc(doc(as("kid"), "favorites/kid_other"), fav("kid", "coach")));
+  await assertFails(setDoc(doc(as("kid"), "favorites/kid_coach"), { ...fav(), note: "hi" }));
+});
+
+test("ATTACK: a coach can't favorite themselves or delete a player's favorite", async () => {
+  await assertFails(setDoc(doc(as("coach"), "favorites/coach_coach"), fav("coach", "coach")));
+  await kidFavorites();
+  await assertFails(deleteDoc(doc(as("coach"), "favorites/kid_coach")));
+  await assertFails(updateDoc(doc(as("kid"), "favorites/kid_coach"), { coachId: "sneaky" }));
+});
+
+test("the named coach, the player and their parent can read a favorite; others can't", async () => {
+  await kidFavorites();
+  await kidMakesCode();
+  await assertSucceeds(linkWith("mom", "ABC234"));
+  await assertSucceeds(getDoc(doc(as("coach"), "favorites/kid_coach")));
+  await assertSucceeds(getDocs(query(collection(as("coach"), "favorites"), where("coachId", "==", "coach"))));
+  await assertSucceeds(getDocs(query(collection(as("kid"), "favorites"), where("playerId", "==", "kid"))));
+  await assertSucceeds(getDoc(doc(as("mom"), "favorites/kid_coach")));
+  await assertFails(getDoc(doc(as("sneaky"), "favorites/kid_coach")));
+  await assertFails(getDoc(doc(as("stranger"), "favorites/kid_coach")));
+  await assertFails(getDocs(query(collection(as("sneaky"), "favorites"), where("coachId", "==", "coach"))));
+});
