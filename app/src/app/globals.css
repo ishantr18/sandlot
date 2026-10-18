@@ -674,6 +674,32 @@ html[data-skin="field"] body {
   position: relative;
   isolation: isolate;
 }
+/* the content column is an opaque panel in front of the lines (the prototype's
+   .phone), so the drawing only shows in the side gutters, never behind text,
+   cards or the translucent tab bar. Same width as the page column. */
+html[data-skin="field"] body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  z-index: -1;
+  width: min(100%, 28rem);
+  pointer-events: none;
+  background: radial-gradient(560px 260px at 50% -70px, rgba(92, 227, 139, 0.08), rgba(92, 227, 139, 0) 70%),
+    radial-gradient(130% 55% at 50% 0%, #0e1710 0%, var(--dd-bg) 58%) var(--dd-bg);
+  background-attachment: fixed; /* same paint as body, so the panel edge is seamless */
+}
+@media (width >= 64rem) {
+  html[data-skin="field"][data-layout="narrow"] body::after {
+    width: 42rem;
+  }
+  html[data-skin="field"][data-layout="wide"] body::after {
+    width: 64rem;
+  }
+}
 
 /* ── Field skin: coach ─────────────────────────────────────────────────────
    On Deck (Home + queue), Reviewed, Players, and the review screen
