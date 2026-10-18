@@ -2,7 +2,7 @@
 
 // Drills — coach-assigned drills up top (real, from Firestore), library below.
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { Check, ChevronRight, Play, Video } from "lucide-react";
+import { Check, ChevronRight, Play, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -11,31 +11,74 @@ import Notice from "@/components/Notice";
 import { CATEGORY_LABEL, DRILLS, type DrillCategory, type DrillVideo } from "@/lib/drills";
 import { db } from "@/lib/firebase";
 
-// "Watch how" — demo videos from established hitting coaches (open YouTube)
-function DrillVideos({ videos }: { videos?: DrillVideo[] }) {
+// youtube.com/watch?v=ID → ID (the stored links are all watch URLs)
+const videoId = (url: string) => new URL(url).searchParams.get("v") ?? "";
+
+// "Watch how" — demo videos from established hitting coaches. Tapping one
+// plays it right here (the iframe mounts only then); one video at a time.
+function DrillVideos({
+  videos,
+  playing,
+  onPlay,
+}: {
+  videos?: DrillVideo[];
+  playing: string | null;
+  onPlay: (url: string | null) => void;
+}) {
   if (!videos?.length) return null;
   return (
     <div className="mt-3">
       <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watch how</p>
       <ul className="space-y-1.5">
-        {videos.map((v) => (
-          <li key={v.url}>
-            <a
-              href={v.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-xl bg-secondary p-2.5 transition-colors hover:bg-secondary/70"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                <Play className="h-3.5 w-3.5 text-primary" />
-              </span>
-              <span className="min-w-0 flex-1">
+        {videos.map((v) =>
+          playing === v.url ? (
+            <li key={v.url} className="overflow-hidden rounded-xl bg-secondary">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${videoId(v.url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                title={v.title}
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                className="aspect-video w-full"
+              />
+              <div className="p-2.5">
                 <span className="block text-sm font-medium">{v.title}</span>
-                <span className="block text-xs text-muted-foreground">{v.channel} · YouTube</span>
-              </span>
-            </a>
-          </li>
-        ))}
+                <span className="block text-xs text-muted-foreground">{v.channel}</span>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-2.5 pb-2.5">
+                <a
+                  href={v.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground underline"
+                >
+                  Open on YouTube
+                </a>
+                <button
+                  onClick={() => onPlay(null)}
+                  aria-label="Close video"
+                  className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold"
+                >
+                  <X className="h-3.5 w-3.5" /> Close
+                </button>
+              </div>
+            </li>
+          ) : (
+            <li key={v.url}>
+              <button
+                onClick={() => onPlay(v.url)}
+                className="flex w-full items-center gap-3 rounded-xl bg-secondary p-2.5 text-left transition-colors hover:bg-secondary/70"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Play className="h-3.5 w-3.5 text-primary" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{v.title}</span>
+                  <span className="block text-xs text-muted-foreground">{v.channel} · YouTube</span>
+                </span>
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
@@ -55,6 +98,7 @@ export default function DrillsPage() {
   // Signed out → nothing assigned (derived, no extra state update needed)
   const assigned = user ? fetched : [];
   const [open, setOpen] = useState<string | null>(null);
+  const [playing, setPlaying] = useState<string | null>(null); // video URL playing in-app
   const [filter, setFilter] = useState<DrillCategory | "all">("all");
   const categories = Object.keys(CATEGORY_LABEL) as DrillCategory[];
   const library = filter === "all" ? DRILLS : DRILLS.filter((d) => d.category === filter);
@@ -151,14 +195,15 @@ export default function DrillsPage() {
                         </button>
                       )}
                     </div>
+                    {/* Indented to the drill name (p-4 + 2.5rem icon + gap-3) */}
                     {drill && (
-                      <div className="px-4 pb-3">
+                      <div className="pr-4 pb-3 pl-[4.25rem]">
                         <p className="text-xs text-muted-foreground">{drill.description}</p>
-                        <DrillVideos videos={drill.videos} />
+                        <DrillVideos videos={drill.videos} playing={playing} onPlay={setPlaying} />
                       </div>
                     )}
                     {/* Close the loop: drill → new swing → the coach sees the change */}
-                    <div className="px-4 pb-4">
+                    <div className="pr-4 pb-4 pl-[4.25rem]">
                       <Link
                         href={`/upload?drill=${encodeURIComponent(a.drillId)}`}
                         className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary"
@@ -191,9 +236,17 @@ export default function DrillsPage() {
           </div>
           <section key={filter} className="dd-enter rounded-2xl bg-card">
             {library.map((d, i) => (
-              <div key={d.id} className={i > 0 ? "border-t border-border" : ""}>
+              <div
+                key={d.id}
+                className={`transition-colors ${i > 0 ? "border-t border-border" : ""} ${
+                  open === d.id ? "bg-secondary/30" : ""
+                }`}
+              >
               <button
-                onClick={() => setOpen(open === d.id ? null : d.id)}
+                onClick={() => {
+                  setOpen(open === d.id ? null : d.id);
+                  setPlaying(null); // closing/switching a drill stops its video
+                }}
                 aria-expanded={open === d.id}
                 className="block w-full text-left"
               >
@@ -216,9 +269,10 @@ export default function DrillsPage() {
                     open === d.id ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                   }`}
                 >
-                  <div className="overflow-hidden px-4">
+                  {/* Indented to the drill name (p-4 + 2.5rem icon + gap-3) */}
+                  <div className="overflow-hidden pr-4 pl-[4.25rem]">
                     <p className="text-xs text-muted-foreground">{d.description}</p>
-                    <DrillVideos videos={d.videos} />
+                    {open === d.id && <DrillVideos videos={d.videos} playing={playing} onPlay={setPlaying} />}
                     <div className="pb-4" />
                   </div>
                 </div>
