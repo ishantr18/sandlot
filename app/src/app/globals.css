@@ -221,10 +221,11 @@
 }
 
 /* ── Text-size switch (set data-text on <html> in layout.tsx) ────────────
-   "large" bumps small/normal/body text one step on every page except the
-   landing (.dd-landing). Tailwind's text-* utilities read these variables. */
+   "large" bumps small/normal/body/large text on every page except the
+   welcome landing (.dd-landing). Tailwind's text-* utilities read these variables. */
 [data-text="large"] main:not(.dd-landing) {
-  --text-xs: 0.8125rem; /* 12 → 13px */
-  --text-sm: 0.9375rem; /* 14 → 15px */
-  --text-base: 1.0625rem; /* 16 → 17px */
+  --text-xs: 0.875rem; /* 12 → 14px */
+  --text-sm: 1rem; /* 14 → 16px */
+  --text-base: 1.125rem; /* 16 → 18px */
+  --text-lg: 1.25rem; /* 18 → 20px */
 }

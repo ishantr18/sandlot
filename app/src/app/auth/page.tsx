@@ -14,8 +14,9 @@ import { doc, setDoc } from "firebase/firestore";
 import { ClipboardList, Users, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import BrandMark from "@/components/BrandMark";
 import { CREDENTIALS, linkWithCode, submitCoachApplication } from "@/lib/family";
 import { sendVerifyEmail } from "@/lib/verifyEmail";
 import { auth, db } from "@/lib/firebase";
@@ -43,7 +44,13 @@ const FIELD =
 
 export default function AuthPage() {
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { user, loading, refresh } = useAuth();
+  // Already signed in on this device → straight into the app. (Not while this
+  // page is creating/signing in an account — submit() navigates itself.)
+  const submitting = useRef(false);
+  useEffect(() => {
+    if (!loading && user && !submitting.current) router.replace("/");
+  }, [loading, user, router]);
   const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [role, setRole] = useState<"player" | "mentor" | "guardian">("player");
 
@@ -72,6 +79,7 @@ export default function AuthPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    submitting.current = true;
     setBusy(true);
     setError("");
     setInfo("");
@@ -159,6 +167,10 @@ export default function AuthPage() {
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28">
+      <div className="mb-8 flex items-center gap-3 pt-6">
+        <BrandMark className="h-9 w-9" />
+        <span className="text-sm font-semibold uppercase tracking-[0.3em]">Diamond Drive</span>
+      </div>
       <h1 className="mb-1 text-4xl font-bold tracking-tight">{title}</h1>
       <p className="mb-6 text-sm text-muted-foreground">{subtitle}</p>
 
@@ -305,9 +317,14 @@ export default function AuthPage() {
       >
         {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
       </button>
-      <Link href="/sample" className="mt-6 block text-center text-sm text-muted-foreground underline">
-        Just looking? Try a sample swing — no account needed
-      </Link>
+      <div className="mt-8 space-y-3 border-t border-border pt-6 text-center text-sm">
+        <Link href="/welcome" className="block text-muted-foreground underline">
+          New to Diamond Drive? See how it works
+        </Link>
+        <Link href="/sample" className="block text-muted-foreground underline">
+          Just looking? Try a sample swing — no account needed
+        </Link>
+      </div>
     </main>
   );
 }

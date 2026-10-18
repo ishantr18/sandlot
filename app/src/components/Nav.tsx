@@ -58,8 +58,8 @@ export default function Nav() {
     return () => ro.disconnect();
   }, [activeHref, profile?.role, user, loading, pathname]);
 
-  // No app chrome until we know who's here, nor on the signed-out landing / sample
-  if (loading || (!user && (pathname === "/" || pathname.startsWith("/sample")))) return null;
+  // App tabs are for signed-in users only (signed-out visitors start on sign-in)
+  if (loading || !user) return null;
   return (
     <nav
       ref={navRef}
