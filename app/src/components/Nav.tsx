@@ -33,7 +33,15 @@ const TABS = {
 
 // Field skin tab bars (from the approved prototype) — same pages, new labels/order.
 // Roles without an entry keep the classic dock.
-const FIELD_TABS: Partial<Record<keyof typeof TABS, { href: string; label: string; icon?: typeof House }[]>> = {
+type FieldTab = { href: string; label: string; icon?: React.ComponentType<{ className?: string }>; rec?: boolean };
+const FIELD_TABS: Partial<Record<keyof typeof TABS, FieldTab[]>> = {
+  // player: prototype order — Record is the camera tab (gradient pill when on)
+  player: [
+    { href: "/", label: "Home", icon: FieldHomeIcon },
+    { href: "/drills", label: "Drills", icon: FieldDrillsIcon },
+    { href: "/upload", label: "Record", icon: FieldCamIcon, rec: true },
+    { href: "/progress", label: "Growth", icon: FieldGrowthIcon },
+  ],
   guardian: [
     { href: "/", label: "Home" },
     { href: "/family", label: "My Kids" },
@@ -66,7 +74,42 @@ export function FieldTopBar() {
   );
 }
 
-function FieldNav({ tabs, pathname }: { tabs: { href: string; label: string; icon?: typeof House }[]; pathname: string }) {
+// Field tab icons — drawn like the prototype's tab bar
+function FieldHomeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+    </svg>
+  );
+}
+function FieldDrillsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={className} aria-hidden="true">
+      <circle cx="7" cy="7" r="3" />
+      <circle cx="17" cy="17" r="3" />
+      <path d="M9.5 9.5l5 5" />
+    </svg>
+  );
+}
+export function FieldCamIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M23 7l-7 5 7 5V7z" />
+      <rect x="1" y="5" width="15" height="14" rx="2" />
+    </svg>
+  );
+}
+function FieldGrowthIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M3 17l6-6 4 4 8-8" />
+      <path d="M15 7h6v6" />
+    </svg>
+  );
+}
+
+function FieldNav({ tabs, pathname }: { tabs: FieldTab[]; pathname: string }) {
   const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
   const activeHref = tabs.find(
     (t) => matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href)),
@@ -76,7 +119,7 @@ function FieldNav({ tabs, pathname }: { tabs: { href: string; label: string; ico
       {tabs.map((t) => {
         const Icon = t.icon;
         return (
-          <Link key={t.href} href={t.href} data-on={t.href === activeHref} aria-current={t.href === activeHref ? "page" : undefined}>
+          <Link key={t.href} href={t.href} className={t.rec ? "dd-rec" : undefined} data-on={t.href === activeHref} aria-current={t.href === activeHref ? "page" : undefined}>
             {Icon && <Icon className="h-[17px] w-[17px]" />}
             {t.label}
           </Link>

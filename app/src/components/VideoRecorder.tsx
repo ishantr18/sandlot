@@ -11,6 +11,18 @@ import { pickMimeType } from "@/lib/videoFormat";
 
 type Mode = "idle" | "live" | "countdown" | "recording" | "review";
 
+// Field skin: the prototype viewfinder's four green corners (hidden otherwise)
+function ViewfinderCorners() {
+  return (
+    <span className="dd-only" aria-hidden="true">
+      <span className="dd-corner dd-c1" />
+      <span className="dd-corner dd-c2" />
+      <span className="dd-corner dd-c3" />
+      <span className="dd-corner dd-c4" />
+    </span>
+  );
+}
+
 export default function VideoRecorder({
   onRecorded,
   onUseLibrary,
@@ -168,10 +180,15 @@ export default function VideoRecorder({
       <div>
         <button
           onClick={openCamera}
-          className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary wide:h-72"
+          className="dd-viewfinder flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-card text-sm font-medium transition-colors hover:bg-secondary wide:h-72"
         >
+          <ViewfinderCorners />
           <Camera className="h-8 w-8 text-primary" />
-          <span className="text-muted-foreground">Record now</span>
+          {/* Field skin: the prototype's framing hint */}
+          <span className="dd-only">
+            <span className="dd-vf-hint">Stand inside the frame — whole body, feet too</span>
+          </span>
+          <span className="dd-vf-cta text-muted-foreground">Record now</span>
         </button>
         {error && (
           <Notice
@@ -226,9 +243,10 @@ export default function VideoRecorder({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card p-2">
+    <div className="dd-viewfinder-live overflow-hidden rounded-2xl bg-card p-2">
       <div className="relative">
         <video ref={liveRef} autoPlay muted playsInline className="w-full rounded" />
+        <ViewfinderCorners />
         {mode === "countdown" && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-8xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -237,7 +255,7 @@ export default function VideoRecorder({
           </div>
         )}
         {mode === "recording" && (
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/60 px-2 py-1 text-xs font-semibold text-red-400">
+          <span className="dd-recind absolute left-2 top-2 flex items-center gap-1 rounded bg-black/60 px-2 py-1 text-xs font-semibold text-red-400">
             <span className="animate-pulse">●</span> REC
           </span>
         )}
@@ -246,7 +264,7 @@ export default function VideoRecorder({
         {mode === "live" && (
           <button
             onClick={startCountdown}
-            className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
+            className="dd-recbtn flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
           >
             ● Record (3s countdown)
           </button>
@@ -259,7 +277,7 @@ export default function VideoRecorder({
         {mode === "recording" && (
           <button
             onClick={stopRecording}
-            className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
+            className="dd-recbtn flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white"
           >
             ■ Stop
           </button>

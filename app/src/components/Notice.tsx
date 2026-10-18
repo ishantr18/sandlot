@@ -38,7 +38,7 @@ export default function Notice({
   return (
     <section
       role={error ? "alert" : undefined}
-      className={`flex gap-3 rounded-2xl p-4 ${
+      className={`dd-notice flex gap-3 rounded-2xl p-4 ${
         error ? "bg-destructive/10 ring-1 ring-destructive/40" : "bg-card"
       } ${className}`}
     >

@@ -85,7 +85,7 @@ export default function ProgressPage() {
   if (profile?.role === "mentor" || profile?.role === "guardian") {
     return (
       <main className="mx-auto max-w-md p-6 pb-28">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
+        <h1 className="dd-title mb-6 text-4xl font-bold tracking-tight">Growth</h1>
         <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
           Growth tracks a player&apos;s own swings.{" "}
           <Link href={profile.role === "mentor" ? "/coach" : "/family"} className="text-primary underline">
@@ -99,7 +99,7 @@ export default function ProgressPage() {
   if (!loading && !user) {
     return (
       <main className="mx-auto max-w-md p-6 pb-28">
-        <h1 className="mb-6 text-4xl font-bold tracking-tight">Growth</h1>
+        <h1 className="dd-title mb-6 text-4xl font-bold tracking-tight">Growth</h1>
         <Notice
           title="Your growth lives here"
           className="mb-4"
@@ -112,7 +112,7 @@ export default function ProgressPage() {
         </Notice>
         {/* A faded preview of what the charts look like with real swings */}
         <div aria-hidden="true">
-          <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+          <p className="dd-label-flex mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             Trends
             <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
               Sample
@@ -129,11 +129,11 @@ export default function ProgressPage() {
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
       <div className="mb-6 flex items-end justify-between wide:mb-10">
-        <h1 className="text-4xl font-bold tracking-tight wide:text-6xl">Growth</h1>
+        <h1 className="dd-title text-4xl font-bold tracking-tight wide:text-6xl">Growth</h1>
         {user && (
           <button
             onClick={() => signOut(auth)}
-            className="pb-1 text-xs text-muted-foreground underline"
+            className="dd-hide pb-1 text-xs text-muted-foreground underline"
           >
             Sign out
           </button>
@@ -144,12 +144,12 @@ export default function ProgressPage() {
 
       <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Trends</h2>
+        <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">Trends</h2>
         <ProgressCharts sessions={sessions ?? []} />
       </div>
       <div>
 
-      <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Session history</h2>
+      <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">Session history</h2>
 
       {sessions === null &&
         (loadError ? (
@@ -184,9 +184,9 @@ export default function ProgressPage() {
       )}
 
       {sessions && sessions.length > 0 && (
-        <section className="rounded-2xl bg-card">
+        <section className="dd-srows rounded-2xl bg-card">
           {sessions.map((s, i) => (
-            <div key={s.id} className={i > 0 ? "border-t border-border" : ""}>
+            <div key={s.id} className={`dd-srow ${i > 0 ? "border-t border-border" : ""}`}>
               <div className="flex items-center gap-3 p-4">
                 <Link href={`/analysis/${s.id}`} className="flex-1">
                   <div className="text-sm font-medium">
@@ -206,7 +206,7 @@ export default function ProgressPage() {
                 </Link>
                 <button
                   onClick={() => play(s)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15"
+                  className="dd-playbtn flex h-10 w-10 items-center justify-center rounded-full bg-primary/15"
                 >
                   <Play className="h-4 w-4 text-primary" />
                 </button>

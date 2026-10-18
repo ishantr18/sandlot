@@ -79,15 +79,15 @@ export default function SamplePage() {
   return (
     <main className="mx-auto max-w-md p-6 pb-16 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/" className="rounded-full bg-card p-2" aria-label="Back">
+        <Link href="/" className="dd-back rounded-full bg-card p-2" aria-label="Back">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="flex-1 text-4xl font-bold tracking-tight wide:text-6xl">Sample swing</h1>
+        <h1 className="dd-title flex-1 text-4xl font-bold tracking-tight wide:text-6xl">Sample swing</h1>
         <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-400">
           Sample
         </span>
       </div>
-      <p className="mb-6 text-sm text-muted-foreground">
+      <p className="dd-sub mb-6 text-sm text-muted-foreground">
         This is what a player sees after filming one swing. No account, no real player — the numbers
         are illustrative, but the scoring is the app&apos;s real code.
       </p>
@@ -95,7 +95,7 @@ export default function SamplePage() {
       <div className="wide:grid wide:grid-cols-2 wide:items-start wide:gap-8">
         <div>
           {/* The swing, traced */}
-          <section className="relative mb-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-[#131c36] via-[#1b2a4a] to-[#0a1f0e]">
+          <section className="dd-video relative mb-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-[#131c36] via-[#1b2a4a] to-[#0a1f0e]">
             <SwingTrace className="mx-auto w-full max-w-sm text-foreground" />
             <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full border border-primary/50 bg-black/40 px-2 py-1 text-[10px] font-bold uppercase text-primary">
               <Lock className="h-3 w-3" /> Face anonymized
@@ -109,8 +109,8 @@ export default function SamplePage() {
           </section>
 
           {/* Five plain-English skills */}
-          <section className="mb-4 rounded-2xl bg-card p-4">
-            <h2 className="text-sm font-semibold">Skills from this swing</h2>
+          <section className="dd-comment mb-4 rounded-2xl bg-card p-4">
+            <h2 className="dd-card-title text-sm font-semibold">Skills from this swing</h2>
             <p className="mb-3 text-xs text-muted-foreground">
               Real players are only ever compared to their own first swings.
             </p>
@@ -120,7 +120,7 @@ export default function SamplePage() {
                 return (
                   <div key={k} className="flex items-center gap-3">
                     <span className="w-20 text-sm font-medium">{SKILL_INFO[k].name}</span>
-                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                    <div className="dd-bar h-2.5 flex-1 overflow-hidden rounded-full bg-secondary">
                       <div
                         className={`dd-fill h-full rounded-full ${k === focus ? "bg-amber-500" : "bg-primary"}`}
                         style={{ width: mounted ? `${v}%` : "2%" }}
@@ -141,7 +141,7 @@ export default function SamplePage() {
 
         <div>
           {/* The one thing to do next */}
-          <section className="mb-4 rounded-2xl bg-primary/10 p-4 ring-1 ring-primary/50">
+          <section className="dd-verdict mb-4 rounded-2xl bg-primary/10 p-4 ring-1 ring-primary/50">
             <p className="flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-primary">
               <Sparkles className="h-3.5 w-3.5" /> Work on this next
             </p>
@@ -157,10 +157,10 @@ export default function SamplePage() {
             {open === "focus" && <p className="dd-enter mt-3 text-sm text-muted-foreground">{focusDrill.description}</p>}
           </section>
 
-          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">AI coaching</h2>
+          <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">AI coaching</h2>
           <div className="mb-4 space-y-2">
             {SAMPLE_FINDINGS.map((f) => (
-              <section key={f.metric} className={`rounded-2xl bg-card p-4 ${SEVERITY[f.severity]}`}>
+              <section key={f.metric} className={`dd-finding rounded-2xl bg-card p-4 ${SEVERITY[f.severity]}`}>
                 <p className="text-sm">{f.message}</p>
                 {f.drillIds.map((id) => {
                   const d = DRILLS.find((x) => x.id === id)!;
@@ -182,13 +182,13 @@ export default function SamplePage() {
             ))}
           </div>
 
-          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Coach comments</h2>
-          <section className="mb-6 rounded-2xl bg-card p-4">
+          <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">Coach comments</h2>
+          <section className="dd-comment mb-6 rounded-2xl bg-card p-4">
             <span className="font-mono text-xs text-primary">1.0s</span>{" "}
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               Sample coach <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" /> · High school varsity
             </span>
-            <p className="mt-1 text-sm">
+            <p className="dd-quote mt-1 text-sm">
               &quot;See how your head keeps moving after your front foot lands? Finish tall and freeze for
               two seconds on the balance-beam drill, then film another one.&quot;
             </p>
