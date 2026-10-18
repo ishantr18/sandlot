@@ -25,6 +25,7 @@ import { DRILLS } from "@/lib/drills";
 import { COACH_SAFETY_BUTTONS } from "@/lib/switches";
 import { db } from "@/lib/firebase";
 import { playbackUrl } from "@/lib/video";
+import ReactionButton, { reactionLabel } from "@/components/ReactionButton";
 import GrowthPanel from "@/components/GrowthPanel";
 import type { PoseFrame } from "@/lib/poseExtract";
 import { DISABLED_METRICS, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
@@ -49,16 +50,6 @@ interface SessionDoc {
   reactions?: Record<string, string>; // commentId → the player's emoji
 }
 
-// Quick ways a player answers a coach's note — stored on the player's own
-// swing doc (comments themselves can't be edited after a coach posts them)
-const REACTIONS = ["👍", "🔥", "💪", "🙏", "🤔"];
-const REACTION_LABEL: Record<string, string> = {
-  "👍": "Got it",
-  "🔥": "Love it",
-  "💪": "On it",
-  "🙏": "Thanks",
-  "🤔": "Not sure",
-};
 
 const SEVERITY_STYLE = {
   major: "border-l-4 border-red-500",
@@ -115,7 +106,7 @@ export default function AnalysisSessionPage() {
           query(collection(db, "comments"), where("sessionId", "==", id)),
         );
         const cs = csnap.docs.map((d) => ({ id: d.id, ...d.data() }) as CommentRow);
-        cs.sort((a, b) => a.timestampSec - b.timestampSec || a.createdAt - b.createdAt);
+        cs.sort((a, b) => b.createdAt - a.createdAt) // newest first;
         setComments(cs);
         // The player has now seen this feedback — clears "New feedback" on Home
         if (isOwner && cs.length > 0)
@@ -414,9 +405,6 @@ export default function AnalysisSessionPage() {
                   }}
                   className="block w-full text-left"
                 >
-                  <span className="font-mono text-xs text-primary">
-                    {c.timestampSec.toFixed(1)}s
-                  </span>{" "}
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     {c.mentorName ?? "Coach"}
                     {/* Only admin-approved coaches can comment at all */}
@@ -430,34 +418,19 @@ export default function AnalysisSessionPage() {
                   </span>
                   <p className="mt-1 text-sm">{c.text}</p>
                 </button>
-                {/* Reactions — the player picks one; coach and parent see it */}
+                {/* Reactions (comments are stored per swing; reactions on the player's
+                    own swing doc) — the player reacts; coach and parent see it */}
                 {session && !c.id.startsWith("local-") &&
                   (user?.uid === session.playerId ? (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {REACTIONS.map((e) => {
-                        const picked = session.reactions?.[c.id] === e;
-                        return (
-                          <button
-                            key={e}
-                            onClick={() => react(c.id, picked ? null : e)}
-                            aria-pressed={picked}
-                            aria-label={REACTION_LABEL[e]}
-                            title={REACTION_LABEL[e]}
-                            className={`rounded-full px-2.5 py-1 text-base transition-colors ${
-                              picked ? "bg-primary/20 ring-1 ring-primary" : "bg-secondary hover:bg-secondary/70"
-                            }`}
-                          >
-                            {e}
-                          </button>
-                        );
-                      })}
+                    <div className="-ml-2 mt-2">
+                      <ReactionButton value={session.reactions?.[c.id]} onChange={(e) => react(c.id, e)} />
                     </div>
                   ) : (
                     session.reactions?.[c.id] && (
                       <p className="mt-2 text-xs text-muted-foreground">
                         {profile?.role === "guardian" ? "Your player" : "Player"} reacted{" "}
                         <span className="text-base">{session.reactions[c.id]}</span>{" "}
-                        {REACTION_LABEL[session.reactions[c.id]] ?? ""}
+                        {reactionLabel(session.reactions[c.id])}
                       </p>
                     )
                   ))}
@@ -545,7 +518,7 @@ export default function AnalysisSessionPage() {
                           timestampSec,
                           text: newComment.trim(),
                           createdAt: Date.now(),
-                        }].sort((a, b) => a.timestampSec - b.timestampSec || a.createdAt - b.createdAt),
+                        }].sort((a, b) => b.createdAt - a.createdAt) // newest first,
                       );
                       setNewComment("");
                       setCoachMsg("Comment posted.");
