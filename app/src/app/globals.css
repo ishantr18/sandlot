@@ -176,6 +176,14 @@
   }
 }
 
+/* ── Page column ──────────────────────────────────────────────────────
+   <body> is a flex column, and a flex item with mx-auto shrinks to fit its
+   content — so a page got wider the moment something long opened (e.g. the
+   filming guide). Full width, capped by each page's max-w-*, keeps it fixed. */
+.dd-page > main {
+  width: 100%;
+}
+
 /* ── Motion language ──────────────────────────────────────────────────
    One standard everywhere: screens fade + rise 200ms, top-level cards
    stagger in, anything pressable scales to 0.97. Reduced-motion users
