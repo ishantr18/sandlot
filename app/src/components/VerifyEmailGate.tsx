@@ -4,12 +4,13 @@
 // sign-up; until it's clicked, the app shows only this screen. The database
 // rules ALSO require a verified email (swings, comments, family codes), so
 // this screen is the friendly half — not the lock.
-import { sendEmailVerification, signOut } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { Play } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { sendVerifyEmail } from "@/lib/verifyEmail";
 import { auth } from "@/lib/firebase";
 
 export default function VerifyEmailGate({ children }: { children: React.ReactNode }) {
@@ -59,7 +60,7 @@ export default function VerifyEmailGate({ children }: { children: React.ReactNod
           onClick={async () => {
             setBusy(true);
             try {
-              await sendEmailVerification(user, { url: `${window.location.origin}/` });
+              await sendVerifyEmail(user);
               setMsg("Sent a new link. Only the newest link works.");
             } catch (e) {
               setMsg(

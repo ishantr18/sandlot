@@ -6,7 +6,6 @@
 // coaches submit credentials the admin checks before they see any swing.
 import {
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile,
@@ -18,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CREDENTIALS, linkWithCode, submitCoachApplication } from "@/lib/family";
+import { sendVerifyEmail } from "@/lib/verifyEmail";
 import { auth, db } from "@/lib/firebase";
 
 function friendly(code: string): string {
@@ -135,7 +135,8 @@ export default function AuthPage() {
         }
         // Prove the email is real. Until the link is clicked, the app shows
         // only the "check your email" screen and the database refuses swings.
-        await sendEmailVerification(cred.user, { url: `${window.location.origin}/` }).catch(() => {});
+        // A failed send shows on the next screen, which has Resend
+        await sendVerifyEmail(cred.user).catch((e) => console.error("verification email failed", e));
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
