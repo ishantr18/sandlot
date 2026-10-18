@@ -127,6 +127,7 @@ export async function coachImpactFrom(data: CoachQueueData) {
     swings: sessionIds.length,
     people: new Set(players.filter(Boolean)).size,
     value: sessionIds.length * VALUE_PER_REVIEW,
+    comments: data.myComments.length,
   };
 }
 

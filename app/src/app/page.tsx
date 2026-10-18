@@ -32,7 +32,7 @@ import { db } from "@/lib/firebase";
 import { DRILLS } from "@/lib/drills";
 import { linksFor } from "@/lib/family";
 import { fieldSkinOn } from "@/lib/skin";
-import { PLAYER_HOME, SIGNED_OUT_START } from "@/lib/switches";
+import { IMPACT_STAT, PLAYER_HOME, SIGNED_OUT_START } from "@/lib/switches";
 
 interface SessionRow {
   id: string;
@@ -67,6 +67,7 @@ interface Impact {
   swings: number;
   people: number; // players coached (coach) · coaches helping (parent)
   value: number;
+  comments: number; // coach: comments written · parent: coach comments on their kid's swings
 }
 
 async function coachImpact(uid: string): Promise<Impact> {
@@ -83,6 +84,7 @@ async function coachImpact(uid: string): Promise<Impact> {
     swings: sessionIds.length,
     people: new Set(players.filter(Boolean)).size,
     value: sessionIds.length * VALUE_PER_REVIEW,
+    comments: snap.size,
   };
 }
 
@@ -97,6 +99,7 @@ async function familyImpact(uid: string): Promise<Impact> {
     swings,
     people: new Set(comments.map((c) => c.mentorId).filter(Boolean)).size,
     value: swings * VALUE_PER_REVIEW,
+    comments: comments.length,
   };
 }
 
@@ -104,11 +107,13 @@ function ImpactStrip({ impact, isCoach }: { impact: Impact | null; isCoach: bool
   const tiles = [
     { value: impact?.swings, label: "swings reviewed" },
     { value: impact?.people, label: isCoach ? "players coached" : "coaches helping" },
-    {
-      value: impact?.value,
-      prefix: "$",
-      label: isCoach ? "est. coaching given free" : "est. coaching received free",
-    },
+    IMPACT_STAT === "comments"
+      ? { value: impact?.comments, prefix: undefined, label: isCoach ? "comments written" : "coach comments" }
+      : {
+          value: impact?.value,
+          prefix: "$",
+          label: isCoach ? "est. coaching given free" : "est. coaching received free",
+        },
   ];
   return (
     <section className="mb-4 wide:max-w-md">
@@ -122,7 +127,7 @@ function ImpactStrip({ impact, isCoach }: { impact: Impact | null; isCoach: bool
           </div>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className={`mt-2 text-xs text-muted-foreground ${IMPACT_STAT === "comments" ? "hidden" : ""}`}>
         {isCoach
           ? `Every review you leave is a lesson a family didn't have to pay for (≈ $${VALUE_PER_REVIEW} each).`
           : `Valued at what a private lesson would charge (≈ $${VALUE_PER_REVIEW} per review).`}
@@ -282,9 +287,13 @@ export default function Home() {
           <div className="dd-quiet">
             {impact == null
               ? "Counting…"
-              : `${impact.people} coaches helping · $${impact.value} est. coaching received free`}
+              : IMPACT_STAT === "comments"
+                ? `${impact.people} coaches helping · ${impact.comments} coach comments`
+                : `${impact.people} coaches helping · $${impact.value} est. coaching received free`}
           </div>
-          <div className="dd-quiet !mt-1">Valued at what a private lesson would charge (≈ ${VALUE_PER_REVIEW} per review).</div>
+          {IMPACT_STAT === "dollars" && (
+            <div className="dd-quiet !mt-1">Valued at what a private lesson would charge (≈ ${VALUE_PER_REVIEW} per review).</div>
+          )}
         </section>
         <p className="dd-label">Activity</p>
         <Link href="/family" className="dd-linkcard mt-3.5 block rounded-2xl bg-card p-5 transition-colors">

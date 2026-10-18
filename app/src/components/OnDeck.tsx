@@ -14,6 +14,7 @@ import CoachApplicationStatus from "@/components/CoachApplicationStatus";
 import CoachQueueList, { QueueLoadState, useCoachQueue } from "@/components/CoachQueue";
 import CountUp from "@/components/CountUp";
 import { coachImpactFrom, setWaitingCount, VALUE_PER_REVIEW } from "@/lib/coachQueue";
+import { IMPACT_STAT } from "@/lib/switches";
 
 function AdminLink() {
   return (
@@ -26,7 +27,7 @@ function AdminLink() {
 export default function OnDeck() {
   const { user, profile } = useAuth();
   const { data, loadError, retry } = useCoachQueue();
-  const [impact, setImpact] = useState<{ swings: number; people: number; value: number } | null>(null);
+  const [impact, setImpact] = useState<{ swings: number; people: number; value: number; comments: number } | null>(null);
 
   useEffect(() => {
     if (!data || !user) return;
@@ -45,7 +46,9 @@ export default function OnDeck() {
   const stats = [
     { value: impact?.swings, label: "swings reviewed" },
     { value: impact?.people, label: "players coached" },
-    { value: impact?.value, prefix: "$", label: "coaching given free" },
+    IMPACT_STAT === "comments"
+      ? { value: impact?.comments, prefix: undefined, label: "comments written" }
+      : { value: impact?.value, prefix: "$", label: "coaching given free" },
   ];
 
   return (
@@ -75,9 +78,11 @@ export default function OnDeck() {
           </div>
         ))}
       </section>
-      <p className="dd-quiet-note">
-        Every review you leave is a lesson a family didn&apos;t have to pay for (≈ ${VALUE_PER_REVIEW} each).
-      </p>
+      {IMPACT_STAT === "dollars" && (
+        <p className="dd-quiet-note">
+          Every review you leave is a lesson a family didn&apos;t have to pay for (≈ ${VALUE_PER_REVIEW} each).
+        </p>
+      )}
 
       <p className="dd-label mb-3">On Deck</p>
       {data === null && <QueueLoadState loadError={loadError} retry={retry} />}

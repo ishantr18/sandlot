@@ -40,3 +40,8 @@ export const FIELD_SKIN_SIGNED_OUT: boolean = true;
 // Players publish just their first name to playerNames/{uid} (see
 // PlayerNamePublisher); switching to "anon" also removes it on their next visit.
 export const COACH_SEES_PLAYER: "firstName" | "anon" = "firstName";
+
+// Third impact stat (coach On Deck + Home, parent Home):
+//   "comments" → number of coach comments (coach: ones you wrote · parent: on your kid's swings)
+//   "dollars"  → "$ coaching given / received free" (≈ $25 per reviewed swing)
+export const IMPACT_STAT: "comments" | "dollars" = "comments";
