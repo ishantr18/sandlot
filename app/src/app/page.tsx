@@ -5,6 +5,7 @@
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import {
   BadgeCheck,
+  ChevronDown,
   ClipboardList,
   Clock,
   Dumbbell,
@@ -12,7 +13,6 @@ import {
   MessageCircle,
   Play,
   ShieldCheck,
-  TrendingUp,
   Users,
   Video,
 } from "lucide-react";
@@ -26,6 +26,7 @@ import FamilyCard from "@/components/FamilyCard";
 import Landing from "@/components/Landing";
 import Notice from "@/components/Notice";
 import { db } from "@/lib/firebase";
+import { DRILLS } from "@/lib/drills";
 import { linksFor } from "@/lib/family";
 import { SIGNED_OUT_START } from "@/lib/startScreen";
 
@@ -39,6 +40,7 @@ interface SessionRow {
 interface CommentLite {
   sessionId: string;
   mentorId?: string;
+  mentorName?: string;
   createdAt: number;
 }
 
@@ -149,12 +151,6 @@ function computeStats(timestamps: number[]): Stats {
   };
 }
 
-const ACTIONS = [
-  { href: "/upload", label: "Record swing", icon: Video },
-  { href: "/drills", label: "Drills", icon: Dumbbell },
-  { href: "/progress", label: "Growth", icon: TrendingUp },
-];
-
 export default function Home() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
@@ -170,6 +166,9 @@ export default function Home() {
   const [reloadKey, setReloadKey] = useState(0); // bump to retry the load
   // Swings with coach feedback the player hasn't opened yet
   const [unread, setUnread] = useState<SessionRow[]>([]);
+  const [unreadCoach, setUnreadCoach] = useState<string | null>(null); // who left the newest unread note
+  const [nextDrill, setNextDrill] = useState<{ drillId: string; mentorName?: string } | null>(null);
+  const [familyOpen, setFamilyOpen] = useState(false);
   const [impact, setImpact] = useState<Impact | null>(null);
 
   useEffect(() => {
@@ -184,20 +183,32 @@ export default function Home() {
         });
         rows.sort((a, b) => b.createdAt - a.createdAt);
         setStats(computeStats(rows.map((r) => r.createdAt)));
-        setRecent(rows.slice(0, 4));
+        setRecent(rows.slice(0, 3));
 
         // New feedback = a comment newer than the last time this swing was opened.
         // Comments from coaches the player blocked don't count.
-        const [comments, blockSnap] = await Promise.all([
+        const [comments, blockSnap, assignSnap] = await Promise.all([
           commentsOn(rows.map((r) => r.id)),
           getDocs(query(collection(db, "blocks"), where("playerId", "==", user.uid))),
+          getDocs(query(collection(db, "assignments"), where("playerId", "==", user.uid))),
         ]);
+        // Oldest drill not marked done yet — the next one to work on
+        const pending = assignSnap.docs
+          .map((d) => d.data() as { drillId: string; mentorName?: string; status?: string; createdAt: number })
+          .filter((a) => a.status !== "done")
+          .sort((a, b) => a.createdAt - b.createdAt);
+        setNextDrill(pending[0] ?? null);
         const blocked = new Set(blockSnap.docs.map((d) => d.data().coachId as string));
         const latest = new Map<string, number>();
         comments
           .filter((c) => !c.mentorId || !blocked.has(c.mentorId))
           .forEach((c) => latest.set(c.sessionId, Math.max(latest.get(c.sessionId) ?? 0, c.createdAt)));
-        setUnread(rows.filter((r) => (latest.get(r.id) ?? 0) > (r.feedbackSeenAt ?? 0)));
+        const unreadRows = rows.filter((r) => (latest.get(r.id) ?? 0) > (r.feedbackSeenAt ?? 0));
+        setUnread(unreadRows);
+        const newest = comments
+          .filter((c) => c.sessionId === unreadRows[0]?.id && (!c.mentorId || !blocked.has(c.mentorId)))
+          .sort((a, b) => b.createdAt - a.createdAt)[0];
+        setUnreadCoach(newest?.mentorName ?? null);
       } catch {
         setLoadError(true);
       }
@@ -296,160 +307,158 @@ export default function Home() {
     );
   }
 
-  return (
-    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
-      <p className="text-sm text-muted-foreground">Welcome back,</p>
-      <h1 className="mb-6 text-4xl font-bold tracking-tight wide:mb-10 wide:text-6xl">
-        {firstName}
-      </h1>
-      {profile?.isAdmin && (
-          <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary wide:max-w-md">
-            <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
-          </Link>
-        )}
+  // The one thing to do next: new feedback → an assigned drill → film a swing
+  const shortDate = (t: number) =>
+    new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const filmedToday = stats?.lastAt != null && new Date(stats.lastAt).toDateString() === new Date().toDateString();
+  const next = unread.length
+    ? {
+        icon: MessageCircle,
+        title: `${unreadCoach ? `Coach ${unreadCoach.split(" ")[0]}` : "Your coach"} left feedback`,
+        detail:
+          unread.length === 1
+            ? `On your ${shortDate(unread[0].createdAt)} swing.`
+            : `On ${unread.length} of your swings — start with the newest.`,
+        cta: "Watch it",
+        href: `/analysis/${unread[0].id}`,
+      }
+    : nextDrill
+      ? {
+          icon: Dumbbell,
+          title: DRILLS.find((d) => d.id === nextDrill.drillId)?.name ?? "Your assigned drill",
+          detail: `Assigned by ${nextDrill.mentorName ?? "your coach"}. Do it, then film it again.`,
+          cta: "Open drills",
+          href: "/drills",
+        }
+      : {
+          icon: Video,
+          title: !stats?.total ? "Film your first swing" : filmedToday ? "Nice work today" : "Film today's swing",
+          detail: !stats?.total
+            ? "It sets the starting point everything is measured from."
+            : filmedToday
+              ? "Film another to give your coach more to see."
+              : stats.streak > 0
+                ? `Keep your ${stats.streak}-day streak alive.`
+                : `Last swing ${shortDate(stats.lastAt!)}. Start a new streak.`,
+          cta: "Film a swing",
+          href: "/upload",
+        };
 
-      {unread.length > 0 && (
-        <Link
-          href={`/analysis/${unread[0].id}`}
-          className="mb-6 flex items-center gap-3 rounded-2xl bg-primary/15 p-4 ring-1 ring-primary wide:max-w-md"
-        >
-          <MessageCircle className="h-5 w-5 text-primary" />
-          <span className="flex-1 text-sm">
-            <span className="block font-semibold text-primary">New coach feedback</span>
-            <span className="text-muted-foreground">
-              {unread.length === 1
-                ? `On your ${new Date(unread[0].createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} swing — tap to watch.`
-                : `On ${unread.length} of your swings — tap to start with the newest.`}
-            </span>
-          </span>
-          <span className="text-primary">→</span>
+  return (
+    <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl">
+      <p className="text-sm text-muted-foreground">Welcome back,</p>
+      <h1 className="mb-6 text-4xl font-bold tracking-tight">{firstName}</h1>
+      {profile?.isAdmin && (
+        <Link href="/admin" className="mb-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary">
+          <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
         </Link>
       )}
 
-      <div className="wide:grid wide:grid-cols-5 wide:gap-8">
-        {/* Left: stats + actions */}
-        <div className="wide:col-span-3">
-          <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
-            <div className="rounded-2xl bg-card p-4 wide:p-6">
-              <div className="flex items-center gap-1 font-mono text-2xl font-bold text-primary wide:text-4xl">
-                <Flame className="h-5 w-5 wide:h-7 wide:w-7" />
-                {stats ? <CountUp value={stats.streak} /> : "–"}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">day streak</div>
-            </div>
-            <div className="rounded-2xl bg-card p-4 wide:p-6">
-              <div className="font-mono text-2xl font-bold wide:text-4xl">
-                {stats ? <CountUp value={stats.thisWeek} /> : "–"}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">this week</div>
-            </div>
-            <div className="rounded-2xl bg-card p-4 wide:p-6">
-              <div className="font-mono text-2xl font-bold wide:text-4xl">
-                {stats ? <CountUp value={stats.total} /> : "–"}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground wide:text-sm">
-                total swings
-              </div>
+      {/* Next up — always exactly one thing to do */}
+      {stats && !loadError && (
+        <Link href={next.href} className="mb-4 block rounded-2xl bg-primary/10 p-5 ring-1 ring-primary/50">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-primary">Next up</p>
+          <div className="mt-2 flex items-start gap-3">
+            <next.icon className="mt-1 h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-lg font-semibold">{next.title}</p>
+              <p className="text-sm text-muted-foreground">{next.detail}</p>
             </div>
           </div>
+          <span className="mt-4 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+            {next.cta} →
+          </span>
+        </Link>
+      )}
 
-          <div className="mb-6 grid grid-cols-3 gap-2 wide:gap-4">
-            {ACTIONS.map((a) => (
-              <Link
-                key={a.href}
-                href={a.href}
-                className="flex flex-col items-center gap-2 rounded-2xl bg-card p-4 text-xs font-medium transition-colors hover:bg-secondary wide:p-8 wide:text-sm"
-              >
-                <a.icon className="h-5 w-5 text-primary wide:h-7 wide:w-7" />
-                {a.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: focus + recent activity */}
-        <div className="wide:col-span-2">
-          <section className="mb-6 rounded-2xl bg-card p-4 wide:p-6">
-            <h2 className="mb-1 text-sm font-semibold">Today&apos;s focus</h2>
-            <p className="text-sm text-muted-foreground">
-              {stats?.lastAt
-                ? `Last swing ${new Date(stats.lastAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}. Film a new one and keep the streak alive.`
-                : "Film your first swing to get your baseline analysis."}
-            </p>
-          </section>
-
-          <section className="rounded-2xl bg-card wide:min-h-48">
-            <div className="flex items-center justify-between p-4 pb-2">
-              <h2 className="text-sm font-semibold">Recent swings</h2>
-              <Link href="/progress" className="text-xs text-primary">
-                See all →
-              </Link>
-            </div>
-            {loadError ? (
-              <div className="p-2 pt-0">
-                <Notice
-                  tone="error"
-                  title="Couldn't load your swings"
-                  actions={[
-                    {
-                      label: "Try again",
-                      onClick: () => {
-                        setLoadError(false);
-                        setReloadKey((k) => k + 1);
-                      },
-                    },
-                  ]}
-                >
-                  Check your connection — your swings are safe.
-                </Notice>
-              </div>
-            ) : (
-              stats &&
-              recent.length === 0 && (
-                <div className="p-2 pt-0">
-                  <Notice
-                    title="No swings yet"
-                    actions={[
-                      { label: "Film your first swing", href: "/upload" },
-                      { label: "See a sample", href: "/sample" },
-                    ]}
-                  >
-                    Your first one sets the starting point everything is measured from.
-                  </Notice>
-                </div>
-              )
-            )}
-            {recent.map((s) => (
-              <Link
-                key={s.id}
-                href={`/analysis/${s.id}`}
-                className="flex items-center gap-3 border-t border-border p-4 py-3 transition-colors hover:bg-secondary"
-              >
-                <Play className="h-4 w-4 text-primary" />
-                <div className="flex-1 text-sm">
-                  {new Date(s.createdAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}{" "}
-                  ·{" "}
-                  {new Date(s.createdAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </div>
-                {unread.some((u) => u.id === s.id) ? (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                    new feedback
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">{s.status}</span>
-                )}
-              </Link>
-            ))}
-          </section>
-          {user && <FamilyCard playerId={user.uid} playerName={user.displayName ?? "Player"} />}
-        </div>
+      {/* Stats — one line */}
+      <div className="mb-6 flex items-center gap-2 rounded-2xl bg-card px-4 py-3 text-sm">
+        <Flame className="h-4 w-4 text-primary" />
+        <span>
+          <span className="font-mono font-bold text-primary">{stats ? <CountUp value={stats.streak} /> : "–"}</span>-day streak
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span>
+          <span className="font-mono font-bold">{stats ? <CountUp value={stats.thisWeek} /> : "–"}</span> this week
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span>
+          <span className="font-mono font-bold">{stats ? <CountUp value={stats.total} /> : "–"}</span> total
+        </span>
       </div>
+
+      <section className="mb-4 rounded-2xl bg-card">
+        <div className="flex items-center justify-between p-4 pb-2">
+          <h2 className="text-sm font-semibold">Recent swings</h2>
+          <Link href="/progress" className="text-xs text-primary">
+            See all →
+          </Link>
+        </div>
+        {loadError ? (
+          <div className="p-2 pt-0">
+            <Notice
+              tone="error"
+              title="Couldn't load your swings"
+              actions={[
+                {
+                  label: "Try again",
+                  onClick: () => {
+                    setLoadError(false);
+                    setReloadKey((k) => k + 1);
+                  },
+                },
+              ]}
+            >
+              Check your connection — your swings are safe.
+            </Notice>
+          </div>
+        ) : (
+          stats &&
+          recent.length === 0 && (
+            <p className="px-4 pb-4 text-sm text-muted-foreground">
+              Your swings show up here.{" "}
+              <Link href="/sample" className="text-primary underline">
+                See a sample
+              </Link>
+            </p>
+          )
+        )}
+        {recent.map((s) => (
+          <Link
+            key={s.id}
+            href={`/analysis/${s.id}`}
+            className="flex items-center gap-3 border-t border-border p-4 py-3 transition-colors hover:bg-secondary"
+          >
+            <Play className="h-4 w-4 text-primary" />
+            <div className="flex-1 text-sm">
+              {shortDate(s.createdAt)} ·{" "}
+              {new Date(s.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+            </div>
+            {unread.some((u) => u.id === s.id) ? (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                new feedback
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">{s.status}</span>
+            )}
+          </Link>
+        ))}
+      </section>
+
+      {/* Family code — rarely needed, so one row that opens */}
+      <button
+        onClick={() => setFamilyOpen((o) => !o)}
+        className="flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left text-sm font-semibold"
+      >
+        <Users className="h-4 w-4 text-primary" />
+        <span className="flex-1">Family &amp; parents</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${familyOpen ? "rotate-180" : ""}`} />
+      </button>
+      {familyOpen && user && (
+        <div className="dd-enter -mt-2">
+          <FamilyCard playerId={user.uid} playerName={user.displayName ?? "Player"} />
+        </div>
+      )}
     </main>
   );
 }
