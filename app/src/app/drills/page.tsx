@@ -2,14 +2,44 @@
 
 // Drills — coach-assigned drills up top (real, from Firestore), library below.
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { Check, ChevronRight, Video } from "lucide-react";
+import { Check, ChevronRight, Play, Video } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import DrillIcon from "@/components/DrillIcon";
 import Notice from "@/components/Notice";
-import { CATEGORY_LABEL, DRILLS, type DrillCategory } from "@/lib/drills";
+import { CATEGORY_LABEL, DRILLS, type DrillCategory, type DrillVideo } from "@/lib/drills";
 import { db } from "@/lib/firebase";
+
+// "Watch how" — demo videos from established hitting coaches (open YouTube)
+function DrillVideos({ videos }: { videos?: DrillVideo[] }) {
+  if (!videos?.length) return null;
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watch how</p>
+      <ul className="space-y-1.5">
+        {videos.map((v) => (
+          <li key={v.url}>
+            <a
+              href={v.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl bg-secondary p-2.5 transition-colors hover:bg-secondary/70"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                <Play className="h-3.5 w-3.5 text-primary" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">{v.title}</span>
+                <span className="block text-xs text-muted-foreground">{v.channel} · YouTube</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 interface AssignmentRow {
   id: string;
@@ -122,9 +152,10 @@ export default function DrillsPage() {
                       )}
                     </div>
                     {drill && (
-                      <p className="px-4 pb-3 text-xs text-muted-foreground">
-                        {drill.description}
-                      </p>
+                      <div className="px-4 pb-3">
+                        <p className="text-xs text-muted-foreground">{drill.description}</p>
+                        <DrillVideos videos={drill.videos} />
+                      </div>
                     )}
                     {/* Close the loop: drill → new swing → the coach sees the change */}
                     <div className="px-4 pb-4">
@@ -160,10 +191,11 @@ export default function DrillsPage() {
           </div>
           <section key={filter} className="dd-enter rounded-2xl bg-card">
             {library.map((d, i) => (
+              <div key={d.id} className={i > 0 ? "border-t border-border" : ""}>
               <button
-                key={d.id}
                 onClick={() => setOpen(open === d.id ? null : d.id)}
-                className={`block w-full text-left ${i > 0 ? "border-t border-border" : ""}`}
+                aria-expanded={open === d.id}
+                className="block w-full text-left"
               >
                 <div className="flex items-center gap-3 p-4">
                   <DrillIcon category={d.category} />
@@ -177,17 +209,20 @@ export default function DrillsPage() {
                     className={`h-4 w-4 text-muted-foreground transition-transform ${open === d.id ? "rotate-90" : ""}`}
                   />
                 </div>
+              </button>
                 {/* grid-rows 0fr → 1fr animates the open/close height */}
                 <div
                   className={`grid transition-[grid-template-rows] duration-200 ease-out ${
                     open === d.id ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                   }`}
                 >
-                  <p className="overflow-hidden px-4 text-xs text-muted-foreground">
-                    <span className="block pb-4">{d.description}</span>
-                  </p>
+                  <div className="overflow-hidden px-4">
+                    <p className="text-xs text-muted-foreground">{d.description}</p>
+                    <DrillVideos videos={d.videos} />
+                    <div className="pb-4" />
+                  </div>
                 </div>
-              </button>
+              </div>
             ))}
           </section>
         </div>
