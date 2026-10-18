@@ -16,3 +16,10 @@ export const PLAYER_HOME: "classic" | "nextUp" = "classic";
 //   "everyone" → players and parents
 //   "none"     → nobody
 export const COACH_SAFETY_BUTTONS: "parents" | "everyone" | "none" = "parents";
+
+// "Field" skin — the approved look from diamond-drive-prototype.html
+// (dark field-green, Barlow type, home-plate logo, prototype tab bars).
+// Rolled out one role at a time. Remove a role to give it the old look back;
+// [] = old look everywhere. Styles live in globals.css under [data-skin="field"].
+//   "guardian" = parents · "player" = players · "mentor" = coaches
+export const FIELD_SKIN_ROLES: ("player" | "mentor" | "guardian")[] = ["guardian"];

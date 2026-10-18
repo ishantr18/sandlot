@@ -12,6 +12,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Notice from "@/components/Notice";
 import { linksFor, linkWithCode, type Link as FamilyLink } from "@/lib/family";
 import { db } from "@/lib/firebase";
+import { fieldSkinOn } from "@/lib/skin";
 
 interface Row {
   id: string;
@@ -46,9 +47,9 @@ function LinkForm({ onLinked }: { onLinked: () => void }) {
               : "That code doesn't match. Check it on your player's Home screen.",
           );
       }}
-      className="rounded-2xl bg-card p-4 wide:max-w-md"
+      className="rounded-2xl bg-card p-4 wide:max-w-md dd-comment"
     >
-      <p className="mb-2 text-sm font-semibold">Link a player</p>
+      <p className="dd-card-title mb-2 text-sm font-semibold">Link a player</p>
       <p className="mb-3 text-xs text-muted-foreground">
         On your player&apos;s phone: Home → Family code. Type it here.
       </p>
@@ -59,7 +60,7 @@ function LinkForm({ onLinked }: { onLinked: () => void }) {
           placeholder="ABC234"
           required
           maxLength={8}
-          className="flex-1 rounded-xl border-0 bg-secondary p-2 font-mono tracking-widest"
+          className="dd-field flex-1 rounded-xl border-0 bg-secondary p-2 font-mono tracking-widest"
         />
         <button
           disabled={busy}
@@ -122,12 +123,13 @@ export default function FamilyPage() {
     );
   }
 
+  const field = fieldSkinOn(profile?.role); // Field skin: prototype title + layout
   const nameOf = (pid: string) => links?.find((l) => l.playerId === pid)?.playerName ?? "Your player";
 
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight wide:text-6xl">Family</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
+      <h1 className="dd-title mb-2 text-4xl font-bold tracking-tight wide:text-6xl">{field ? "My Kids" : "Family"}</h1>
+      <p className="dd-sub mb-6 text-sm text-muted-foreground">
         Everything your player does here is visible to you — every swing, every
         coach comment, every assigned drill. Videos are face-anonymized on the
         player&apos;s own device before upload.
@@ -166,7 +168,10 @@ export default function FamilyPage() {
       {links && links.length > 0 && (
         <>
           <p className="mb-2 text-sm text-muted-foreground">
-            Linked: {links.map((l) => l.playerName ?? "Your player").join(", ")}
+            Linked:{" "}
+            <b className={field ? "text-foreground" : "font-normal"}>
+              {links.map((l) => l.playerName ?? "Your player").join(", ")}
+            </b>
           </p>
           {rows?.length === 0 && (
             <p className="mb-6 rounded-2xl bg-card p-6 text-sm text-muted-foreground">
@@ -174,12 +179,12 @@ export default function FamilyPage() {
             </p>
           )}
           {rows && rows.length > 0 && (
-            <section className="mb-6 rounded-2xl bg-card wide:max-w-2xl">
+            <section className="dd-rows mb-6 rounded-2xl bg-card wide:max-w-2xl">
               {rows.map((r, i) => (
                 <Link
                   key={r.id}
                   href={`/analysis/${r.id}`}
-                  className={`flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}
+                  className={`dd-row flex items-center gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}
                 >
                   <div className="flex-1">
                     <div className="text-sm font-medium">

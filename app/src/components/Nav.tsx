@@ -8,7 +8,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { HomePlateMark } from "@/components/BrandMark";
 import { auth } from "@/lib/firebase";
+import { fieldSkinOn } from "@/lib/skin";
 
 const TABS = {
   player: [
@@ -28,6 +30,61 @@ const TABS = {
     { href: "/family/growth", label: "Athlete's Growth", icon: TrendingUp },
   ],
 };
+
+// Field skin tab bars (from the approved prototype) — same pages, new labels/order.
+// Roles without an entry keep the classic dock.
+const FIELD_TABS: Partial<Record<keyof typeof TABS, { href: string; label: string; icon?: typeof House }[]>> = {
+  guardian: [
+    { href: "/", label: "Home" },
+    { href: "/family", label: "My Kids" },
+    { href: "/family/growth", label: "Progress" },
+  ],
+};
+
+// Field skin top bar: home-plate mark + DIAMOND DRIVE, and Sign out
+// (sign-out moves here from the dock so it's still on every screen)
+export function FieldTopBar() {
+  const router = useRouter();
+  const { user, profile, loading } = useAuth();
+  if (loading || !user || !fieldSkinOn(profile?.role)) return null;
+  return (
+    <header className="dd-topbar">
+      <span className="dd-brand">
+        <HomePlateMark className="h-3 w-3" />
+        DIAMOND DRIVE
+      </span>
+      <button
+        className="dd-signout"
+        onClick={async () => {
+          await signOut(auth);
+          router.push("/");
+        }}
+      >
+        Sign out
+      </button>
+    </header>
+  );
+}
+
+function FieldNav({ tabs, pathname }: { tabs: { href: string; label: string; icon?: typeof House }[]; pathname: string }) {
+  const matches = (h: string) => (h === "/" ? pathname === "/" : pathname.startsWith(h));
+  const activeHref = tabs.find(
+    (t) => matches(t.href) && !tabs.some((o) => o.href.length > t.href.length && matches(o.href)),
+  )?.href;
+  return (
+    <nav className={`dd-tabbar ${tabs.some((t) => t.icon) ? "" : "dd-tabbar-text"}`}>
+      {tabs.map((t) => {
+        const Icon = t.icon;
+        return (
+          <Link key={t.href} href={t.href} data-on={t.href === activeHref} aria-current={t.href === activeHref ? "page" : undefined}>
+            {Icon && <Icon className="h-[17px] w-[17px]" />}
+            {t.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export default function Nav() {
   const pathname = usePathname();
@@ -60,6 +117,8 @@ export default function Nav() {
 
   // App tabs are for signed-in users only (signed-out visitors start on sign-in)
   if (loading || !user) return null;
+  const fieldTabs = fieldSkinOn(profile?.role) ? FIELD_TABS[profile!.role] : undefined;
+  if (fieldTabs) return <FieldNav tabs={fieldTabs} pathname={pathname} />;
   return (
     <nav
       ref={navRef}

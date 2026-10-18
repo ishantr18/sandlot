@@ -237,3 +237,419 @@
   --text-base: 1.125rem; /* 16 → 18px */
   --text-lg: 1.25rem; /* 18 → 20px */
 }
+
+/* ══ Field skin ═══════════════════════════════════════════════════════════
+   The approved look from diamond-drive-prototype.html. Everything below only
+   applies while <html data-skin="field"> is set — <SkinSwitch> sets it for the
+   roles in FIELD_SKIN_ROLES (src/lib/switches.ts). Empty that list (or delete
+   this block) and the app looks exactly as it did before.
+   Unlayered on purpose: it outranks Tailwind's utility layer. */
+.dd-only {
+  display: none !important;
+}
+html[data-skin="field"] .dd-hide {
+  display: none !important;
+}
+html[data-skin="field"] .dd-only {
+  display: revert !important;
+}
+
+html[data-skin="field"] {
+  /* prototype palette */
+  --dd-bg: #070907;
+  --dd-surface: #131813;
+  --dd-surface2: #1b221b;
+  --dd-text: #f2f5ef;
+  --dd-sub: #aab5ab;
+  --dd-mut: #7c8b7d;
+  --dd-acc: #5ce38b;
+  --dd-acc2: #2fbf71;
+  --dd-acc-dim: rgba(92, 227, 139, 0.12);
+  --dd-line: rgba(255, 255, 255, 0.09);
+  --dd-amber: #e8b44a;
+  --dd-ink: #05130b;
+  --dd-grad: linear-gradient(180deg, #79f2a6, #47d67e);
+  --dd-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)), var(--dd-surface);
+  --dd-font: var(--font-barlow), -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --dd-cond: var(--font-barlow-cond), var(--font-barlow), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* app tokens → prototype palette (every bg-card / text-primary / … follows) */
+  --background: var(--dd-bg);
+  --foreground: var(--dd-text);
+  --card: var(--dd-surface);
+  --card-foreground: var(--dd-text);
+  --popover: var(--dd-surface);
+  --popover-foreground: var(--dd-text);
+  --primary: var(--dd-acc);
+  --primary-foreground: var(--dd-ink);
+  --secondary: var(--dd-surface2);
+  --secondary-foreground: var(--dd-text);
+  --muted: var(--dd-surface2);
+  --muted-foreground: var(--dd-sub);
+  --accent: var(--dd-surface2);
+  --accent-foreground: var(--dd-text);
+  --border: var(--dd-line);
+  --input: var(--dd-line);
+  --ring: rgba(92, 227, 139, 0.55);
+  font-family: var(--dd-font);
+  -webkit-font-smoothing: antialiased;
+}
+html[data-skin="field"] body {
+  font-family: var(--dd-font);
+  background: radial-gradient(560px 260px at 50% -70px, rgba(92, 227, 139, 0.08), rgba(92, 227, 139, 0) 70%),
+    radial-gradient(130% 55% at 50% 0%, #0e1710 0%, var(--dd-bg) 58%) var(--dd-bg);
+  background-attachment: fixed;
+}
+/* prototype type scale (replaces the data-text="large" sizes while on) */
+html[data-skin="field"][data-text] main {
+  --text-xs: 0.8125rem; /* 13px — meta lines */
+  --text-sm: 0.96875rem; /* 15.5px — body copy, rows */
+  --text-base: 1rem;
+  --text-lg: 1.0625rem; /* 17px — card titles */
+}
+html[data-skin="field"] h1,
+html[data-skin="field"] h2.dd-title {
+  font-family: var(--dd-cond);
+}
+html[data-skin="field"] .font-mono {
+  font-family: var(--dd-cond);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* cards */
+html[data-skin="field"] .bg-card {
+  background: var(--dd-card-bg);
+  border: 1px solid var(--dd-line);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+html[data-skin="field"] .rounded-2xl {
+  border-radius: 22px;
+}
+/* primary buttons: green gradient, dark ink */
+html[data-skin="field"] :is(button, a).bg-primary {
+  background: var(--dd-grad);
+  color: var(--dd-ink);
+  font-weight: 700;
+  box-shadow: 0 12px 28px rgba(92, 227, 139, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+html[data-skin="field"] :is(button, a).border-border {
+  border-color: rgba(92, 227, 139, 0.4);
+  color: var(--dd-acc);
+  background: rgba(92, 227, 139, 0.04);
+}
+
+/* top bar + tab bar */
+.dd-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 30px 24px 0;
+}
+.dd-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--dd-mut);
+}
+.dd-signout {
+  font-size: 13px;
+  color: var(--dd-mut);
+  padding: 4px;
+}
+.dd-signout:hover {
+  color: var(--dd-text);
+}
+.dd-tabbar {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(calc(28rem - 36px), calc(100% - 36px));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 8px;
+  background: rgba(14, 19, 15, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--dd-line);
+  border-radius: 28px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.dd-tabbar-text {
+  padding: 14px 8px;
+}
+.dd-tabbar a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dd-sub);
+  transition: all 0.15s;
+}
+.dd-tabbar a:hover {
+  color: var(--dd-text);
+}
+.dd-tabbar a[data-on="true"] {
+  color: var(--dd-acc);
+  background: rgba(92, 227, 139, 0.12);
+}
+
+/* type */
+html[data-skin="field"] .dd-title {
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+html[data-skin="field"] .dd-name {
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+html[data-skin="field"] .dd-hello {
+  margin-top: 16px;
+  font-size: 15px;
+  color: var(--dd-sub);
+}
+html[data-skin="field"] .dd-sub {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--dd-sub);
+}
+html[data-skin="field"] .dd-label {
+  margin-top: 28px;
+  margin-bottom: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--dd-mut);
+  text-transform: uppercase;
+}
+html[data-skin="field"] h2.dd-label {
+  font-size: 11.5px;
+  color: var(--dd-mut);
+  margin-bottom: 12px;
+}
+html[data-skin="field"] .dd-promise {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--dd-mut);
+}
+
+/* parent Home — the big impact number */
+.dd-impact {
+  margin-top: 24px;
+  padding: 28px 22px;
+  text-align: center;
+  border: 1px solid var(--dd-line);
+  border-radius: 22px;
+  background: radial-gradient(120% 150% at 50% 0%, rgba(92, 227, 139, 0.1), rgba(92, 227, 139, 0.015)), var(--dd-surface);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+.dd-impact .dd-big {
+  font-family: var(--dd-cond);
+  font-size: 92px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+  color: var(--dd-acc);
+}
+.dd-impact .dd-cap {
+  margin-top: 8px;
+  font-size: 15.5px;
+  color: var(--dd-sub);
+}
+.dd-impact .dd-quiet {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--dd-mut);
+}
+
+/* list rows (My Kids swings) — hairline rows, no card */
+html[data-skin="field"] .dd-rows {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+html[data-skin="field"] .dd-row {
+  padding: 16px 2px;
+  border-color: var(--dd-line);
+}
+html[data-skin="field"] .dd-row + .dd-row {
+  border-top: 1px solid var(--dd-line);
+}
+html[data-skin="field"] .dd-row .text-sm {
+  font-size: 15.5px;
+  font-weight: 400;
+}
+html[data-skin="field"] .dd-row .text-xs {
+  margin-top: 3px;
+  color: var(--dd-mut);
+}
+html[data-skin="field"] .dd-row svg {
+  color: var(--dd-mut);
+  width: 19px;
+  height: 19px;
+}
+/* a card you tap through to another screen */
+html[data-skin="field"] .dd-linkcard:hover {
+  border-color: rgba(92, 227, 139, 0.4);
+}
+
+/* inputs */
+html[data-skin="field"] .dd-field {
+  background: var(--dd-surface);
+  border: 1px solid var(--dd-line);
+  border-radius: 16px;
+  color: var(--dd-text);
+  font-size: 16px;
+  padding: 14px 16px;
+  outline: none;
+}
+html[data-skin="field"] .dd-field:focus {
+  border-color: rgba(92, 227, 139, 0.55);
+  box-shadow: 0 0 0 4px rgba(92, 227, 139, 0.12);
+}
+html[data-skin="field"] summary.text-primary {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* bars (skills, effort) */
+html[data-skin="field"] .dd-bar {
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+html[data-skin="field"] .dd-bar > .bg-primary,
+html[data-skin="field"] .dd-bar > .bg-amber-500 {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--dd-acc2), var(--dd-acc));
+  box-shadow: 0 0 12px rgba(92, 227, 139, 0.45);
+}
+html[data-skin="field"] .dd-bar > .bg-muted-foreground {
+  background: rgba(92, 227, 139, 0.22);
+}
+html[data-skin="field"] .dd-card-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+html[data-skin="field"] .dd-skill-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* swing read-out (analysis) */
+html[data-skin="field"] .dd-video {
+  border-radius: 24px;
+  border: 1px solid var(--dd-line);
+  background: radial-gradient(120% 130% at 50% 0%, #17261b 0%, #0a0f0b 62%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 20px 44px rgba(0, 0, 0, 0.35);
+}
+html[data-skin="field"] .dd-back {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 4px 0;
+  color: var(--dd-sub);
+}
+html[data-skin="field"] .dd-back:hover {
+  color: var(--dd-text);
+}
+html[data-skin="field"] .dd-stat {
+  padding: 14px 10px 12px;
+  text-align: center;
+  border-radius: 16px;
+}
+html[data-skin="field"] .dd-stat .font-mono {
+  font-size: 25px;
+  line-height: 1;
+}
+html[data-skin="field"] .dd-stat .font-mono .text-lg {
+  font-size: 15px;
+}
+html[data-skin="field"] .dd-stat > div + div {
+  margin-top: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  color: var(--dd-mut);
+}
+/* AI findings: the prototype's left-rule "read" cards */
+html[data-skin="field"] .dd-finding {
+  border-left-width: 3px;
+  padding: 20px;
+}
+html[data-skin="field"] .dd-finding.border-primary {
+  background: linear-gradient(180deg, rgba(92, 227, 139, 0.08), rgba(92, 227, 139, 0.02)), var(--dd-surface);
+}
+html[data-skin="field"] .dd-finding.border-yellow-500 {
+  border-left-color: var(--dd-amber);
+  background: linear-gradient(180deg, rgba(232, 180, 74, 0.07), rgba(232, 180, 74, 0.015)), var(--dd-surface);
+}
+html[data-skin="field"] .dd-finding > p:first-child {
+  font-size: 16.5px;
+  line-height: 1.55;
+}
+/* coach comment: name line + big quote */
+html[data-skin="field"] .dd-comment {
+  padding: 20px;
+}
+html[data-skin="field"] .dd-comment .dd-coachline {
+  font-size: 13.5px;
+  color: var(--dd-sub);
+  gap: 7px;
+}
+html[data-skin="field"] .dd-comment .dd-quote {
+  margin-top: 10px;
+  font-size: 19.5px;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+}
+html[data-skin="field"] .dd-drillchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dd-acc);
+  background: var(--dd-acc-dim);
+  border: 1px solid rgba(92, 227, 139, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-tabbar a {
+    transition: none;
+  }
+}
+/* laptops: the top bar lines up with the page column (desk:max-w-2xl) */
+@media (width >= 64rem) {
+  [data-layout="narrow"] .dd-topbar {
+    max-width: 42rem;
+  }
+}
+html[data-skin="field"] .dd-coachname {
+  color: var(--dd-text);
+  font-weight: 700;
+}

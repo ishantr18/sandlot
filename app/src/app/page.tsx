@@ -29,6 +29,7 @@ import Notice from "@/components/Notice";
 import { db } from "@/lib/firebase";
 import { DRILLS } from "@/lib/drills";
 import { linksFor } from "@/lib/family";
+import { fieldSkinOn } from "@/lib/skin";
 import { PLAYER_HOME, SIGNED_OUT_START } from "@/lib/switches";
 
 interface SessionRow {
@@ -256,6 +257,43 @@ export default function Home() {
   }
 
   const firstName = user?.displayName?.split(" ")[0] ?? "player";
+
+  // Parent Home, Field skin (switch: FIELD_SKIN_ROLES) — same data and link
+  // as the classic hub below, laid out like the approved prototype
+  if (profile?.role === "guardian" && fieldSkinOn(profile.role)) {
+    return (
+      <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl">
+        <p className="dd-hello">Welcome back,</p>
+        <h1 className="dd-name mt-1">{firstName}</h1>
+        {profile.isAdmin && (
+          <Link href="/admin" className="mt-4 block rounded-2xl bg-primary/15 p-4 text-sm font-semibold text-primary ring-1 ring-primary">
+            <ShieldCheck className="mr-1 inline h-4 w-4" /> Admin: approve coaches →
+          </Link>
+        )}
+        <section className="dd-impact">
+          <div className="dd-big">{impact == null ? "–" : <CountUp value={impact.swings} />}</div>
+          <div className="dd-cap">swings reviewed</div>
+          <div className="dd-quiet">
+            {impact == null
+              ? "Counting…"
+              : `${impact.people} coaches helping · $${impact.value} est. coaching received free`}
+          </div>
+          <div className="dd-quiet !mt-1">Valued at what a private lesson would charge (≈ ${VALUE_PER_REVIEW} per review).</div>
+        </section>
+        <p className="dd-label">Activity</p>
+        <Link href="/family" className="dd-linkcard mt-3.5 block rounded-2xl bg-card p-5 transition-colors">
+          <div className="dd-card-title flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Your player&apos;s activity →
+          </div>
+        </Link>
+        <p className="dd-promise">
+          Every swing, coach comment, and assigned drill —<br />
+          nothing on this app is hidden from you.
+        </p>
+      </main>
+    );
+  }
 
   // Coaches and parents get their own hub — player stats don't apply to them
   if (profile?.role === "mentor" || profile?.role === "guardian") {

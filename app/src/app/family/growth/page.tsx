@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Notice from "@/components/Notice";
 import GrowthPanel from "@/components/GrowthPanel";
 import { linksFor, type Link as FamilyLink } from "@/lib/family";
+import { fieldSkinOn } from "@/lib/skin";
 
 export default function AthleteGrowthPage() {
   const { user, profile, loading } = useAuth();
@@ -33,10 +34,13 @@ export default function AthleteGrowthPage() {
   }
 
   const link = links?.[pick];
+  const field = fieldSkinOn(profile?.role); // Field skin: prototype title
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-3xl wide:px-10 wide:pt-12">
-      <h1 className="mb-2 text-4xl font-bold tracking-tight wide:text-6xl">Athlete&apos;s Growth</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
+      <h1 className="dd-title mb-2 text-4xl font-bold tracking-tight wide:text-6xl">
+        {field ? "Progress" : <>Athlete&apos;s Growth</>}
+      </h1>
+      <p className="dd-sub mb-6 text-sm text-muted-foreground">
         How your athlete is improving — compared only to their own first swings.
       </p>
       {error && (
@@ -65,6 +69,11 @@ export default function AthleteGrowthPage() {
         </div>
       )}
       {link && <GrowthPanel key={link.playerId} playerId={link.playerId} mode="parent" />}
+      {link && (
+        <p className="dd-only dd-promise">
+          Growth is a direction, not a grade. The best question at dinner is still &ldquo;what did your coach say?&rdquo;
+        </p>
+      )}
     </main>
   );
 }

@@ -277,10 +277,10 @@ export default function AnalysisSessionPage() {
   return (
     <main className="mx-auto max-w-md p-6 pb-28 desk:max-w-2xl wide:max-w-5xl wide:px-10 wide:pt-12">
       <div className="mb-6 flex items-center gap-3 wide:mb-10">
-        <Link href="/progress" className="rounded-full bg-card p-2">
+        <Link href="/progress" className="dd-back rounded-full bg-card p-2">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-4xl font-bold tracking-tight wide:text-6xl">Analysis</h1>
+        <h1 className="dd-title text-4xl font-bold tracking-tight wide:text-6xl">Analysis</h1>
       </div>
 
       {error && (
@@ -306,7 +306,7 @@ export default function AnalysisSessionPage() {
 
       <div className="wide:grid wide:grid-cols-5 wide:items-start wide:gap-8">
         <div className="wide:col-span-3">
-          <section className="relative mb-4 overflow-hidden rounded-2xl bg-card">
+          <section className="dd-video relative mb-4 overflow-hidden rounded-2xl bg-card">
             {videoUrl ? (
               <>
                 <video
@@ -374,7 +374,7 @@ export default function AnalysisSessionPage() {
         <div className="wide:col-span-2">
           <section className="mb-4 grid grid-cols-2 gap-2 wide:gap-4">
             {tiles.map((t) => (
-              <div key={t.label} className="rounded-2xl bg-card p-4">
+              <div key={t.label} className="dd-stat rounded-2xl bg-card p-4">
                 <div className="font-mono text-3xl font-bold text-primary">
                   {t.value === null || t.value === undefined ? (
                     // This clip couldn't support the measurement — an em dash is
@@ -399,13 +399,13 @@ export default function AnalysisSessionPage() {
               full breakdown automatically.
             </section>
           )}
-          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
+          <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">AI Coaching</h2>
           <div className="space-y-2">
             {session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
-              <section key={i} className={`rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
+              <section key={i} className={`dd-finding rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
                 <p className="text-sm">{f.message}</p>
                 {f.drillIds.length > 0 && (
-                  <p className="mt-2 text-xs text-primary">
+                  <p className="dd-drillchip mt-2 text-xs text-primary">
                     → Drill:{" "}
                     {f.drillIds
                       .map((id) => DRILLS.find((d) => d.id === id)?.name ?? id)
@@ -416,7 +416,7 @@ export default function AnalysisSessionPage() {
             ))}
           </div>
 
-          <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">
+          <h2 className="dd-label mb-2 mt-6 text-sm font-semibold text-muted-foreground">
             Coach comments
           </h2>
           <div className="space-y-2">
@@ -428,7 +428,7 @@ export default function AnalysisSessionPage() {
             {comments
               .filter((c) => !c.mentorId || !blockedCoaches.has(c.mentorId))
               .map((c) => (
-              <div key={c.id} className="rounded-2xl bg-card p-4">
+              <div key={c.id} className="dd-comment rounded-2xl bg-card p-4">
                 <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   {/* Tapping the name/date jumps the video to where the coach paused;
@@ -437,9 +437,9 @@ export default function AnalysisSessionPage() {
                     onClick={() => {
                       if (videoRef.current) videoRef.current.currentTime = c.timestampSec;
                     }}
-                    className="inline-flex flex-wrap items-center gap-1 text-left text-xs text-muted-foreground"
+                    className="dd-coachline inline-flex flex-wrap items-center gap-1 text-left text-xs text-muted-foreground"
                   >
-                    {c.mentorName ?? "Coach"}
+                    <b className="font-normal dd-coachname">{c.mentorName ?? "Coach"}</b>
                     {/* Only admin-approved coaches can comment at all */}
                     <BadgeCheck className="h-3.5 w-3.5 text-primary" aria-label="Verified coach" />
                     {c.mentorOrg && <span>· {c.mentorOrg}</span>}
@@ -449,7 +449,7 @@ export default function AnalysisSessionPage() {
                       {new Date(c.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
                     </span>
                   </button>
-                  <LinkifiedText text={c.text} className="mt-1 text-sm" />
+                  <LinkifiedText text={c.text} className="dd-quote mt-1 text-sm" />
                 </div>
                 {/* Favorite this coach — their queue can then filter to you */}
                 {session && c.mentorId && !c.id.startsWith("local-") &&
@@ -532,7 +532,7 @@ export default function AnalysisSessionPage() {
 
             {profile?.role === "mentor" && profile.verifiedMentor && session && (
               <div className="mb-4">
-                <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
+                <h2 className="dd-label mb-2 text-sm font-semibold text-muted-foreground">
                   {anonPlayer(session.playerId)}&apos;s growth
                 </h2>
                 <GrowthPanel playerId={session.playerId} mode="coach" />

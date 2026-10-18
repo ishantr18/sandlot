@@ -43,7 +43,7 @@ async function saveConfirmation(playerId: string, skill: Skill, level: number, c
 
 function Bar({ value, tone = "bg-primary" }: { value: number; tone?: string }) {
   return (
-    <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+    <div className="dd-bar h-2.5 w-full overflow-hidden rounded-full bg-secondary">
       <div className={`h-full rounded-full ${tone} transition-all`} style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
     </div>
   );
@@ -123,9 +123,10 @@ export default function GrowthPanel({
   return (
     <section className="mb-6 space-y-3">
       {/* Effort — always in the kid's control */}
-      <div className="rounded-2xl bg-card p-4">
+      <p className="dd-only dd-label">This week</p>
+      <div className="dd-comment rounded-2xl bg-card p-4">
         <div className="mb-1 flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold">Effort this week</h3>
+          <h3 className="dd-card-title text-sm font-semibold">Effort this week</h3>
           <span className="text-xs text-muted-foreground">
             {week} / {WEEKLY_SWING_GOAL} swings
             {drills && drills.total > 0 && ` · ${drills.done} / ${drills.total} drills done`}
@@ -135,8 +136,9 @@ export default function GrowthPanel({
       </div>
 
       {/* Skills — compared only to the player's own first swings */}
-      <div className="rounded-2xl bg-card p-4">
-        <h3 className="text-sm font-semibold">Skills</h3>
+      <p className="dd-only dd-label">Skills</p>
+      <div className="dd-comment rounded-2xl bg-card p-4">
+        <h3 className="dd-hide text-sm font-semibold">Skills</h3>
         <p className="mb-3 text-xs text-muted-foreground">
           Compared to {you} own first {WINDOW} swings — never to other players. Each bar is the
           average of the last {WINDOW} swings.
@@ -149,7 +151,7 @@ export default function GrowthPanel({
             return (
               <div key={g.skill}>
                 <div className="mb-1 flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium">{info.name}</span>
+                  <span className="dd-skill-name text-sm font-medium">{info.name}</span>
                   <span className="text-xs">
                     {g.now == null ? (
                       <span className="text-muted-foreground">
@@ -201,8 +203,8 @@ export default function GrowthPanel({
 
       {/* First swing vs newest swing — same five skills, one swing each */}
       {compare && (
-        <div className="rounded-2xl bg-card p-4">
-          <h3 className="text-sm font-semibold">First swing vs latest</h3>
+        <div className="dd-comment rounded-2xl bg-card p-4">
+          <h3 className="dd-card-title text-sm font-semibold">First swing vs latest</h3>
           <p className="mb-3 text-xs text-muted-foreground">
             {you === "your" ? "Your" : you === "their" ? "Their" : "This player's"} very first
             analyzed swing ({shortDate(compare.first.createdAt)}) next to the newest (
