@@ -43,6 +43,9 @@ export default function UploadPage() {
   const { user, profile, loading } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  // The ORIGINAL clip, kept in memory only so the swing engine can measure it.
+  // It is never uploaded — `file` (the blurred copy) is the only upload.
+  const sourceRef = useRef<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("pick");
   const [progress, setProgress] = useState(0);
@@ -86,6 +89,7 @@ export default function UploadPage() {
         setStage("error");
         return;
       }
+      sourceRef.current = picked;
       setFile(blurred);
       setPreviewUrl(URL.createObjectURL(blurred));
       setStage("ready");
@@ -121,6 +125,7 @@ export default function UploadPage() {
 
   function removeVideo() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    sourceRef.current = null;
     setFile(null);
     setPreviewUrl(null);
     setPlaybackUrl(null);
@@ -137,10 +142,15 @@ export default function UploadPage() {
       return;
     }
     try {
-      // 1) Run the swing engine ON-DEVICE against the blurred file
+      // 1) Run the swing engine ON-DEVICE against the ORIGINAL clip. Only the
+      // numbers leave the phone, so privacy is the same either way, but the
+      // blurred copy is a browser re-recording that seeks badly frame-by-frame
+      // and has mosaic over the background — measured on it, real side-view
+      // swings came out as "lunging 115%" (Oct 24). Same timeline as the
+      // blurred video, so the skeleton replay still lines up.
       setStage("analyzing");
       setProgress(0);
-      const frames = await extractPose(file, (f) => setProgress(f * 100));
+      const frames = await extractPose(sourceRef.current ?? file, (f) => setProgress(f * 100));
       const analysis = analyzeSwing(frames);
 
       // Quality gate: bad clips never reach the cloud
