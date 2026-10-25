@@ -5,3 +5,4 @@ node_modules/
 .vercel/
 test-clips/
 *.local.md
+demo-clips/
