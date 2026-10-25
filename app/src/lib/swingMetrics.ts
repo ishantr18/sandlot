@@ -612,18 +612,10 @@ export function analyzeSwing(rawFrames: PoseFrame[]): SwingAnalysis {
   return { ok: true, metrics, findings: buildFindings(metrics) };
 }
 
-// Swings saved before Oct 24 carry a "film in 60 fps" note inside the
-// "Couldn't measure" finding. Strip it on display; drop the finding if that
-// was all it said.
-const FPS_NOTE = /hips-before-shoulders timing — film in 60 fps \(slow-mo or 60 fps camera setting\) to measure it/;
-export function withoutFpsNote(findings: Finding[]): Finding[] {
-  return findings.flatMap((f) => {
-    if (f.metric !== "quality" || !FPS_NOTE.test(f.message)) return [f];
-    const m = f.message.match(/Couldn't measure: (.*)\. Everything above/);
-    const rest = (m?.[1] ?? "").split("; ").filter((n) => !FPS_NOTE.test(n));
-    if (!rest.length) return [];
-    return [{ ...f, message: f.message.replace(m![1], rest.join("; ")) }];
-  });
+// Older swings were saved with a "Couldn't measure" note. Players don't need
+// it, so hide it on display.
+export function withoutMeasureNote(findings: Finding[]): Finding[] {
+  return findings.filter((f) => f.metric !== "quality");
 }
 
 function buildFindings(m: SwingMetrics): Finding[] {
@@ -816,30 +808,6 @@ function buildFindings(m: SwingMetrics): Finding[] {
     );
   } else {
     add("stridePct", "good", `Stride width (${m.stridePct}% of height) looks solid.`);
-  }
-
-  // What this clip could NOT support. One honest note beats silently missing
-  // tiles — and it tells the player exactly how to film a clip that gets the
-  // full read next time.
-  {
-    const feet = [
-      m.headDriftPct === null && "head drift after foot plant",
-      m.stridePct === null && "stride",
-      m.kneeBraceDeg === null && "front-knee brace",
-      m.shoulderTiltDeg === null && "shoulder tilt",
-    ].filter(Boolean) as string[];
-    const notes: string[] = [];
-    if (feet.length) notes.push(`${feet.join(", ")} — your feet need to be in frame for those`);
-    // No note when hips-before-shoulders couldn't be measured (needs ~45+ fps):
-    // most phone clips are 30 fps, and the note read as an error on every swing.
-    if (m.hipTurnDeg === null) notes.push("hip turn — this clip has no depth data (re-upload to measure it)");
-    if (notes.length) {
-      add(
-        "quality",
-        "minor",
-        `Measured what this clip supports. Couldn't measure: ${notes.join("; ")}. Everything above is still a real read on your swing.`,
-      );
-    }
   }
 
   const rank = { major: 0, minor: 1, good: 2 };
