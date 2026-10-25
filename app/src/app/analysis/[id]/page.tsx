@@ -33,7 +33,7 @@ import LinkifiedText from "@/components/LinkifiedText";
 import ReactionButton, { reactionLabel } from "@/components/ReactionButton";
 import GrowthPanel from "@/components/GrowthPanel";
 import type { PoseFrame } from "@/lib/poseExtract";
-import { DISABLED_METRICS, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
+import { DISABLED_METRICS, withoutFpsNote, type Finding, type SwingMetrics } from "@/lib/swingMetrics";
 
 interface CommentRow {
   id: string;
@@ -403,8 +403,8 @@ export default function AnalysisSessionPage() {
             </section>
   );
 
-  const findings = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)) ?? [];
-  const findingsEl = session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)).map((f, i) => (
+  const findings = withoutFpsNote(session?.findings?.filter((f) => !DISABLED_METRICS.has(f.metric)) ?? []);
+  const findingsEl = findings.map((f, i) => (
               <section key={i} className={`dd-finding rounded-2xl bg-card p-4 ${SEVERITY_STYLE[f.severity]}`}>
                 {/* Field skin: the prototype's "The read" kicker on the first read */}
                 {i === 0 && (

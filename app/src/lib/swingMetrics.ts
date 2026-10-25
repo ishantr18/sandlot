@@ -612,6 +612,20 @@ export function analyzeSwing(rawFrames: PoseFrame[]): SwingAnalysis {
   return { ok: true, metrics, findings: buildFindings(metrics) };
 }
 
+// Swings saved before Oct 24 carry a "film in 60 fps" note inside the
+// "Couldn't measure" finding. Strip it on display; drop the finding if that
+// was all it said.
+const FPS_NOTE = /hips-before-shoulders timing — film in 60 fps \(slow-mo or 60 fps camera setting\) to measure it/;
+export function withoutFpsNote(findings: Finding[]): Finding[] {
+  return findings.flatMap((f) => {
+    if (f.metric !== "quality" || !FPS_NOTE.test(f.message)) return [f];
+    const m = f.message.match(/Couldn't measure: (.*)\. Everything above/);
+    const rest = (m?.[1] ?? "").split("; ").filter((n) => !FPS_NOTE.test(n));
+    if (!rest.length) return [];
+    return [{ ...f, message: f.message.replace(m![1], rest.join("; ")) }];
+  });
+}
+
 function buildFindings(m: SwingMetrics): Finding[] {
   const out: Finding[] = [];
   const add = (
@@ -816,8 +830,8 @@ function buildFindings(m: SwingMetrics): Finding[] {
     ].filter(Boolean) as string[];
     const notes: string[] = [];
     if (feet.length) notes.push(`${feet.join(", ")} — your feet need to be in frame for those`);
-    if (m.sequenceGapMs === null)
-      notes.push("hips-before-shoulders timing — film in 60 fps (slow-mo or 60 fps camera setting) to measure it");
+    // No note when hips-before-shoulders couldn't be measured (needs ~45+ fps):
+    // most phone clips are 30 fps, and the note read as an error on every swing.
     if (m.hipTurnDeg === null) notes.push("hip turn — this clip has no depth data (re-upload to measure it)");
     if (notes.length) {
       add(
