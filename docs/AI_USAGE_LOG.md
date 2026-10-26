@@ -1,6 +1,6 @@
 # AI Usage Log
 
-The 2026 CAC rules permit AI tools but require FULL disclosure in submission materials, and AI "must not constitute the entirety of the technical development." Log every use, every day. This file becomes the disclosure statement in October.
+How I used AI while building Diamond Drive. The 2026 Congressional App Challenge allows AI tools and asks entrants to disclose them; this log records each use and what I did myself.
 
 Format: date — tool — what it was used for — what I did myself with/around it
 

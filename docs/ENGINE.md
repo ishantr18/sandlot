@@ -1,7 +1,6 @@
 # The Swing Engine — technical documentation
 
-How Diamond Drive turns a phone video into coaching. This is both the judge-facing
-technical explainer and the study guide for the submission interview.
+How Diamond Drive turns a phone video into coaching.
 
 ---
 
@@ -86,7 +85,7 @@ The model outputs dots. Everything decided from those dots is ours:
    clips + published biomechanics, with every bug found by testing on real
    video (see §11).
 
-One-sentence version for the interview: *"Google's model tells us where the
+One-sentence version: *"Google's model tells us where the
 body is; every baseball question — when the swing happens, whether the hips
 fire first, whether to trust the clip at all — is answered by code we wrote
 and calibrated ourselves."*
@@ -301,7 +300,7 @@ noise), ~50% swing-timing error on edited web video. See VALIDATION.md.
 | `app/src/app/analysis/[id]/page.tsx` | replay: skeleton overlay + tiles + coaching |
 | `app/src/app/lab/page.tsx` | tuning bench (batch-analyze clips, raw numbers) |
 
-## 13. Glossary (interview prep)
+## 13. Glossary
 
 - **Landmark**: one tracked body point (33 per frame)
 - **Kinematic sequence**: energy order hips→torso→arms; the engine measures it

@@ -1,6 +1,6 @@
 # Diamond Drive — Technical Overview & Implementation Review
 *Prepared for engineering review. Everything here is implemented and deployed
-unless explicitly marked otherwise. Live app: sandlot-ishantr18s-projects.vercel.app · Private repo: github.com/ishantr18/sandlot*
+unless explicitly marked otherwise. Live app: https://sandlot-weld.vercel.app*
 
 ---
 
